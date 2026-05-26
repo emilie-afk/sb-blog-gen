@@ -993,4 +993,13 @@ ${articlesStr}`;
   } catch(err) {
     document.getElementById('progressCard').classList.remove('visible');
     document.getElementById('errorBox').textContent = 'Error: ' + (err.message||String(err));
-    document.getElementById('errorBox').classLi
+    document.getElementById('errorBox').classList.add('visible');
+  }
+
+  btn.disabled = false;
+  document.getElementById('genLabel').textContent = 'Generate Plant Care Guide';
+  document.getElementById('genIcon').textContent = '⚡';
+}
+</script>
+</body>
+</html>
