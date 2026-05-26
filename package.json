@@ -1,0 +1,9 @@
+{
+  "name": "succulents-blog-generator",
+  "version": "1.0.0",
+  "description": "AI-powered blog post generator for Succulents Box",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}
