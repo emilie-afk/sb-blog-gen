@@ -90,6 +90,24 @@ input:focus { outline: none; border-color: #3a6b35; background: white; box-shado
 .copy-note { font-size: 12px; color: #6a9a6a; }
 .error-box { display: none; background: #fff5f5; border: 1px solid #f5c0c0; border-radius: 10px; padding: 13px 17px; margin-bottom: 16px; color: #c00; font-size: 13px; }
 .error-box.visible { display: block; }
+.excerpt-card { display: none; background: white; border-radius: 12px; border: 1px solid #e0e8e0; padding: 22px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.excerpt-card.visible { display: block; }
+.excerpt-card .card-title { font-size: 13px; font-weight: 700; color: #2d5428; margin-bottom: 6px; }
+.excerpt-card .sub { font-size: 12px; color: #888; margin-bottom: 12px; }
+#excerpt-text { width: 100%; min-height: 80px; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; font-size: 14px; font-family: inherit; line-height: 1.65; color: #222; background: #fafafa; resize: vertical; }
+.excerpt-copy-bar { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.meta-card { display: none; background: white; border-radius: 12px; border: 1px solid #e0e8e0; padding: 22px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.meta-card.visible { display: block; }
+.meta-card .card-title { font-size: 13px; font-weight: 700; color: #2d5428; margin-bottom: 6px; }
+.meta-card .sub { font-size: 12px; color: #888; margin-bottom: 12px; }
+#meta-text { width: 100%; min-height: 60px; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; font-size: 14px; font-family: inherit; line-height: 1.65; color: #222; background: #fafafa; resize: vertical; }
+.meta-counter { font-size: 12px; color: #888; }
+.meta-counter.over { color: #c00; font-weight: 700; }
+.meta-copy-bar { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.recs-card { display: none; background: white; border-radius: 12px; border: 1px solid #e0e8e0; padding: 22px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.recs-card.visible { display: block; }
+.recs-section-title { font-size: 13px; font-weight: 700; color: #2d5428; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e8f0e8; display: flex; align-items: center; gap: 8px; }
+.recs-note { font-size: 11px; color: #999; font-weight: 400; background: #f0f5f0; padding: 2px 8px; border-radius: 10px; }
 .steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 18px; }
 .step { background: white; border: 1px solid #e0e8e0; border-radius: 8px; padding: 10px 12px; }
 .step .num { font-size: 17px; font-weight: 800; color: #3a6b35; }
@@ -186,6 +204,36 @@ input:focus { outline: none; border-color: #3a6b35; background: white; box-shado
       <span class="copy-note">Paste into Shopify → Blog post → click &lt;&gt; HTML button</span>
     </div>
   </div>
+  <!-- Excerpt card -->
+  <div class="excerpt-card" id="excerptCard">
+    <div class="card-title">✍️ Blog Excerpt</div>
+    <div class="sub">Paste this into Shopify → Blog post → Excerpt field</div>
+    <textarea id="excerpt-text" readonly></textarea>
+    <div class="excerpt-copy-bar">
+      <button class="copy-btn" id="excerptCopyBtn" onclick="copyExcerpt()">📋 Copy Excerpt</button>
+      <span class="copy-note">Plain text — paste directly into Shopify's Excerpt box</span>
+    </div>
+  </div>
+
+  <!-- Meta description card -->
+  <div class="meta-card" id="metaCard">
+    <div class="card-title">🔍 Meta Description</div>
+    <div class="sub">Paste this into Shopify → Blog post → Search engine listing → Meta description (160 chars max)</div>
+    <textarea id="meta-text" readonly oninput="updateMetaCounter()"></textarea>
+    <div class="meta-copy-bar">
+      <button class="copy-btn" id="metaCopyBtn" onclick="copyMeta()">📋 Copy Meta Description</button>
+      <span class="meta-counter" id="metaCounter"></span>
+    </div>
+  </div>
+
+  <!-- Recommendations reference panel (not included in blog HTML) -->
+  <div class="recs-card" id="recsCard">
+    <div class="recs-section-title">🛍 Suggested Products <span class="recs-note">reference only — not in the blog HTML</span></div>
+    <div id="recsProducts"></div>
+    <div class="recs-section-title" style="margin-top:20px;">📚 Related Articles <span class="recs-note">reference only — not in the blog HTML</span></div>
+    <div id="recsArticles"></div>
+  </div>
+
 </div>
 </div><!-- #app -->
 
@@ -782,6 +830,27 @@ function switchTab(t) {
     document.getElementById(n===t?n+'-pane':(n==='html'?'html-pane':'preview-pane')).classList.toggle('active', n===t);
   });
 }
+function updateMetaCounter() {
+  const ta = document.getElementById('meta-text');
+  const cnt = document.getElementById('metaCounter');
+  const len = ta.value.length;
+  cnt.textContent = len + ' / 160 characters';
+  cnt.classList.toggle('over', len > 160);
+}
+function copyMeta() {
+  const ta = document.getElementById('meta-text');
+  ta.select(); document.execCommand('copy');
+  const btn = document.getElementById('metaCopyBtn');
+  btn.textContent = '✅ Copied!'; btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent='📋 Copy Meta Description'; btn.classList.remove('ok'); }, 2500);
+}
+function copyExcerpt() {
+  const ta = document.getElementById('excerpt-text');
+  ta.select(); document.execCommand('copy');
+  const btn = document.getElementById('excerptCopyBtn');
+  btn.textContent = '✅ Copied!'; btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent='📋 Copy Excerpt'; btn.classList.remove('ok'); }, 2500);
+}
 function copyHTML() {
   const ta = document.getElementById('html-code');
   ta.select(); document.execCommand('copy');
@@ -849,6 +918,9 @@ async function generate() {
   document.getElementById('genIcon').textContent = '⏳';
   document.getElementById('progressCard').classList.add('visible');
   document.getElementById('outputCard').classList.remove('visible');
+  document.getElementById('excerptCard').classList.remove('visible');
+  document.getElementById('metaCard').classList.remove('visible');
+  document.getElementById('recsCard').classList.remove('visible');
   document.getElementById('errorBox').classList.remove('visible');
   setProgress(0);
 
@@ -866,10 +938,7 @@ async function generate() {
 
 EXACT STRUCTURE:
 
-1. TABLE OF CONTENTS:
-<div style="background:#f0f5f0;border-left:4px solid #3a6b35;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:28px;"><strong style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:#2d5428;margin-bottom:10px;">IN THIS ARTICLE</strong><div style="margin:4px 0;"><a href="#basic-information" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Basic Information</a></div><div style="margin:4px 0;"><a href="#indoors-vs-outdoors" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Indoors vs Outdoors</a></div><div style="margin:4px 0;"><a href="#general-care" style="color:#3a6b35;text-decoration:none;font-size:14px;">» General Care</a></div><div style="margin:4px 0;"><a href="#extra-care" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Extra Care</a></div><div style="margin:4px 0;"><a href="#common-problems" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Common Problems</a></div><div style="margin:4px 0;"><a href="#tips" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Succulents Box's Tips</a></div><div style="margin:4px 0;"><a href="#qa" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Q&amp;A for ${plantName}</a></div><div style="margin:4px 0;"><a href="#where-to-buy" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Where to buy ${plantName} online?</a></div></div>
-
-2. Updated tag + 2-sentence intro:
+1. Updated tag + 2-sentence intro:
 <p style="font-size:12px;color:#888;font-style:italic;">Updated ${month}</p>
 <p>[2-sentence intro. If product URL is provided (${productUrl||'none'}), hyperlink the plant name to it]</p>
 
@@ -914,7 +983,14 @@ ${buyBtn}
 <p>We also offer a wide variety of <a href="https://succulentsbox.com/collections/succulents" style="color:#3a6b35;">succulents and houseplants</a> to pair with ${plantName}. Visit <a href="https://succulentsbox.com" style="color:#3a6b35;">Succulents Box</a> to explore our full collection.</p>
 
 ${refsNote ? `REFERENCE LINKS — weave naturally into relevant sections:\n${refsNote}` : ''}
-RULES: Only raw HTML. No placeholders. Every section fully written. Start with the TOC div.`;
+TONE &amp; STYLE RULES:
+- Write in a warm, friendly, conversational tone — like a plant-loving friend giving advice, not a scientific paper
+- Never use em dashes (— or –). Use commas, periods, or short sentences instead
+- Avoid overly formal or clinical language. Keep it approachable and encouraging
+- Use contractions naturally (it's, you'll, they're, don't)
+- Sentences should be short and easy to scan
+
+RULES: Only raw HTML. No placeholders. Every section fully written. Start directly with the Updated tag.`;
 
   const catalogStr = CATALOG.map(p=>`${p.t}|${p.h}|${p.p}|${p.i}|${p.cat}`).join('\n');
 
@@ -934,12 +1010,14 @@ RULES: Only raw HTML. No placeholders. Every section fully written. Start with t
   const recsPrompt = `Plant blog post subject: "${plantName}"${sciName?` (${sciName})`:''}
 
 Return ONLY a valid JSON object — no explanation, no markdown:
-{"products":[{"t":"title","h":"handle","p":"price","i":"image_url"},{"t":"...","h":"...","p":"...","i":"..."},{"t":"...","h":"...","p":"...","i":"..."},{"t":"...","h":"...","p":"...","i":"..."}],"articles":[{"t":"title","u":"url"},{"t":"...","u":"..."},{"t":"...","u":"..."}]}
+{"excerpt":"2-3 sentence plain-text blog excerpt","meta_description":"max 160 char SEO meta description","products":[{"t":"title","h":"handle","p":"price","i":"image_url"},{"t":"...","h":"...","p":"...","i":"..."},{"t":"...","h":"...","p":"...","i":"..."},{"t":"...","h":"...","p":"...","i":"..."}],"articles":[{"t":"title","u":"url"},{"t":"...","u":"..."},{"t":"...","u":"..."}]}
 
 Rules:
+- excerpt: 2-3 plain-text sentences summarising the post. SEO-friendly, written for a plant lover. No HTML tags. No quotes around the value.
+- meta_description: max 160 characters. One punchy sentence optimised for Google search. Start with the plant name or a question. No HTML, no quotes.
 - 4 products: pick plants a ${plantName} owner would also enjoy. Same genus first, then similar care or aesthetics. Do NOT include the exact same plant.
 - 3 articles: MOST CLOSELY related to "${plantName}" care. Prefer articles about the same plant or genus. Then pick articles about care issues, propagation, or problems specific to this plant type.
-- Copy all values EXACTLY from the lists below.
+- Copy all product/article values EXACTLY from the lists below.
 
 PRODUCTS (title|handle|price|image|category):
 ${catalogStr}
@@ -968,23 +1046,46 @@ ${articlesStr}`;
 
     let careHtml = String(careResult||'').replace(/^```html\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
 
-    let productsHtml = '', articlesHtml = '';
+    let productsHtml = '', articlesHtml = '', excerpt = '', metaDesc = '';
     try {
       const m = String(recsResult||'').match(/\{[\s\S]*\}/);
       if (m) {
         const recs = JSON.parse(m[0]);
         setProgress(4);
+        excerpt = String(recs.excerpt || '').trim();
+        metaDesc = String(recs.meta_description || '').trim();
         productsHtml = buildProductCards(recs.products);
         articlesHtml = buildRelatedArticles(recs.articles);
       }
     } catch(e) { console.warn('Recs parse error:', e, recsResult); }
 
     setProgress(5);
-    const fullHtml = careHtml + productsHtml + articlesHtml;
 
-    document.getElementById('html-code').value = fullHtml;
+    // Blog HTML — care guide only (no products/articles embedded)
+    document.getElementById('html-code').value = careHtml;
     document.getElementById('preview-pane').innerHTML =
-      `<h1>How to grow and care for ${plantName}${sciName?` (${sciName})`:''}</h1>` + fullHtml;
+      `<h1>How to grow and care for ${plantName}${sciName?` (${sciName})`:''}</h1>` + careHtml;
+
+    // Excerpt card
+    if (excerpt) {
+      document.getElementById('excerpt-text').value = excerpt;
+      document.getElementById('excerptCard').classList.add('visible');
+    }
+
+    // Meta description card
+    if (metaDesc) {
+      const ta = document.getElementById('meta-text');
+      ta.value = metaDesc;
+      updateMetaCounter();
+      document.getElementById('metaCard').classList.add('visible');
+    }
+
+    // Recommendations shown separately for reference — not in the copy-paste output
+    document.getElementById('recsProducts').innerHTML = productsHtml;
+    document.getElementById('recsArticles').innerHTML = articlesHtml;
+    if (productsHtml || articlesHtml) {
+      document.getElementById('recsCard').classList.add('visible');
+    }
 
     document.getElementById('progressCard').classList.remove('visible');
     document.getElementById('outputCard').classList.add('visible');
