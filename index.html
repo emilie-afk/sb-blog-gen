@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Succulents Box – Blog Post Generator</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f8f5; color: #222; font-size: 14px; }
+
+/* ── Login overlay ── */
+#login-overlay {
+  position: fixed; inset: 0; background: linear-gradient(135deg, #2d5428 0%, #3a6b35 100%);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+#login-overlay.hidden { display: none; }
+.login-box {
+  background: white; border-radius: 16px; padding: 40px 36px; width: 340px;
+  text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-icon { font-size: 40px; margin-bottom: 12px; }
+.login-box h2 { font-size: 18px; color: #2d5428; margin-bottom: 4px; }
+.login-box p { font-size: 13px; color: #888; margin-bottom: 24px; }
+.login-box input {
+  width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 11px 14px;
+  font-size: 15px; margin-bottom: 14px; font-family: inherit;
+  background: #fafafa; transition: border 0.15s;
+}
+.login-box input:focus { outline: none; border-color: #3a6b35; background: white; box-shadow: 0 0 0 3px rgba(58,107,53,0.1); }
+.login-btn {
+  width: 100%; padding: 12px; background: #3a6b35; color: white; border: none;
+  border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.login-btn:hover { background: #2d5428; }
+.login-btn:disabled { background: #aaa; cursor: not-allowed; }
+.login-error { color: #c00; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+/* ── Main app ── */
+.header { background: linear-gradient(135deg, #2d5428 0%, #3a6b35 100%); color: white; padding: 18px 24px; display: flex; align-items: center; gap: 14px; }
+.header-icon { font-size: 26px; }
+.header h1 { font-size: 17px; font-weight: 700; }
+.header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+.container { max-width: 900px; margin: 0 auto; padding: 22px 18px; }
+.card { background: white; border-radius: 12px; border: 1px solid #e0e8e0; padding: 22px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.card-title { font-size: 13px; font-weight: 700; color: #2d5428; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.badge { background: #e8f5e8; color: #2d5428; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; }
+.field { margin-bottom: 13px; }
+input[type=text], input[type=url] { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 9px 12px; font-size: 14px; font-family: inherit; background: #fafafa; transition: border 0.15s; }
+input:focus { outline: none; border-color: #3a6b35; background: white; box-shadow: 0 0 0 3px rgba(58,107,53,0.1); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ref-box { background: #f9fbf9; border: 1px solid #e0e8e0; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+.ref-label { font-size: 11px; font-weight: 700; color: #3a6b35; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.gen-btn { width: 100%; padding: 14px; background: #3a6b35; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.15s; }
+.gen-btn:hover:not(:disabled) { background: #2d5428; }
+.gen-btn:disabled { background: #aaa; cursor: not-allowed; }
+.progress-card { display: none; background: white; border-radius: 12px; border: 1px solid #e0e8e0; padding: 18px 22px; margin-bottom: 18px; }
+.progress-card.visible { display: block; }
+.progress-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; font-size: 13px; color: #999; }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; background: #e0e8e0; transition: background 0.3s; }
+.progress-row.done .dot { background: #3a6b35; }
+.progress-row.done span { color: #222; }
+.progress-row.active .dot { background: #eee; border: 3px solid #3a6b35; animation: pulse 1s ease-in-out infinite; }
+.progress-row.active span { color: #3a6b35; font-weight: 600; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+.output-card { display: none; background: white; border-radius: 12px; border: 1px solid #e0e8e0; overflow: hidden; margin-bottom: 18px; }
+.output-card.visible { display: block; }
+.tabs { display: flex; border-bottom: 1px solid #e0e8e0; background: #f9fbf9; }
+.tab { padding: 11px 18px; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; }
+.tab.active { color: #3a6b35; border-bottom-color: #3a6b35; background: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+#html-code { width: 100%; min-height: 380px; max-height: 58vh; border: none; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; padding: 18px; background: #1a2a1a; color: #a8d5a2; resize: vertical; }
+#preview-pane { padding: 28px 34px; overflow-y: auto; max-height: 65vh; }
+#preview-pane h1 { font-size: 22px; color: #1a3d18; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid #e8f0e8; }
+#preview-pane h2 { font-size: 18px; color: #2d5428; margin: 24px 0 10px; padding-bottom: 5px; border-bottom: 2px solid #e8f0e8; }
+#preview-pane h3 { font-size: 15px; color: #3a6b35; margin: 15px 0 6px; }
+#preview-pane p { margin-bottom: 9px; line-height: 1.7; color: #333; }
+#preview-pane ul, #preview-pane ol { padding-left: 20px; margin-bottom: 10px; }
+#preview-pane li { margin-bottom: 6px; line-height: 1.65; }
+#preview-pane table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+#preview-pane th { background: #f0f5f0; color: #2d5428; border: 1px solid #ccc; padding: 7px 11px; text-align: left; font-weight: 700; }
+#preview-pane td { border: 1px solid #ddd; padding: 7px 11px; }
+#preview-pane a { color: #3a6b35; }
+.copy-bar { display: flex; align-items: center; gap: 12px; padding: 11px 18px; background: #1a2a1a; }
+.copy-btn { background: #3a6b35; color: white; border: none; border-radius: 7px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.copy-btn:hover { background: #2d5428; }
+.copy-btn.ok { background: #1a7a1a; }
+.copy-note { font-size: 12px; color: #6a9a6a; }
+.error-box { display: none; background: #fff5f5; border: 1px solid #f5c0c0; border-radius: 10px; padding: 13px 17px; margin-bottom: 16px; color: #c00; font-size: 13px; }
+.error-box.visible { display: block; }
+.steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 18px; }
+.step { background: white; border: 1px solid #e0e8e0; border-radius: 8px; padding: 10px 12px; }
+.step .num { font-size: 17px; font-weight: 800; color: #3a6b35; }
+.step .txt { font-size: 11px; color: #666; margin-top: 2px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<!-- ── Login overlay (no localStorage — session only) ── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-icon">🌵</div>
+    <h2>Succulents Box</h2>
+    <p>Blog Post Generator — team access only</p>
+    <input type="password" id="pwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" id="loginBtn" onclick="login()">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── Main app (hidden until authenticated) ── -->
+<div id="app" style="display:none;">
+<div class="header">
+  <div class="header-icon">🌵</div>
+  <div>
+    <h1>Succulents Box – Blog Post Generator</h1>
+    <p>Type a plant name → complete care guide + real product &amp; article recommendations</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="steps">
+    <div class="step"><div class="num">1</div><div class="txt">Enter plant name</div></div>
+    <div class="step"><div class="num">2</div><div class="txt">Add optional links</div></div>
+    <div class="step"><div class="num">3</div><div class="txt">Click Generate</div></div>
+    <div class="step"><div class="num">4</div><div class="txt">Copy HTML → Shopify</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🌿 Plant Info <span class="badge">Required</span></div>
+    <div class="row2">
+      <div class="field">
+        <label>Plant Common Name *</label>
+        <input type="text" id="plantName" placeholder="e.g. Haworthia, Aeonium Kiwi, String of Pearls">
+      </div>
+      <div class="field">
+        <label>Scientific Name (optional)</label>
+        <input type="text" id="sciName" placeholder="e.g. Haworthia fasciata">
+      </div>
+    </div>
+    <div class="field">
+      <label>Product URL on succulentsbox.com (for buy buttons)</label>
+      <input type="url" id="productUrl" placeholder="https://succulentsbox.com/products/...">
+    </div>
+    <div class="card-title" style="margin-top:6px;">🔗 Reference Links <span class="badge">Optional — up to 2</span></div>
+    <div class="ref-box">
+      <div class="ref-label">Reference 1</div>
+      <div class="row2">
+        <div><label>URL</label><input type="url" id="ref1url" placeholder="https://..."></div>
+        <div><label>Link Text</label><input type="text" id="ref1text" placeholder="e.g. ASPCA Toxicity Guide"></div>
+      </div>
+    </div>
+    <div class="ref-box">
+      <div class="ref-label">Reference 2</div>
+      <div class="row2">
+        <div><label>URL</label><input type="url" id="ref2url" placeholder="https://..."></div>
+        <div><label>Link Text</label><input type="text" id="ref2text" placeholder="e.g. University Extension Guide"></div>
+      </div>
+    </div>
+    <button class="gen-btn" id="genBtn" onclick="generate()">
+      <span id="genIcon">⚡</span><span id="genLabel">Generate Plant Care Guide</span>
+    </button>
+  </div>
+
+  <div class="progress-card" id="progressCard">
+    <div class="progress-row" id="p1"><div class="dot"></div><span>Writing care guide — Intro, Basic Info, Indoor/Outdoor…</span></div>
+    <div class="progress-row" id="p2"><div class="dot"></div><span>Writing General Care, Extra Care, Tips, Q&amp;A, Where to Buy…</span></div>
+    <div class="progress-row" id="p3"><div class="dot"></div><span>Selecting matching products from catalog…</span></div>
+    <div class="progress-row" id="p4"><div class="dot"></div><span>Selecting related blog articles…</span></div>
+    <div class="progress-row" id="p5"><div class="dot"></div><span>Assembling final HTML…</span></div>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="output-card" id="outputCard">
+    <div class="tabs">
+      <div class="tab active" id="tab-html" onclick="switchTab('html')">📄 HTML Code</div>
+      <div class="tab" id="tab-preview" onclick="switchTab('preview')">👁 Preview</div>
+    </div>
+    <div class="tab-pane active" id="html-pane"><textarea id="html-code" readonly></textarea></div>
+    <div class="tab-pane" id="preview-pane"></div>
+    <div class="copy-bar">
+      <button class="copy-btn" id="copyBtn" onclick="copyHTML()">📋 Copy HTML</button>
+      <span class="copy-note">Paste into Shopify → Blog post → click &lt;&gt; HTML button</span>
+    </div>
+  </div>
+</div>
+</div><!-- #app -->
+
+<script>
+// ── Session token (in-memory only, never stored) ─────────────────
+let _sessionToken = null;
+
+// ── Password check (no localStorage — session only) ─────────────
+async function login() {
+  const pwd = document.getElementById('pwd').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  if (!pwd) { err.textContent = 'Please enter the password.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  err.textContent = '';
+  try {
+    const res = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      _sessionToken = data.token;  // hold in memory only
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('pwd').value = '';
+    } else {
+      err.textContent = data.error || 'Incorrect password.';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  } catch(e) {
+    err.textContent = 'Network error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+
+// ── Data ─────────────────────────────────────────────────────────
+const CATALOG = [
+  // ── ECHEVERIA ──
+  {t:"Anacampseros Telephiastrum Variegatum",h:"anacampseros-telephiastrum-variegata",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/17_f48f64f6-0abb-4331-b888-2d3ec151cd89.jpg",cat:"Echeveria"},
+  {t:"Sedeveria Blue Elf",h:"blue-elf-echeveria",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/Echeveria-Blue-Elf-4.39.14-CH.jpg",cat:"Echeveria"},
+  {t:"Ghost Plant Graptopetalum",h:"graptopetalum-paraguayense-ghost-plant",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/PARAGUAYENSE.jpg",cat:"Echeveria"},
+  {t:"Echeveria Amnesty",h:"echeveria-amnesty",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Echeveria_Amnesty.png",cat:"Echeveria"},
+  {t:"Echeveria Canadian",h:"echeveria-canadian",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Echeveria_Canadian__lifestyle.png",cat:"Echeveria"},
+  {t:"Echeveria Elora",h:"echeveria-elora",p:"$12.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Echeveria_Elora.jpg",cat:"Echeveria"},
+  {t:"Echeveria Perle von Nurnberg",h:"echeveria-perle-von-nurnberg",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/echeveria-perle-von-nurnberg.jpg",cat:"Echeveria"},
+  {t:"Echeveria Subsessilis",h:"echeveria-subsessilis",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/echeveria-subsessilis.jpg",cat:"Echeveria"},
+  {t:"Echeveria Lola",h:"echeveria-lola",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/echeveria-lola.jpg",cat:"Echeveria"},
+  {t:"Rosette Succulent Pack",h:"rosette-shaped-succulent-pack",p:"$24.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/rosette-pack.jpg",cat:"Echeveria"},
+  // ── HAWORTHIA / ALOE / GASTERIA ──
+  {t:"Haworthia Coarctata var. Tenuis",h:"haworthia-coarctata-var-tenuis",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Haworthia-coarctata-var.-tenuis.jpg",cat:"Haworthia"},
+  {t:"Haworthia Concolor",h:"haworthia-concolor",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Haworthia-_Concolor.jpg",cat:"Haworthia"},
+  {t:"Haworthia cooperi var. dielsiana",h:"haworthia-cooperi-var-dielsiana",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Haworthiacooperivar.dielsiana.png",cat:"Haworthia"},
+  {t:"Haworthia Savanna",h:"succulent-haworthia-savanna",p:"$12.70",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/haworthia-savanna.jpg",cat:"Haworthia"},
+  {t:"Haworthia Zebra Plant",h:"haworthia-zebra-plant",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/haworthia-zebra.jpg",cat:"Haworthia"},
+  {t:"Aloe Firecracker",h:"aloe-firecracker",p:"$12.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Aloe_Firecracker.png",cat:"Aloe"},
+  {t:"Aloe Vera",h:"aloe-vera-succulent",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/aloe-vera.jpg",cat:"Aloe"},
+  {t:"Gasteria Durban",h:"succulent-gasteria-durban",p:"$12.70",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Succulent_Gasteria_Durban_2603cbaa-1669-4d41-ac30-cdd09ae64382.png",cat:"Gasteria"},
+  {t:"Gasteria Little Warty",h:"gasteria-little-warty",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/gasteria-little-warty.jpg",cat:"Gasteria"},
+  // ── SEDUM ──
+  {t:"Sedum Donkey's Tail",h:"sedum-burrito-donkeys-tail-succulent-2-or-4",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/6_3_31816f6e-a69f-4d3b-9ed3-2c67e781c1d2.jpg",cat:"Sedum"},
+  {t:"Pink Jelly Bean Sedum",h:"sedum-pink-jelly-bean",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/3_2_93ac88c6-8d14-4130-9a00-237c47afd889.jpg",cat:"Sedum"},
+  {t:"Sedum Little Missy",h:"sedum-little-missy-ground-cover-long-strand-trailing-succulent-2-or-4",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/MISSY_c5aaefa1-bae3-45fb-aeca-3a5ddd82014d.jpg",cat:"Sedum"},
+  {t:"Cremnosedum Little Gem",h:"sedum-cremnosedum-little-gem-tiny-rosette-green-puffy-2-or-4",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/20_0d1e49ae-a2f9-4bbe-8021-1fa696206cf3.jpg",cat:"Sedum"},
+  {t:"Sedum Major Himalayan Skies",h:"sedum-dasyphyllum-major",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/16_794a6a95-e685-4e5e-bd45-33999754d299.jpg",cat:"Sedum"},
+  {t:"Sedum Minor Corsican Stonecrop",h:"sedum-minor-succulent",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sedum-minor.jpg",cat:"Sedum"},
+  {t:"Sedum Acre Aureum",h:"sedum-acre-aureum",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sedum-acre-aureum.jpg",cat:"Sedum"},
+  {t:"Sedum Rubrotinctum Aurora",h:"sedum-rubrotinctum-aurora",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sedum-aurora.jpg",cat:"Sedum"},
+  // ── TRAILING / STRING PLANTS ──
+  {t:"String Of Pearls",h:"string-of-pearls-plants-succulents-rare-senecio-rowleyanu-plants-2-or-4",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/8_1_abcff915-7cc4-4345-921f-bb6d1a7c4e2f.jpg",cat:"Trailing/String"},
+  {t:"String of Dolphins",h:"string-of-dolphins-senecio-peregrinus-succulent",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/IMG_5789.jpg",cat:"Trailing/String"},
+  {t:"String of Turtles",h:"peperomia-prostrata-string-of-turtles",p:"$11.72",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/17_1_e42ace40-1e5b-4044-8d1b-1d007b320071.jpg",cat:"Trailing/String"},
+  {t:"Variegated String Of Pearls",h:"variegated-string-of-pearls",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/5_3_13f02de3-2158-4f0c-9a40-974f7d0675d3.jpg",cat:"Trailing/String"},
+  {t:"String of Tears",h:"string-of-tears-senecio-herreianus",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/string-of-tears.jpg",cat:"Trailing/String"},
+  {t:"String of Hearts",h:"string-of-hearts-ceropegia-woodii",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/string-of-hearts.jpg",cat:"Trailing/String"},
+  {t:"String of Bananas",h:"string-of-bananas-senecio-radicans",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/string-of-bananas.jpg",cat:"Trailing/String"},
+  {t:"Ruby Necklace Othonna capensis",h:"othonna-capensis-ruby-necklace",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/17_3540ceca-420c-4fb1-b7f2-b625eb922041.jpg",cat:"Trailing/String"},
+  // ── CACTUS ──
+  {t:"Golden Ball Cactus",h:"golden-ball-cactus",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/IMG_20170812_090624_grande_1.jpg",cat:"Cactus"},
+  {t:"Mammilloydia Snowball Cactus",h:"mammilloydia-candida-snowball-cactus",p:"$12.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/MammilloydiacandidaSnowballCactus.png",cat:"Cactus"},
+  {t:"Roadkill Cactus",h:"roadkill-cactus",p:"$11.60",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Consolea_rubescens_-_Roadkill_Cactus_Lifestyle.png",cat:"Cactus"},
+  {t:"Peruvian Old Lady Cactus",h:"peruvian-old-lady-cactus-espostoa-melanostele",p:"$16.40",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Espostoamelanostele-PeruvianOldLadyCactus2.jpg",cat:"Cactus"},
+  {t:"Baby Toes Fenestraria",h:"baby-toes-fenestraria",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/BabyToesFenestraria.jpg",cat:"Cactus"},
+  {t:"Lithops Living Stones",h:"lithops-living-stones-raw-stone-cactus-succulent",p:"$14.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/lithops.jpg",cat:"Cactus"},
+  // ── AEONIUM ──
+  {t:"Aeonium Kiwi",h:"aeonium-kiwi",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/11_6a594c11-cbbe-408e-ba72-7ffb2cd7fb9b.jpg",cat:"Aeonium"},
+  {t:"Aeonium lancerottense",h:"aeonium-lancerottense",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Aeonium_lancerottense_Lifestyle.png",cat:"Aeonium"},
+  {t:"Aeonium Venus",h:"aeonium-venus",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Aeonium_Venus.jpg",cat:"Aeonium"},
+  {t:"Aeonium Suncup Variegata",h:"variegated-aeonium-suncup",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/330293626_1651263658720277_2321973887850140094_n.jpg",cat:"Aeonium"},
+  {t:"Aeonium Lily Pad",h:"aeonium-lily-pad",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/5_3_8c6ef708-f973-471c-b49e-b0705f1271aa.jpg",cat:"Aeonium"},
+  {t:"Aeonium Phoenix Flame",h:"aeonium-phoenix-flame",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Aeonium_PhoenixFlame_1.jpg",cat:"Aeonium"},
+  {t:"Aeonium Arboreum Zwartkop",h:"aeonium-arboreum-zwartkop",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/aeonium-zwartkop.jpg",cat:"Aeonium"},
+  // ── CRASSULA ──
+  {t:"Crassula Baby Necklace",h:"baby-necklace-crassula",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/11_ea04e8c8-4059-4060-a2c2-d660d8bc0c84.jpg",cat:"Crassula"},
+  {t:"Crassula Springtime",h:"crassula-springtime",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/5_6.jpg",cat:"Crassula"},
+  {t:"Crassula Moonglow",h:"crassula-moonglow",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/13_1_17ddd093-56d9-43db-81d6-9eeb100a8fec.jpg",cat:"Crassula"},
+  {t:"Crassula Cotyledonis",h:"crassula-cotyledonis",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/9_c10afc6a-bb85-4793-8e36-68530385b995.jpg",cat:"Crassula"},
+  {t:"Crassula Mesembryanthemoides Tarantula",h:"crassula-mesembryanthemoides-tarantula",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/crassula-tarantula.jpg",cat:"Crassula"},
+  {t:"Crassula Jade Plant",h:"crassula-ovata-jade-plant",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/jade-plant.jpg",cat:"Crassula"},
+  {t:"String of Buttons Crassula perforata",h:"string-of-buttons",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/15_7d3d26ad-f269-4d27-9947-2e7154c87f3f.jpg",cat:"Crassula"},
+  // ── KALANCHOE ──
+  {t:"Six Angled Kalanchoe",h:"six-angled-kalanchoe",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/10_2_ddd88de3-0b8f-4838-9c84-4afd676b2817.jpg",cat:"Kalanchoe"},
+  {t:"Kalanchoe Panamensis",h:"kalanchoe-panamensis-kalanchoe-marnieriana-tall-green-succulents-2-or-4",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/panamensis.jpg",cat:"Kalanchoe"},
+  {t:"Kalanchoe Chocolate Soldier",h:"kalanchoe-tomentosa-succulent-chocolate-soldier-succulent-2-or-4",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Chocolate_Soldier_Lifestyle.png",cat:"Kalanchoe"},
+  {t:"Kalanchoe beharensis Fang",h:"kalanchoe-beharensis-fang",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Kalanchoe-beharensis-_Fang.jpg",cat:"Kalanchoe"},
+  {t:"Kalanchoe Teddy Bear",h:"kalanchoe-tomentosa-teddy-bear",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Kalanchoe-Tomentosa-Teddy-Bear.jpg",cat:"Kalanchoe"},
+  {t:"Kalanchoe Sexangularis",h:"six-angled-kalanchoe",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/kalanchoe-sexangularis.jpg",cat:"Kalanchoe"},
+  // ── SEMPERVIVUM ──
+  {t:"Sempervivum Hens and Chicks",h:"sempervivum-hens-and-chicks",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sempervivum-hens-chicks.jpg",cat:"Sempervivum"},
+  {t:"Sempervivum Crimson Velvet",h:"sempervivum-crimson-velvet",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sempervivum-crimson-velvet.jpg",cat:"Sempervivum"},
+  {t:"Sempervivum Stefan",h:"sempervivum-stefan",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sempervivum-stefan.jpg",cat:"Sempervivum"},
+  {t:"Sempervivum heuffelii Chocolate Sundae",h:"sempervivum-heuffelii-chocolate-sundae",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sempervivum-chocolate-sundae.jpg",cat:"Sempervivum"},
+  {t:"Sempervivum Highland Mist",h:"sempervivum-highland-mist",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/sempervivum-highland-mist.jpg",cat:"Sempervivum"},
+  {t:"Semponium Sienna",h:"semponium-sienna",p:"$8.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/semponium-sienna.jpg",cat:"Sempervivum"},
+  // ── HOUSEPLANTS ──
+  {t:"Glacier English Ivy",h:"english-ivy-glacier",p:"$11.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/8_2_3f1a116a-07b9-4fc3-9b56-474f6ebdbd3d.jpg",cat:"Houseplant / Ivy"},
+  {t:"Golden English Ivy",h:"english-ivy-gold-child",p:"$11.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/products/EnglishIvy_1.jpg",cat:"Houseplant / Ivy"},
+  {t:"Maranta Red Prayer Plant",h:"maranta-red-prayer",p:"$10.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Maranta-Red-Prayer-Lifestyle_6e5ed237-602e-4f04-a68b-85a043611a35.jpg",cat:"Houseplant / Tropical"},
+  {t:"Maranta Lemon Lime",h:"maranta-lemon-lime-1",p:"$18.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/maranta-lemon-lime.jpg",cat:"Houseplant / Tropical"},
+  {t:"Pothos N'joy",h:"pothos-njoy",p:"$10.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/3_33_2e16056c-7ab0-4524-abdf-564608c24cd2.jpg",cat:"Houseplant / Pothos"},
+  {t:"Pothos Neon Queen",h:"pothos-neon-queen",p:"$16.88",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Pothos_Neon_Queen_Lifestyle.png",cat:"Houseplant / Pothos"},
+  {t:"Pothos Silver Streak",h:"pothos-silver-streak",p:"$38.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Pothos_Silver_Streak_Lifestyle.png",cat:"Houseplant / Pothos"},
+  {t:"Pilea Aluminum Plant",h:"pilea-aluminum-plant",p:"$12.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Pilea_Aluminum.png",cat:"Houseplant / Tropical"},
+  {t:"Philodendron Sun Red",h:"philodendron-sun-red",p:"$18.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Philodendron_Sun_Red.png",cat:"Houseplant / Philodendron"},
+  {t:"Philodendron Summer Glory",h:"philodendron-summer-glory",p:"$46.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Philodendron_Summer_Glory_Lifestyle.png",cat:"Houseplant / Philodendron"},
+  {t:"Philodendron Pink Princess",h:"philodendron-pink-princess",p:"$28.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/philodendron-pink-princess.jpg",cat:"Houseplant / Philodendron"},
+  {t:"Schefflera Variegated",h:"schefflera-variegated",p:"$12.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/Schefflera_Variegated_Lifestyle_536be426-0efa-48bc-b9ae-07a4a93303de.png",cat:"Houseplant"},
+  {t:"Bromeliad Medusa",h:"bromeliad-medusa",p:"$22.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/bromeliad-medusa.jpg",cat:"Houseplant / Bromeliad"},
+  {t:"Hoya Rope Plant",h:"hoya-rope-plant",p:"$18.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/hoya-rope.jpg",cat:"Houseplant / Hoya"},
+  {t:"Monstera Deliciosa",h:"monstera-deliciosa",p:"$20.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/monstera.jpg",cat:"Houseplant / Tropical"},
+  // ── POTS & TOOLS ──
+  {t:"Succulent Potting Soil",h:"succulent-potting-soil",p:"$10.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/potting-soil.jpg",cat:"Soil / Tool"},
+  {t:"Terracotta Pot 2 or 4 inch",h:"2-or-4-3-terracotta-pot",p:"$5.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/terracotta-pot.jpg",cat:"Pot"},
+  {t:"Minimalist Ceramic Pots 3-Pack",h:"pack-of-3-minimalist-ceramic-pots-white-gray-oatmeal",p:"$18.00",i:"https://cdn.shopify.com/s/files/1/2198/4603/files/ceramic-pots.jpg",cat:"Pot"},
+];
+const ARTICLES = [
+  {t:"How Succulents React To Weather And Sun",u:"https://succulentsbox.com/blogs/blog/how-succulents-react-to-weather-and-sun"},
+  {t:"Propagation From Cuttings",u:"https://succulentsbox.com/blogs/blog/propagation-from-cuttings"},
+  {t:"Overwatered Vs Underwatered",u:"https://succulentsbox.com/blogs/blog/overwatered-vs-underwatered"},
+  {t:"Watering Tips",u:"https://succulentsbox.com/blogs/blog/watering-tips"},
+  {t:"Choose The Right Pots For Your Succulents",u:"https://succulentsbox.com/blogs/blog/choose-the-right-pots-for-your-succulents"},
+  {t:"How To Get Rid Of Mealy Bugs On Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-get-rid-of-mealy-bugs-on-succulents"},
+  {t:"Succulents Box June 2018 Crassula Care Guide",u:"https://succulentsbox.com/blogs/blog/succulents-box-june-2018-crassula-care-guide"},
+  {t:"Recommended Soils Fertilizers For Succulents",u:"https://succulentsbox.com/blogs/blog/recommended-soils-fertilizers-for-succulents"},
+  {t:"Tips On Succulent Propagation From Leaves And Cuttings",u:"https://succulentsbox.com/blogs/blog/tips-on-succulent-propagation-from-leaves-and-cuttings"},
+  {t:"Water Therapy For Succulents",u:"https://succulentsbox.com/blogs/blog/water-therapy-for-succulents"},
+  {t:"Succulents Box August 2018 Kalanchoe Sempervivum Care Guide",u:"https://succulentsbox.com/blogs/blog/succulents-box-august-2018-kalanchoe-sempervivum-care-guide"},
+  {t:"Air Plant Care Guide",u:"https://succulentsbox.com/blogs/blog/air-plant-care-guide"},
+  {t:"Grow Succulents To Save Water",u:"https://succulentsbox.com/blogs/blog/grow-succulents-to-save-water"},
+  {t:"Toxic And Non Toxic Succulents For Pets",u:"https://succulentsbox.com/blogs/blog/toxic-and-non-toxic-succulents-for-pets"},
+  {t:"How To Make My Succulents Turn Red",u:"https://succulentsbox.com/blogs/blog/how-to-make-my-succulents-turn-red"},
+  {t:"Troubleshooting Common Problems For Succulents",u:"https://succulentsbox.com/blogs/blog/troubleshooting-common-problems-for-succulents"},
+  {t:"Succulent Dormancy 101",u:"https://succulentsbox.com/blogs/blog/succulent-dormancy-101"},
+  {t:"How To Repot Succulents 3 Important Steps You Shouldn T Miss",u:"https://succulentsbox.com/blogs/blog/how-to-repot-succulents-3-important-steps-you-shouldn-t-miss"},
+  {t:"How To Use Grow Light For Your Indoor Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-use-grow-light-for-your-indoor-succulents"},
+  {t:"All About Monocarpic Succulents",u:"https://succulentsbox.com/blogs/blog/all-about-monocarpic-succulents"},
+  {t:"How To Prepare Your Succulents For Winter Time",u:"https://succulentsbox.com/blogs/blog/how-to-prepare-your-succulents-for-winter-time"},
+  {t:"Succulents Hardiness Zone Succulents For New York City California And Texas",u:"https://succulentsbox.com/blogs/blog/succulents-hardiness-zone-succulents-for-new-york-city-california-and-texas"},
+  {t:"How To Choose Succulents For Succulent Arrangement",u:"https://succulentsbox.com/blogs/blog/how-to-choose-succulents-for-succulent-arrangement"},
+  {t:"How To Care For Your Indoor Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-your-indoor-succulents"},
+  {t:"Best Outdoor Succulents For Extreme Cold Weather",u:"https://succulentsbox.com/blogs/blog/best-outdoor-succulents-for-extreme-cold-weather"},
+  {t:"10 Succulents That Do Well Indoor",u:"https://succulentsbox.com/blogs/blog/10-succulents-that-do-well-indoor"},
+  {t:"Succulents Etiolation And How To Fix It",u:"https://succulentsbox.com/blogs/blog/succulents-etiolation-and-how-to-fix-it"},
+  {t:"How To Care For String Of Pearls",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-string-of-pearls"},
+  {t:"How To Take Good Care Of String Of Hearts",u:"https://succulentsbox.com/blogs/blog/how-to-take-good-care-of-string-of-hearts"},
+  {t:"10 Pink Red Succulents For Valentine S Day",u:"https://succulentsbox.com/blogs/blog/10-pink-red-succulents-for-valentine-s-day"},
+  {t:"How To Tell If Your Succulents Are Happy",u:"https://succulentsbox.com/blogs/blog/how-to-tell-if-your-succulents-are-happy"},
+  {t:"How To Keep Your Pets Away From Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-keep-your-pets-away-from-your-succulents"},
+  {t:"How To Care For Lithops",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-lithops"},
+  {t:"How To Take Care Of Crassula Red Pagoda",u:"https://succulentsbox.com/blogs/blog/how-to-take-care-of-crassula-red-pagoda"},
+  {t:"Succulents That Grow Fast",u:"https://succulentsbox.com/blogs/blog/succulents-that-grow-fast"},
+  {t:"How To Take Care Of Christmas Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-take-care-of-christmas-cactus"},
+  {t:"How To Save Dying Succulents Part 1 Overwatered Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-save-dying-succulents-part-1-overwatered-succulents"},
+  {t:"How To Save Dying Succulents Part Ii Sunburned Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-save-dying-succulents-part-ii-sunburned-succulents"},
+  {t:"How To Care For Succulents In The Summer",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-succulents-in-the-summer"},
+  {t:"How To Care For Frizzle Sizzle Albuca Spiralis",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-frizzle-sizzle-albuca-spiralis"},
+  {t:"How To Stimulate Root Growth In Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-stimulate-root-growth-in-succulents"},
+  {t:"How To Care For Mother Of Thousands Kalanchoe",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-mother-of-thousands-kalanchoe"},
+  {t:"Succulents For Beginners",u:"https://succulentsbox.com/blogs/blog/succulents-for-beginners"},
+  {t:"How To Care For Karoo Rose Lapidaria Margaretae",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-karoo-rose-lapidaria-margaretae"},
+  {t:"How To Identify Succulent 101 Echeveria Sempervivum And Aonium",u:"https://succulentsbox.com/blogs/blog/how-to-identify-succulent-101-echeveria-sempervivum-and-aonium"},
+  {t:"How To Identify Different Types Of Succulent Part Ii Aloe Agave Gasteria And Haworthia",u:"https://succulentsbox.com/blogs/blog/how-to-identify-different-types-of-succulent-part-ii-aloe-agave-gasteria-and-haworthia"},
+  {t:"How To Identify Types Of Succulent Part Iii",u:"https://succulentsbox.com/blogs/blog/how-to-identify-types-of-succulent-part-iii"},
+  {t:"How To Grow Succulents Outdoors",u:"https://succulentsbox.com/blogs/blog/how-to-grow-succulents-outdoors"},
+  {t:"Succulents For Zone 3 4",u:"https://succulentsbox.com/blogs/blog/succulents-for-zone-3-4"},
+  {t:"Common Problems Of String Of Pearls And How To Fix Them",u:"https://succulentsbox.com/blogs/blog/common-problems-of-string-of-pearls-and-how-to-fix-them"},
+  {t:"Succulent Zone 7 8",u:"https://succulentsbox.com/blogs/blog/succulent-zone-7-8"},
+  {t:"Succulent Zone 9",u:"https://succulentsbox.com/blogs/blog/succulent-zone-9"},
+  {t:"Succulent Zone 10",u:"https://succulentsbox.com/blogs/blog/succulent-zone-10"},
+  {t:"Succulent Zone 11 12",u:"https://succulentsbox.com/blogs/blog/succulent-zone-11-12"},
+  {t:"How To Make Dragon S Blood Sedum Bloom",u:"https://succulentsbox.com/blogs/blog/how-to-make-dragon-s-blood-sedum-bloom"},
+  {t:"How To Care For Sedum Donkeys Tail",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedum-donkeys-tail"},
+  {t:"How To Care For Moonstones Pachyphytum Oviferum",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-moonstones-pachyphytum-oviferum"},
+  {t:"Root Rot Treatment For Succulents",u:"https://succulentsbox.com/blogs/blog/root-rot-treatment-for-succulents"},
+  {t:"Choosing The Right Size Pot For Your Succulents",u:"https://succulentsbox.com/blogs/blog/choosing-the-right-size-pot-for-your-succulents"},
+  {t:"How And When To Prune Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-and-when-to-prune-your-succulents"},
+  {t:"Painted Succulents Trendy Or Harmful",u:"https://succulentsbox.com/blogs/blog/painted-succulents-trendy-or-harmful"},
+  {t:"How To Care For Adenium Obesum Desert Rose",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-adenium-obesum-desert-rose"},
+  {t:"How To Care For Echeveria Black Knight",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-black-knight"},
+  {t:"Succulent Glossary",u:"https://succulentsbox.com/blogs/blog/succulent-glossary"},
+  {t:"How To Care For Aeonium Black Rose",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aeonium-black-rose"},
+  {t:"Succulentsbox October Box Care Guide",u:"https://succulentsbox.com/blogs/blog/succulentsbox-october-box-care-guide"},
+  {t:"Indoor Outdoor Winter Care Guide For Succulents",u:"https://succulentsbox.com/blogs/blog/indoor-outdoor-winter-care-guide-for-succulents"},
+  {t:"What Could Go Wrong With Your Succulent Propagation",u:"https://succulentsbox.com/blogs/blog/what-could-go-wrong-with-your-succulent-propagation"},
+  {t:"How To Make Christmas Cactus Bloom Several Times A Year",u:"https://succulentsbox.com/blogs/blog/how-to-make-christmas-cactus-bloom-several-times-a-year"},
+  {t:"How To Care For Crassula Baby Necklace",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-baby-necklace"},
+  {t:"How To Care For Pachypodium Brevicaule",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pachypodium-brevicaule"},
+  {t:"How To Care For Cotyledon Tomentosa Bears Paw",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-cotyledon-tomentosa-bears-paw"},
+  {t:"Water Propagation For Succulents",u:"https://succulentsbox.com/blogs/blog/water-propagation-for-succulents"},
+  {t:"How To Care For String Of Dolphins",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-string-of-dolphins"},
+  {t:"6 Must Know Succulent Care Tips For Beginners",u:"https://succulentsbox.com/blogs/blog/6-must-know-succulent-care-tips-for-beginners"},
+  {t:"Winter Damaged Succulent Treatment",u:"https://succulentsbox.com/blogs/blog/winter-damaged-succulent-treatment"},
+  {t:"All About Watering Succulents",u:"https://succulentsbox.com/blogs/blog/all-about-watering-succulents"},
+  {t:"What Is Wrong With My Air Plant",u:"https://succulentsbox.com/blogs/blog/what-is-wrong-with-my-air-plant"},
+  {t:"How To Care For Graptoveria Fred Ives",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-graptoveria-fred-ives"},
+  {t:"How To Take Care Of Succulents In A No Drainage Pot",u:"https://succulentsbox.com/blogs/blog/how-to-take-care-of-succulents-in-a-no-drainage-pot"},
+  {t:"Are Your Succulents Getting The Right Amount Of Sun And Water",u:"https://succulentsbox.com/blogs/blog/are-your-succulents-getting-the-right-amount-of-sun-and-water"},
+  {t:"A Simple Guide To Gowing Succulents In Water",u:"https://succulentsbox.com/blogs/blog/a-simple-guide-to-gowing-succulents-in-water"},
+  {t:"How To Take Care Of Gollum Jade",u:"https://succulentsbox.com/blogs/blog/how-to-take-care-of-gollum-jade"},
+  {t:"How To Propagate Cactus Easy Fast",u:"https://succulentsbox.com/blogs/blog/how-to-propagate-cactus-easy-fast"},
+  {t:"How To Grow An Air Plant Collection Fast And Free",u:"https://succulentsbox.com/blogs/blog/how-to-grow-an-air-plant-collection-fast-and-free"},
+  {t:"12 Most Beautiful Flowering Succulents",u:"https://succulentsbox.com/blogs/blog/12-most-beautiful-flowering-succulents"},
+  {t:"8 Most Popular Hanging Succulents",u:"https://succulentsbox.com/blogs/blog/8-most-popular-hanging-succulents"},
+  {t:"Introduction To Succulent Growth Form",u:"https://succulentsbox.com/blogs/blog/introduction-to-succulent-growth-form"},
+  {t:"Watering Air Plant 101",u:"https://succulentsbox.com/blogs/blog/watering-air-plant-101"},
+  {t:"How To Grow Cactus Indoor",u:"https://succulentsbox.com/blogs/blog/how-to-grow-cactus-indoor"},
+  {t:"7 Things You Should Not Do With Newly Arrived Succulents",u:"https://succulentsbox.com/blogs/blog/7-things-you-should-not-do-with-newly-arrived-succulents"},
+  {t:"How To Winterize Your Air Plants",u:"https://succulentsbox.com/blogs/blog/how-to-winterize-your-air-plants"},
+  {t:"Topdressing For Succulents",u:"https://succulentsbox.com/blogs/blog/topdressing-for-succulents"},
+  {t:"A Detailed Care To Keep Your Fenestraria Baby Toe Healthy And Compact",u:"https://succulentsbox.com/blogs/blog/a-detailed-care-to-keep-your-fenestraria-baby-toe-healthy-and-compact"},
+  {t:"The Dos And Donts In Caring For Sedum Major",u:"https://succulentsbox.com/blogs/blog/the-dos-and-donts-in-caring-for-sedum-major"},
+  {t:"How To Repot Your Hanging Succulent Without Killing It",u:"https://succulentsbox.com/blogs/blog/how-to-repot-your-hanging-succulent-without-killing-it"},
+  {t:"Growing Cocoon Plant Senecio",u:"https://succulentsbox.com/blogs/blog/growing-cocoon-plant-senecio"},
+  {t:"Succulent Tool Kit And How To Use Them",u:"https://succulentsbox.com/blogs/blog/succulent-tool-kit-and-how-to-use-them"},
+  {t:"How To Save Underwatered And Overwatered Air Plants",u:"https://succulentsbox.com/blogs/blog/how-to-save-underwatered-and-overwatered-air-plants"},
+  {t:"How And When Should You Bottom Water Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-and-when-should-you-bottom-water-your-succulents"},
+  {t:"How To Save Dying Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-save-dying-cactus"},
+  {t:"6 Blue Succulents That Will Blow Your Mind",u:"https://succulentsbox.com/blogs/blog/6-blue-succulents-that-will-blow-your-mind"},
+  {t:"How To Find The Light Levels For Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-find-the-light-levels-for-your-succulents"},
+  {t:"10 Best Succulents And Cactus For Full Sun",u:"https://succulentsbox.com/blogs/blog/10-best-succulents-and-cactus-for-full-sun"},
+  {t:"Kalanchoe Tomentosa Care Guide And Propagation",u:"https://succulentsbox.com/blogs/blog/kalanchoe-tomentosa-care-guide-and-propagation"},
+  {t:"Key Reminders To Grow Succulents In Full Sun",u:"https://succulentsbox.com/blogs/blog/key-reminders-to-grow-succulents-in-full-sun"},
+  {t:"Why Dry Propagation Is The Best Method For Beginners",u:"https://succulentsbox.com/blogs/blog/why-dry-propagation-is-the-best-method-for-beginners"},
+  {t:"Haworthia Zebra Is The Best Succulent For Beginner",u:"https://succulentsbox.com/blogs/blog/haworthia-zebra-is-the-best-succulent-for-beginner"},
+  {t:"All You Need To Know About Succulent Variegation",u:"https://succulentsbox.com/blogs/blog/all-you-need-to-know-about-succulent-variegation"},
+  {t:"The Ultimate Guide To Moving Succulent For Long Distance",u:"https://succulentsbox.com/blogs/blog/the-ultimate-guide-to-moving-succulent-for-long-distance"},
+  {t:"6 Facts You Need To Know About Split Rock",u:"https://succulentsbox.com/blogs/blog/6-facts-you-need-to-know-about-split-rock"},
+  {t:"Cactus 101",u:"https://succulentsbox.com/blogs/blog/cactus-101"},
+  {t:"Guide For Kalanchoe Plants",u:"https://succulentsbox.com/blogs/blog/guide-for-kalanchoe-plants"},
+  {t:"How To Care For Coral Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-coral-cactus"},
+  {t:"General Care Guide For Sedum",u:"https://succulentsbox.com/blogs/blog/general-care-guide-for-sedum"},
+  {t:"General Care Guide For Agave",u:"https://succulentsbox.com/blogs/blog/general-care-guide-for-agave"},
+  {t:"Echeveria Care Guide 101",u:"https://succulentsbox.com/blogs/blog/echeveria-care-guide-101"},
+  {t:"General Care Guide For Aloe",u:"https://succulentsbox.com/blogs/blog/general-care-guide-for-aloe"},
+  {t:"How To Create A Succulent Garden",u:"https://succulentsbox.com/blogs/blog/how-to-create-a-succulent-garden"},
+  {t:"How To Care For Sedum Jelly Bean",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedum-jelly-bean"},
+  {t:"How To Tell If Your Succulent Leaves Are Healthy Their Treatments",u:"https://succulentsbox.com/blogs/blog/how-to-tell-if-your-succulent-leaves-are-healthy-their-treatments"},
+  {t:"Succulent Fungus Their Natural Treatments",u:"https://succulentsbox.com/blogs/blog/succulent-fungus-their-natural-treatments"},
+  {t:"All You Need To Know About Succulent Hybrid",u:"https://succulentsbox.com/blogs/blog/all-you-need-to-know-about-succulent-hybrid"},
+  {t:"How To Care For Crassula Calico Kitten",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-calico-kitten"},
+  {t:"How To Grow And Take Care Of Bunny Ears Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-take-care-of-bunny-ears-cactus"},
+  {t:"Why Are My Succulent Leaves Dropping",u:"https://succulentsbox.com/blogs/blog/why-are-my-succulent-leaves-dropping"},
+  {t:"What You Need To Know About Crested Succulents",u:"https://succulentsbox.com/blogs/blog/what-you-need-to-know-about-crested-succulents"},
+  {t:"How To Care For Xerographica The King Of Air Plants",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-xerographica-the-king-of-air-plants"},
+  {t:"How To Graft A Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-graft-a-cactus"},
+  {t:"What Are The Benefits Of Air Plants",u:"https://succulentsbox.com/blogs/blog/what-are-the-benefits-of-air-plants"},
+  {t:"Why Do Succulents Lose Color",u:"https://succulentsbox.com/blogs/blog/why-do-succulents-lose-color"},
+  {t:"How To Care For Crassula Watch Chain",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-watch-chain"},
+  {t:"How To Care For Haworthia Cooperi",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-haworthia-cooperi"},
+  {t:"Q A Succulent And Cactus Propagation",u:"https://succulentsbox.com/blogs/blog/q-a-succulent-and-cactus-propagation"},
+  {t:"How To Display Your Air Plants",u:"https://succulentsbox.com/blogs/blog/how-to-display-your-air-plants"},
+  {t:"How To Drill A Drainage Hole",u:"https://succulentsbox.com/blogs/blog/how-to-drill-a-drainage-hole"},
+  {t:"Growing Succulents In Semi Hydroponics",u:"https://succulentsbox.com/blogs/blog/growing-succulents-in-semi-hydroponics"},
+  {t:"5 Most Common Questions About Cactus",u:"https://succulentsbox.com/blogs/blog/5-most-common-questions-about-cactus"},
+  {t:"How To Care For Succulent Arrangement",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-succulent-arrangement"},
+  {t:"What Is Aerial Roots On Succulents",u:"https://succulentsbox.com/blogs/blog/what-is-aerial-roots-on-succulents"},
+  {t:"What Is Farina On Succulent",u:"https://succulentsbox.com/blogs/blog/what-is-farina-on-succulent"},
+  {t:"How To Grow Succulents As Bonsais",u:"https://succulentsbox.com/blogs/blog/how-to-grow-succulents-as-bonsais"},
+  {t:"Why Is My Cactus Turning Brown",u:"https://succulentsbox.com/blogs/blog/why-is-my-cactus-turning-brown"},
+  {t:"How To Propagate Succulent Using Natural Rooting Hormones",u:"https://succulentsbox.com/blogs/blog/how-to-propagate-succulent-using-natural-rooting-hormones"},
+  {t:"How And When To Trim Succulent Roots",u:"https://succulentsbox.com/blogs/blog/how-and-when-to-trim-succulent-roots"},
+  {t:"How To Care For Aeonium Mardi Gras",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aeonium-mardi-gras"},
+  {t:"How To Get Rid Of Ants On Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-get-rid-of-ants-on-succulents"},
+  {t:"How To Use A Moisture Meter",u:"https://succulentsbox.com/blogs/blog/how-to-use-a-moisture-meter"},
+  {t:"How To Protect Succulents In Rainy Season",u:"https://succulentsbox.com/blogs/blog/how-to-protect-succulents-in-rainy-season"},
+  {t:"How To Care For Sempervivum Red Lion",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sempervivum-red-lion"},
+  {t:"How To Save Underwatered Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-save-underwatered-succulents"},
+  {t:"The Best Water For Succulents",u:"https://succulentsbox.com/blogs/blog/the-best-water-for-succulents"},
+  {t:"How To Fertilize Succulents With Compost Tea",u:"https://succulentsbox.com/blogs/blog/how-to-fertilize-succulents-with-compost-tea"},
+  {t:"How To Care For Purple Heart Tradescantia Pallida",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-purple-heart-tradescantia-pallida"},
+  {t:"How To Use Leftover Pasta Water On Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-use-leftover-pasta-water-on-succulents"},
+  {t:"How To Take Care Of Succulents While On Vacation",u:"https://succulentsbox.com/blogs/blog/how-to-take-care-of-succulents-while-on-vacation"},
+  {t:"How To Water Succulents With Melted Snow",u:"https://succulentsbox.com/blogs/blog/how-to-water-succulents-with-melted-snow"},
+  {t:"How To Care For Your String Of Turtles",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-your-string-of-turtles"},
+  {t:"How To Repot Root Bound Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-repot-root-bound-succulents"},
+  {t:"Signs Of Healthy And Unhealthy Roots In Succulents",u:"https://succulentsbox.com/blogs/blog/signs-of-healthy-and-unhealthy-roots-in-succulents"},
+  {t:"How To Grow And Care For Aeonium Plant",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-aeonium-plant"},
+  {t:"How To Get Rid Of Gnats On Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-get-rid-of-gnats-on-succulents"},
+  {t:"How To Care For Dormant Succulents In The Winter",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-dormant-succulents-in-the-winter"},
+  {t:"How To Grow And Care For Kalanchoe Panamensis",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-kalanchoe-panamensis"},
+  {t:"Can Succulents Grow Well In Sand",u:"https://succulentsbox.com/blogs/blog/can-succulents-grow-well-in-sand"},
+  {t:"How To Care For Sempervivum Cobweb",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sempervivum-cobweb"},
+  {t:"How To Care For String Of Bananas",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-string-of-bananas"},
+  {t:"Why Do My Succulents Smell Bad",u:"https://succulentsbox.com/blogs/blog/why-do-my-succulents-smell-bad"},
+  {t:"How To Care For Pink Lady",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pink-lady"},
+  {t:"How To Deal With Transplant Shock",u:"https://succulentsbox.com/blogs/blog/how-to-deal-with-transplant-shock"},
+  {t:"Using Hydrogen Peroxide With Succulents",u:"https://succulentsbox.com/blogs/blog/using-hydrogen-peroxide-with-succulents"},
+  {t:"How To Care For Elephant Bush",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-elephant-bush"},
+  {t:"How To Care For Echeveria Raindrops",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-raindrops"},
+  {t:"How Can Air Circulation Help Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-can-air-circulation-help-your-succulents"},
+  {t:"Is Charcoal Good For Succulents",u:"https://succulentsbox.com/blogs/blog/is-charcoal-good-for-succulents"},
+  {t:"How To Care For Fishbone Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-fishbone-cactus"},
+  {t:"When Should I Water My Succulents",u:"https://succulentsbox.com/blogs/blog/when-should-i-water-my-succulents"},
+  {t:"How To Revive Frostbitten Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-revive-frostbitten-succulents"},
+  {t:"How To Grow And Care For Echeveria Harmsii",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-echeveria-harmsii"},
+  {t:"Springtime Succulent Care Guide",u:"https://succulentsbox.com/blogs/blog/springtime-succulent-care-guide"},
+  {t:"How To Care For The Kalanchoe Flapjacks Succulent",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-the-kalanchoe-flapjacks-succulent"},
+  {t:"How To Identify Different Kinds Of String Of Hearts",u:"https://succulentsbox.com/blogs/blog/how-to-identify-different-kinds-of-string-of-hearts"},
+  {t:"How To Use Epsom Salt With Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-use-epsom-salt-with-your-succulents"},
+  {t:"How To Care For Monstera Adansonii Swiss Cheese",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-monstera-adansonii-swiss-cheese"},
+  {t:"How To Care For Varigated Agave Butterfly",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-varigated-agave-butterfly"},
+  {t:"How To Treat Succulent Edema",u:"https://succulentsbox.com/blogs/blog/how-to-treat-succulent-edema"},
+  {t:"A Quick Guide To Light Levels For Houseplants",u:"https://succulentsbox.com/blogs/blog/a-quick-guide-to-light-levels-for-houseplants"},
+  {t:"How To Grow And Care For Sedum Golden Moss Sedum De Oro",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-sedum-golden-moss-sedum-de-oro"},
+  {t:"How To Care For Echeveria Crinoline",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-crinoline"},
+  {t:"How Humidity Affects Succulents",u:"https://succulentsbox.com/blogs/blog/how-humidity-affects-succulents"},
+  {t:"How To Care For Sempervivum Succulent",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sempervivum-succulent"},
+  {t:"How To Care For Aloe Vera",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aloe-vera"},
+  {t:"Common Succulents Used In Beauty Products",u:"https://succulentsbox.com/blogs/blog/common-succulents-used-in-beauty-products"},
+  {t:"How To Care For Sedum Succulent",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedum-succulent"},
+  {t:"Succulent Lifespans And How To Extend Them",u:"https://succulentsbox.com/blogs/blog/succulent-lifespans-and-how-to-extend-them"},
+  {t:"Growing Succulents In Low Light",u:"https://succulentsbox.com/blogs/blog/growing-succulents-in-low-light"},
+  {t:"Everything You Need To Know About Succulent Offshoots",u:"https://succulentsbox.com/blogs/blog/everything-you-need-to-know-about-succulent-offshoots"},
+  {t:"Ghost Plant Graptopetalum Paraguaynese Care Guide",u:"https://succulentsbox.com/blogs/blog/ghost-plant-graptopetalum-paraguaynese-care-guide"},
+  {t:"How To Propagate String Of Hearts Using The Butterfly Method",u:"https://succulentsbox.com/blogs/blog/how-to-propagate-string-of-hearts-using-the-butterfly-method"},
+  {t:"Why Isn T My Succulent Growing Six Things That Slow Growth And How To Fix Them",u:"https://succulentsbox.com/blogs/blog/why-isn-t-my-succulent-growing-six-things-that-slow-growth-and-how-to-fix-them"},
+  {t:"How To Grow Succulents In A Greenhouse",u:"https://succulentsbox.com/blogs/blog/how-to-grow-succulents-in-a-greenhouse"},
+  {t:"Why Are There White Spots On My Succulents",u:"https://succulentsbox.com/blogs/blog/why-are-there-white-spots-on-my-succulents"},
+  {t:"How To Grow Succulents In A Greenhouse During The Winter",u:"https://succulentsbox.com/blogs/blog/how-to-grow-succulents-in-a-greenhouse-during-the-winter"},
+  {t:"How To Use Diatomaceous Earth On Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-use-diatomaceous-earth-on-succulents"},
+  {t:"How Big Do Succulents Grow",u:"https://succulentsbox.com/blogs/blog/how-big-do-succulents-grow"},
+  {t:"How Long Can Succulents Survive Without Soil",u:"https://succulentsbox.com/blogs/blog/how-long-can-succulents-survive-without-soil"},
+  {t:"Can A Damaged Cactus Heal Itself",u:"https://succulentsbox.com/blogs/blog/can-a-damaged-cactus-heal-itself"},
+  {t:"How To Germinate Succulents From Seeds",u:"https://succulentsbox.com/blogs/blog/how-to-germinate-succulents-from-seeds"},
+  {t:"Is Sun Stress Good For Succulents",u:"https://succulentsbox.com/blogs/blog/is-sun-stress-good-for-succulents"},
+  {t:"How To Get Rid Of Slugs And Snails On Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-get-rid-of-slugs-and-snails-on-your-succulents"},
+  {t:"How To Care For Ruby Necklace Succulent",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-ruby-necklace-succulent"},
+  {t:"Why Is There A Mushroom Growing In My Succulent Pot",u:"https://succulentsbox.com/blogs/blog/why-is-there-a-mushroom-growing-in-my-succulent-pot"},
+  {t:"How To Repot A Succulent Arrangement",u:"https://succulentsbox.com/blogs/blog/how-to-repot-a-succulent-arrangement"},
+  {t:"How To Help Succulent Grow Faster",u:"https://succulentsbox.com/blogs/blog/how-to-help-succulent-grow-faster"},
+  {t:"How To Care For Echeveria Agavoides Lipstick",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-agavoides-lipstick"},
+  {t:"How To Plant Cacti And Succulents Together",u:"https://succulentsbox.com/blogs/blog/how-to-plant-cacti-and-succulents-together"},
+  {t:"What Causes A Cactus To Lean",u:"https://succulentsbox.com/blogs/blog/what-causes-a-cactus-to-lean"},
+  {t:"When Can You Move Your Succulents Outside After The Winter",u:"https://succulentsbox.com/blogs/blog/when-can-you-move-your-succulents-outside-after-the-winter"},
+  {t:"How To Care For Echeveria Cubic Frost",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-cubic-frost"},
+  {t:"Black Spots On Succulents",u:"https://succulentsbox.com/blogs/blog/black-spots-on-succulents"},
+  {t:"How To Care For Echeveria Afterglow",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-afterglow"},
+  {t:"How To Care For Aloinopsis Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aloinopsis-plant"},
+  {t:"Succulent Flowers 101",u:"https://succulentsbox.com/blogs/blog/succulent-flowers-101"},
+  {t:"How To Care For Sempervivum Calcareum",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sempervivum-calcareum"},
+  {t:"How To Save A Rotting Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-save-a-rotting-cactus"},
+  {t:"How To Care For Crassula Ivory Towers",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-ivory-towers"},
+  {t:"Protect Your Succulents From Birds Eating",u:"https://succulentsbox.com/blogs/blog/protect-your-succulents-from-birds-eating"},
+  {t:"How To Care For Echeveria Elegans Mexican Snowball",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-elegans-mexican-snowball"},
+  {t:"How To Care For Graptosedum California Sunset Graptosedum",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-graptosedum-california-sunset-graptosedum"},
+  {t:"3 Easy Ways To Propagate String Of Pearls",u:"https://succulentsbox.com/blogs/blog/3-easy-ways-to-propagate-string-of-pearls"},
+  {t:"Can Air Plants Grow From Seeds",u:"https://succulentsbox.com/blogs/blog/can-air-plants-grow-from-seeds"},
+  {t:"Curling Or Wrinkled Leaves In String Of Hearts",u:"https://succulentsbox.com/blogs/blog/curling-or-wrinkled-leaves-in-string-of-hearts"},
+  {t:"How To Care For Sedeveria Blue Elf",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedeveria-blue-elf"},
+  {t:"Why Is My String Of Dolphins Shriveling And Dying",u:"https://succulentsbox.com/blogs/blog/why-is-my-string-of-dolphins-shriveling-and-dying"},
+  {t:"How To Care For Graptoveria Bashful",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-graptoveria-bashful"},
+  {t:"Cactus Flower 101 How To Make Cactus Bloom",u:"https://succulentsbox.com/blogs/blog/cactus-flower-101-how-to-make-cactus-bloom"},
+  {t:"How To Care For Echeveria Black Prince",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-black-prince"},
+  {t:"How To Care For Sedum Little Missy",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedum-little-missy"},
+  {t:"Common Problems When Growing Cacti",u:"https://succulentsbox.com/blogs/blog/common-problems-when-growing-cacti"},
+  {t:"Why Are My Burro Donkey Tail Leaves Falling Off",u:"https://succulentsbox.com/blogs/blog/why-are-my-burro-donkey-tail-leaves-falling-off"},
+  {t:"How To Care For Echeveria Violet Queen",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-violet-queen"},
+  {t:"Succulent Stem Dried Out",u:"https://succulentsbox.com/blogs/blog/succulent-stem-dried-out"},
+  {t:"How To Repot A Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-repot-a-cactus"},
+  {t:"How To Care For Senecio Plants",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-senecio-plants"},
+  {t:"Why Is My Haworthia Turning Brown",u:"https://succulentsbox.com/blogs/blog/why-is-my-haworthia-turning-brown"},
+  {t:"How To Care For Graptoveria Debbie",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-graptoveria-debbie"},
+  {t:"Care Tips For Succulents In The Fall",u:"https://succulentsbox.com/blogs/blog/care-tips-for-succulents-in-the-fall"},
+  {t:"How To Grow A Dancing Bones Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-grow-a-dancing-bones-cactus"},
+  {t:"Why Should You Use Totem Poles For Your Houseplants",u:"https://succulentsbox.com/blogs/blog/why-should-you-use-totem-poles-for-your-houseplants"},
+  {t:"How To Grow And Care For Monstera Deliciosa Swiss Cheese",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-monstera-deliciosa-swiss-cheese"},
+  {t:"Common Problems Of Pink Lady Callisia Repens",u:"https://succulentsbox.com/blogs/blog/common-problems-of-pink-lady-callisia-repens"},
+  {t:"Do Houseplants Go Dormant In Winter",u:"https://succulentsbox.com/blogs/blog/do-houseplants-go-dormant-in-winter"},
+  {t:"How To Care For Tigers Jaw Crassula",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-tigers-jaw-crassula"},
+  {t:"How To Care For Philodendron Plants",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-philodendron-plants"},
+  {t:"How To Care For Ice Plant Corpuscularia Lehmannii",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-ice-plant-corpuscularia-lehmannii"},
+  {t:"How To Care For Houseplants In Winter",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-houseplants-in-winter"},
+  {t:"Can Cacti Survive The Winter Care Tips For Cacti In Cold Weather",u:"https://succulentsbox.com/blogs/blog/can-cacti-survive-the-winter-care-tips-for-cacti-in-cold-weather"},
+  {t:"How To Care For Silver Dollar Vine",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-silver-dollar-vine"},
+  {t:"How To Care For Cotyledon Orbiculata",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-cotyledon-orbiculata"},
+  {t:"Why Isn T My Kalanchoe Blossfeldiana Calandiva Not Flowering",u:"https://succulentsbox.com/blogs/blog/why-isn-t-my-kalanchoe-blossfeldiana-calandiva-not-flowering"},
+  {t:"How To Grow And Care For Poinsettia Christmas Plants",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-poinsettia-christmas-plants"},
+  {t:"Why Is My Christmas Cactus Dropping Buds And Flowers",u:"https://succulentsbox.com/blogs/blog/why-is-my-christmas-cactus-dropping-buds-and-flowers"},
+  {t:"Tips To Induce And Maintain Variegation In Your Houseplants",u:"https://succulentsbox.com/blogs/blog/tips-to-induce-and-maintain-variegation-in-your-houseplants"},
+  {t:"How To Care For Opuntia Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-opuntia-cactus"},
+  {t:"How To Grow And Care For Rosularia Platyphylla",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-rosularia-platyphylla"},
+  {t:"How To Grow And Care For Alocasia Plants",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-alocasia-plants"},
+  {t:"Why Do My Houseplant Leaves Turn Yellow",u:"https://succulentsbox.com/blogs/blog/why-do-my-houseplant-leaves-turn-yellow"},
+  {t:"Signs And Tips To Treat Frost Damage Houseplants",u:"https://succulentsbox.com/blogs/blog/signs-and-tips-to-treat-frost-damage-houseplants"},
+  {t:"Why Do We Need To Quarantine New Succulent Plants",u:"https://succulentsbox.com/blogs/blog/why-do-we-need-to-quarantine-new-succulent-plants"},
+  {t:"How To Care For String Of Fishhooks",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-string-of-fishhooks"},
+  {t:"Top 10 Heart Shaped Leaf Houseplants For Valentine S Day",u:"https://succulentsbox.com/blogs/blog/top-10-heart-shaped-leaf-houseplants-for-valentine-s-day"},
+  {t:"How To Care For Hoya Kerrii Heart",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-hoya-kerrii-heart"},
+  {t:"How To Care For Anacampseros Telephiastrum Sunrise",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-anacampseros-telephiastrum-sunrise"},
+  {t:"How To Care For Peperomia Hope",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-peperomia-hope"},
+  {t:"How To Grow And Care For Succulent Terrariums",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-succulent-terrariums"},
+  {t:"Top 10 Low Maintenance Houseplants For Busy People",u:"https://succulentsbox.com/blogs/blog/top-10-low-maintenance-houseplants-for-busy-people"},
+  {t:"How To Grow And Care For Bonnie Curly Spider Plant",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-bonnie-curly-spider-plant"},
+  {t:"How To Care For Crassula Springtime",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-springtime"},
+  {t:"Drooping Leaves A Sign Of Trouble Or A Natural Process",u:"https://succulentsbox.com/blogs/blog/drooping-leaves-a-sign-of-trouble-or-a-natural-process"},
+  {t:"How To Speed Cactus Growth",u:"https://succulentsbox.com/blogs/blog/how-to-speed-cactus-growth"},
+  {t:"How To Grow And Care For Rhaphidophora Tetrasperma Monstera Minima",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-rhaphidophora-tetrasperma-monstera-minima"},
+  {t:"How To Care For Crassula Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-succulents"},
+  {t:"Should We Grow Orchid Plants In Water",u:"https://succulentsbox.com/blogs/blog/should-we-grow-orchid-plants-in-water"},
+  {t:"How To Grow And Care For Anthurium Plant",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-anthurium-plant"},
+  {t:"Root Nodules On Succulents",u:"https://succulentsbox.com/blogs/blog/root-nodules-on-succulents"},
+  {t:"How To Grow Cacti Outdoors",u:"https://succulentsbox.com/blogs/blog/how-to-grow-cacti-outdoors"},
+  {t:"Easy Steps To Propagate Fern Plants At Home",u:"https://succulentsbox.com/blogs/blog/easy-steps-to-propagate-fern-plants-at-home"},
+  {t:"How To Cut Back And Root A Tall Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-cut-back-and-root-a-tall-cactus"},
+  {t:"How To Grow And Care For Chinese Evergreen Leprechaun",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-chinese-evergreen-leprechaun"},
+  {t:"How To Care For Pickle Plant Kleinia Stapeliiformis",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pickle-plant-kleinia-stapeliiformis"},
+  {t:"How To Care For Six Angled Kalanchoe",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-six-angled-kalanchoe"},
+  {t:"How To Propagate Crassula Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-propagate-crassula-succulents"},
+  {t:"Easy Ways To Encourage Blooming In Hoya Kerrii Hearts",u:"https://succulentsbox.com/blogs/blog/easy-ways-to-encourage-blooming-in-hoya-kerrii-hearts"},
+  {t:"How To Grow And Care For Spathiphyllum Green Peace Lily",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-spathiphyllum-green-peace-lily"},
+  {t:"Save Your Houseplants From Transplant Shock",u:"https://succulentsbox.com/blogs/blog/save-your-houseplants-from-transplant-shock"},
+  {t:"How To Grow And Care For Coffee Plant",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-coffee-plant"},
+  {t:"6 Common Mistakes When Caring For Houseplants And Tips To Avoid",u:"https://succulentsbox.com/blogs/blog/6-common-mistakes-when-caring-for-houseplants-and-tips-to-avoid"},
+  {t:"6 Tips To Get Your Houseplants Ready For Fall",u:"https://succulentsbox.com/blogs/blog/6-tips-to-get-your-houseplants-ready-for-fall"},
+  {t:"A Guide To Repotting New Houseplants",u:"https://succulentsbox.com/blogs/blog/a-guide-to-repotting-new-houseplants"},
+  {t:"A Quick Guide To Pet Friendly Houseplants",u:"https://succulentsbox.com/blogs/blog/a-quick-guide-to-pet-friendly-houseplants"},
+  {t:"Amazing Houseplants For Your Darkest Corners",u:"https://succulentsbox.com/blogs/blog/amazing-houseplants-for-your-darkest-corners"},
+  {t:"How To Care For A Syngonium White Butterfly",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-a-syngonium-white-butterfly"},
+  {t:"How To Care For Bird S Nest Fern",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-bird-s-nest-fern"},
+  {t:"How To Care For Kalanchoe Calandiva",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-kalanchoe-calandiva"},
+  {t:"How To Care For Calathea",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-calathea"},
+  {t:"How To Care For Dieffenbachia Dumb Cane Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-dieffenbachia-dumb-cane-plant"},
+  {t:"How To Care For Dracaena",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-dracaena"},
+  {t:"How To Care For Houseplants In Spring",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-houseplants-in-spring"},
+  {t:"How To Care For Hypoestes Phyllostachya Pink Splash",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-hypoestes-phyllostachya-pink-splash"},
+  {t:"How To Care For Pachira Stump Money Tree Pachira Aquatica",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pachira-stump-money-tree-pachira-aquatica"},
+  {t:"How To Care For Peperomia Plants",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-peperomia-plants"},
+  {t:"Enhancing Air Quality In Your Bathroom With These Houseplants",u:"https://succulentsbox.com/blogs/blog/enhancing-air-quality-in-your-bathroom-with-these-houseplants"},
+  {t:"Finding The Perfect Soil For Your Houseplants",u:"https://succulentsbox.com/blogs/blog/finding-the-perfect-soil-for-your-houseplants"},
+  {t:"Handling Humidity With Your Houseplants",u:"https://succulentsbox.com/blogs/blog/handling-humidity-with-your-houseplants"},
+  {t:"How To Care For Calathea Lancifolia Rattlesnake Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-calathea-lancifolia-rattlesnake-plant"},
+  {t:"How To Care For Different Varieties Of Snake Plants",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-different-varieties-of-snake-plants"},
+  {t:"How To Care For English Ivy Hedera Helix",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-english-ivy-hedera-helix"},
+  {t:"How To Care For Ficus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-ficus"},
+  {t:"How To Care For Spider Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-spider-plant"},
+  {t:"How To Care For Syngonium Neon Robusta",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-syngonium-neon-robusta"},
+  {t:"How To Care For Tradescantia Nanouk",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-tradescantia-nanouk"},
+  {t:"How To Care For Ficus Lyrata",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-ficus-lyrata"},
+  {t:"How To Care For Maranta Rabbit Tracks Green Prayer Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-maranta-rabbit-tracks-green-prayer-plant"},
+  {t:"How To Care For Tradescantia",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-tradescantia"},
+  {t:"How To Care For Pilea Peperomioides Chinese Money Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pilea-peperomioides-chinese-money-plant"},
+  {t:"How To Care For Zz Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-zz-plant"},
+  {t:"How To Care For Ponytail Palm",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-ponytail-palm"},
+  {t:"How To Choose A Perfect Planter For Your Houseplants",u:"https://succulentsbox.com/blogs/blog/how-to-choose-a-perfect-planter-for-your-houseplants"},
+  {t:"How To Care For Pothos",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pothos"},
+  {t:"How To Care For Rubber Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-rubber-plant"},
+  {t:"How To Fertilize Houseplants A Complete Guide",u:"https://succulentsbox.com/blogs/blog/how-to-fertilize-houseplants-a-complete-guide"},
+  {t:"How To Get Rid Of Mealybugs On Your Houseplants",u:"https://succulentsbox.com/blogs/blog/how-to-get-rid-of-mealybugs-on-your-houseplants"},
+  {t:"How To Care For Sansevieria",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sansevieria"},
+  {t:"How To Propagate Houseplants A Complete Guide",u:"https://succulentsbox.com/blogs/blog/how-to-propagate-houseplants-a-complete-guide"},
+  {t:"How To Prune And Shape Your Houseplant A Complete Guide",u:"https://succulentsbox.com/blogs/blog/how-to-prune-and-shape-your-houseplant-a-complete-guide"},
+  {t:"Leca What Is It And How To Care For Houseplants In Leca",u:"https://succulentsbox.com/blogs/blog/leca-what-is-it-and-how-to-care-for-houseplants-in-leca"},
+  {t:"The Best Air Purifying Plants For Any Home Or Apartment 1",u:"https://succulentsbox.com/blogs/blog/the-best-air-purifying-plants-for-any-home-or-apartment-1"},
+  {t:"Tips To Manage Mushrooms In Your Houseplants",u:"https://succulentsbox.com/blogs/blog/tips-to-manage-mushrooms-in-your-houseplants"},
+  {t:"Top Amazing Houseplants To Grow In Water And How To Grow Them",u:"https://succulentsbox.com/blogs/blog/top-amazing-houseplants-to-grow-in-water-and-how-to-grow-them"},
+  {t:"Underwatered Vs Overwatered Houseplants Signs And How To Save Them",u:"https://succulentsbox.com/blogs/blog/underwatered-vs-overwatered-houseplants-signs-and-how-to-save-them"},
+  {t:"Watering Tips To Help Your Houseplants Thrive",u:"https://succulentsbox.com/blogs/blog/watering-tips-to-help-your-houseplants-thrive"},
+  {t:"Whats Eating My Plants Identify And Control Common Pests On Houseplants",u:"https://succulentsbox.com/blogs/blog/whats-eating-my-plants-identify-and-control-common-pests-on-houseplants"},
+  {t:"How And When To Fertilize Succulents 1",u:"https://succulentsbox.com/blogs/blog/how-and-when-to-fertilize-succulents-1"},
+  {t:"Whats The Best Fertilizer For Succulents",u:"https://succulentsbox.com/blogs/blog/whats-the-best-fertilizer-for-succulents"},
+  {t:"How To Treat Powdery Mildew On Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-treat-powdery-mildew-on-succulents"},
+  {t:"10 Easiest Succulents To Propagate",u:"https://succulentsbox.com/blogs/blog/10-easiest-succulents-to-propagate"},
+  {t:"How To Care For Callisia Repens Sedum Turtle Vine",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-callisia-repens-sedum-turtle-vine"},
+  {t:"How To Care For Corn Cob Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-corn-cob-cactus"},
+  {t:"Soft Rot How To Combat Bacterial Infections In Your Succulents",u:"https://succulentsbox.com/blogs/blog/soft-rot-how-to-combat-bacterial-infections-in-your-succulents"},
+  {t:"How To Care For Sedum Minor",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedum-minor"},
+  {t:"How To Use Succulents As Ground Cover Plants",u:"https://succulentsbox.com/blogs/blog/how-to-use-succulents-as-ground-cover-plants"},
+  {t:"How To Grow And Care For Dragons Blood Sedum",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-dragons-blood-sedum"},
+  {t:"How To Care For Crassula Ovata Jade Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-ovata-jade-plant"},
+  {t:"How To Care For Dinosaur Back Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-dinosaur-back-cactus"},
+  {t:"Can Succulents Heal Themselves",u:"https://succulentsbox.com/blogs/blog/can-succulents-heal-themselves"},
+  {t:"How To Prepare For Cactus Winter Care And Dormancy",u:"https://succulentsbox.com/blogs/blog/how-to-prepare-for-cactus-winter-care-and-dormancy"},
+  {t:"How To Care For Window Haworthia",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-window-haworthia"},
+  {t:"Black Spots On Cacti Causes And Treatments 1",u:"https://succulentsbox.com/blogs/blog/black-spots-on-cacti-causes-and-treatments-1"},
+  {t:"How To Care For Kalanchoe Chocolate Soldier",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-kalanchoe-chocolate-soldier"},
+  {t:"How To Care For Haworthia African Pearl",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-haworthia-african-pearl"},
+  {t:"How To Get Rid Of Spider Mites On Your Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-get-rid-of-spider-mites-on-your-succulents"},
+  {t:"How To Care For Indoor Succulents In Winter",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-indoor-succulents-in-winter"},
+  {t:"How To Care For Senecio Articulatus Candle Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-senecio-articulatus-candle-plant"},
+  {t:"How To Make Kalanchoe Calandiva Rebloom 1",u:"https://succulentsbox.com/blogs/blog/how-to-make-kalanchoe-calandiva-rebloom-1"},
+  {t:"What You Should Do With Cactus Seed Pods",u:"https://succulentsbox.com/blogs/blog/what-you-should-do-with-cactus-seed-pods"},
+  {t:"How To Care For Key Lime Pie",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-key-lime-pie"},
+  {t:"How To Care For Tephrocactus Geometricus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-tephrocactus-geometricus"},
+  {t:"How To Care For Nerve Plant Fittonia",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-nerve-plant-fittonia"},
+  {t:"How To Grow Cactus From Seeds",u:"https://succulentsbox.com/blogs/blog/how-to-grow-cactus-from-seeds"},
+  {t:"How To Care For Echeveria Blue Rose",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-echeveria-blue-rose"},
+  {t:"What Is Succulent Mutation",u:"https://succulentsbox.com/blogs/blog/what-is-succulent-mutation"},
+  {t:"How To Care For Aeonium Dinner Plate",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aeonium-dinner-plate"},
+  {t:"How To Care For Pothos N Joy",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pothos-n-joy"},
+  {t:"How To Care For Philodendron Cherry Red",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-philodendron-cherry-red"},
+  {t:"How To Care For Pine Cone Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pine-cone-cactus"},
+  {t:"How To Care For Philodendron Ring Of Fire",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-philodendron-ring-of-fire"},
+  {t:"How To Create Care For A Succulent Bouquet",u:"https://succulentsbox.com/blogs/blog/how-to-create-care-for-a-succulent-bouquet"},
+  {t:"How To Care For Pachycereus Marginatus Mexican Fence Post Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pachycereus-marginatus-mexican-fence-post-cactus"},
+  {t:"How To Care For String Of Tears",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-string-of-tears"},
+  {t:"How To Care For Neanthe Bella Palm",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-neanthe-bella-palm"},
+  {t:"Can Succulents Stay In Small Pots For A Long Time",u:"https://succulentsbox.com/blogs/blog/can-succulents-stay-in-small-pots-for-a-long-time"},
+  {t:"8 Ways To Get Rid Of Mealybugs For Your Plants",u:"https://succulentsbox.com/blogs/blog/8-ways-to-get-rid-of-mealybugs-for-your-plants"},
+  {t:"Mineral Deposits On Plant Leaves Treatment",u:"https://succulentsbox.com/blogs/blog/mineral-deposits-on-plant-leaves-treatment"},
+  {t:"Why Are Spider Plant Leaves Turning Translucent",u:"https://succulentsbox.com/blogs/blog/why-are-spider-plant-leaves-turning-translucent"},
+  {t:"How To Care For Golden Rat Tail Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-golden-rat-tail-cactus"},
+  {t:"How To Care For Peperomia Watermelon",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-peperomia-watermelon"},
+  {t:"How To Care For Guzmania Hybrid",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-guzmania-hybrid"},
+  {t:"How To Grow And Care For Hydroponics Plants",u:"https://succulentsbox.com/blogs/blog/how-to-grow-and-care-for-hydroponics-plants"},
+  {t:"How To Care For Calathea Dottie 1",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-calathea-dottie-1"},
+  {t:"How To Care For Cebu Blue Pothos",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-cebu-blue-pothos"},
+  {t:"How To Care For Lipstick Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-lipstick-plant"},
+  {t:"How To Care For Peperomia Polybotrya Raindrop",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-peperomia-polybotrya-raindrop"},
+  {t:"How To Care For Sedeveria Jet Beads",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedeveria-jet-beads"},
+  {t:"How To Care For Crassula Hummel S Sunset 1",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-hummel-s-sunset-1"},
+  {t:"Why Your Crassula Springtime Isn T Blooming Common Causes And Solutions",u:"https://succulentsbox.com/blogs/blog/why-your-crassula-springtime-isn-t-blooming-common-causes-and-solutions"},
+  {t:"How To Care For Dracaena Kiwi",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-dracaena-kiwi"},
+  {t:"How To Care For Crassula Campfire Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-campfire-plant"},
+  {t:"Why Are Your Syngonium Leaves Changing Color Causes Care Tips",u:"https://succulentsbox.com/blogs/blog/why-are-your-syngonium-leaves-changing-color-causes-care-tips"},
+  {t:"How To Care For Crassula Devil S Horns",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crassula-devil-s-horns"},
+  {t:"How To Care For Aeonium Kiwi Haworthii",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aeonium-kiwi-haworthii"},
+  {t:"How To Care For Philodendron Pink Princess",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-philodendron-pink-princess"},
+  {t:"How To Care For Cereus Forbesii Spiralis Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-cereus-forbesii-spiralis-cactus"},
+  {t:"How To Care For Monstera Thai Constellation",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-monstera-thai-constellation"},
+  {t:"How To Care For Euphorbia Dragon Bone Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-euphorbia-dragon-bone-cactus"},
+  {t:"How To Care For Maranta Red Prayer",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-maranta-red-prayer"},
+  {t:"How To Care For Fairy Castle Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-fairy-castle-cactus"},
+  {t:"How To Care For Hoya Rope Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-hoya-rope-plant"},
+  {t:"How To Care For Madagascar Palm",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-madagascar-palm"},
+  {t:"How To Care For Calathea Ornata",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-calathea-ornata"},
+  {t:"How To Get A Hoya Rope Plant To Bloom",u:"https://succulentsbox.com/blogs/blog/how-to-get-a-hoya-rope-plant-to-bloom"},
+  {t:"How To Care For Euphorbia Lactea Ghost Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-euphorbia-lactea-ghost-cactus"},
+  {t:"How To Care For Chinese Evergreen Lady Valentine",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-chinese-evergreen-lady-valentine"},
+  {t:"How To Care For Philodendron Golden Crocodile",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-philodendron-golden-crocodile"},
+  {t:"Can You Repot Succulents In Winter What You Need To Know",u:"https://succulentsbox.com/blogs/blog/can-you-repot-succulents-in-winter-what-you-need-to-know"},
+  {t:"How To Care For Euphorbia",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-euphorbia"},
+  {t:"How To Care For Gasteria Little Warty",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-gasteria-little-warty"},
+  {t:"How To Care For Scindapsus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-scindapsus"},
+  {t:"How To Care For Schefflera",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-schefflera"},
+  {t:"How To Care For Boobie Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-boobie-cactus"},
+  {t:"Hidden Signs Of Winter Stress In Houseplants",u:"https://succulentsbox.com/blogs/blog/hidden-signs-of-winter-stress-in-houseplants"},
+  {t:"How To Care For Pilea Aluminum",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-pilea-aluminum"},
+  {t:"How To Care For Peruvian Old Man Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-peruvian-old-man-cactus"},
+  {t:"How To Care For Aralia Fabian Stump",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-aralia-fabian-stump"},
+  {t:"How To Care For Rainbow Hedgehog Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-rainbow-hedgehog-cactus"},
+  {t:"How To Care For Cereus Coral Green Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-cereus-coral-green-cactus"},
+  {t:"How To Care For Kalanchoe Millotii",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-kalanchoe-millotii"},
+  {t:"How To Care For Chinese Evergreen Silver Bay",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-chinese-evergreen-silver-bay"},
+  {t:"How To Care For Crown Of Thorns",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-crown-of-thorns"},
+  {t:"How To Care For Calla Lily",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-calla-lily"},
+  {t:"How To Care For Calathea Makoyana Peacock",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-calathea-makoyana-peacock"},
+  {t:"How To Care For Kalanchoe Tomentosa Teddy Bear",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-kalanchoe-tomentosa-teddy-bear"},
+  {t:"How To Care For Paper Spine Cactus",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-paper-spine-cactus"},
+  {t:"How To Care For Sempervivum Stefan",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sempervivum-stefan"},
+  {t:"Discover 5 Feng Shui Plants For Luck Wealth",u:"https://succulentsbox.com/blogs/blog/discover-5-feng-shui-plants-for-luck-wealth"},
+  {t:"How To Care For Begonias",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-begonias"},
+  {t:"How To Care For Mangave Succulents",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-mangave-succulents"},
+  {t:"How To Get A Madagascar Palm To Bloom",u:"https://succulentsbox.com/blogs/blog/how-to-get-a-madagascar-palm-to-bloom"},
+  {t:"How To Care For Begonias 1",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-begonias-1"},
+  {t:"Discover 5 Weirdo Succulents For Your Collection",u:"https://succulentsbox.com/blogs/blog/discover-5-weirdo-succulents-for-your-collection"},
+  {t:"How To Care For Bonsai Sedum",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-bonsai-sedum"},
+  {t:"How To Get Orchids To Bloom And Rebloom",u:"https://succulentsbox.com/blogs/blog/how-to-get-orchids-to-bloom-and-rebloom"},
+  {t:"How To Care For Gerbera Daisy",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-gerbera-daisy"},
+  {t:"Common Care Mistakes That Ruin Mangave Leaf Shape",u:"https://succulentsbox.com/blogs/blog/common-care-mistakes-that-ruin-mangave-leaf-shape"},
+  {t:"How To Get A Anthurium Plant To Bloom",u:"https://succulentsbox.com/blogs/blog/how-to-get-a-anthurium-plant-to-bloom"},
+  {t:"How To Care For Sedum Pallidum Var Bithynicum",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-sedum-pallidum-var-bithynicum"},
+  {t:"How To Care For Nematanthus Black Goldfish Plant",u:"https://succulentsbox.com/blogs/blog/how-to-care-for-nematanthus-black-goldfish-plant"},
+  {t:"Brown And Yellow Alocasia Leaves Causes And How To Fix",u:"https://succulentsbox.com/blogs/blog/brown-and-yellow-alocasia-leaves-causes-and-how-to-fix"}
+];
+
+// ── Helpers ──────────────────────────────────────────────────────
+function switchTab(t) {
+  ['html','preview'].forEach(n => {
+    document.getElementById('tab-'+n).classList.toggle('active', n===t);
+    document.getElementById(n===t?n+'-pane':(n==='html'?'html-pane':'preview-pane')).classList.toggle('active', n===t);
+  });
+}
+function copyHTML() {
+  const ta = document.getElementById('html-code');
+  ta.select(); document.execCommand('copy');
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✅ Copied!'; btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent='📋 Copy HTML'; btn.classList.remove('ok'); }, 2500);
+}
+function setProgress(step) {
+  ['p1','p2','p3','p4','p5'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('done','active');
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+  });
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function buildProductCards(picks) {
+  if (!picks?.length) return '';
+  const cards = picks.map(p => {
+    const url = 'https://succulentsbox.com/products/' + (p.h||p.handle||'');
+    const img = p.i||p.img||''; const title = p.t||p.title||''; const price = p.p||p.price||'';
+    return `  <div style="border:1px solid #e0e8e0;border-radius:10px;overflow:hidden;width:195px;text-align:center;padding-bottom:14px;flex-shrink:0;">
+    ${img?`<a href="${url}"><img src="${img}" alt="${esc(title)}" style="width:100%;height:148px;object-fit:cover;display:block;"></a>`:''}
+    <div style="padding:10px 10px 4px;font-weight:600;font-size:13px;line-height:1.4;"><a href="${url}" style="color:#222;text-decoration:none;">${esc(title)}</a></div>
+    <div style="color:#3a6b35;font-weight:700;font-size:13px;margin-bottom:8px;">from ${esc(price)}</div>
+    <a href="${url}" style="display:inline-block;background:#3a6b35;color:#fff;text-decoration:none;padding:7px 16px;border-radius:5px;font-size:12px;font-weight:700;">Shop Now</a>
+  </div>`;
+  }).join('\n');
+  return `\n<h2>Succulents and houseplants you might like</h2>\n<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;">\n${cards}\n</div>\n`;
+}
+function buildRelatedArticles(picks) {
+  if (!picks?.length) return '';
+  const items = picks.map(a => {
+    const title = a.t||a.title||''; const url = a.u||a.url||'';
+    return `  <div style="border:1px solid #e0e8e0;border-radius:8px;overflow:hidden;background:#f9fbf9;">
+    <div style="padding:14px 16px;">
+      <a href="${url}" style="color:#2d5428;text-decoration:none;font-weight:700;font-size:14px;line-height:1.4;display:block;">${esc(title)}</a>
+      <a href="${url}" style="display:inline-block;margin-top:10px;color:#3a6b35;font-size:12px;font-weight:600;text-decoration:underline;">Read article →</a>
+    </div>
+  </div>`;
+  }).join('\n');
+  return `\n<h2>Related articles</h2>\n<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px;">\n${items}\n</div>\n`;
+}
+
+// ── Main generate (calls Netlify function) ────────────────────────
+async function generate() {
+  const plantName  = document.getElementById('plantName').value.trim();
+  if (!plantName) {
+    document.getElementById('plantName').style.borderColor = '#c00';
+    setTimeout(()=>document.getElementById('plantName').style.borderColor='', 2000);
+    return;
+  }
+  const sciName    = document.getElementById('sciName').value.trim();
+  const productUrl = document.getElementById('productUrl').value.trim();
+  const ref1url    = document.getElementById('ref1url').value.trim();
+  const ref1text   = document.getElementById('ref1text').value.trim();
+  const ref2url    = document.getElementById('ref2url').value.trim();
+  const ref2text   = document.getElementById('ref2text').value.trim();
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  document.getElementById('genLabel').textContent = 'Generating…';
+  document.getElementById('genIcon').textContent = '⏳';
+  document.getElementById('progressCard').classList.add('visible');
+  document.getElementById('outputCard').classList.remove('visible');
+  document.getElementById('errorBox').classList.remove('visible');
+  setProgress(0);
+
+  const month = new Date().toLocaleString('en-US',{month:'long',year:'numeric'});
+  const refsNote = [
+    ref1url&&ref1text ? `Reference 1 — link text: "${ref1text}" → URL: ${ref1url}` : '',
+    ref2url&&ref2text ? `Reference 2 — link text: "${ref2text}" → URL: ${ref2url}` : '',
+  ].filter(Boolean).join('\n');
+
+  const buyBtn = productUrl
+    ? `<p style="text-align:center;margin:16px 0;"><a href="${productUrl}" style="display:inline-block;background:#3a6b35;color:#fff;text-decoration:none;padding:11px 28px;border-radius:6px;font-weight:700;font-size:15px;">Shop ${plantName}</a></p>`
+    : '';
+
+  const carePrompt = `You are a plant care expert writing a blog post for Succulents Box (succulentsbox.com). Generate a complete plant care guide for: ${plantName}${sciName?` (${sciName})`:''}. Return ONLY raw HTML — no markdown, no fences, no explanation.
+
+EXACT STRUCTURE:
+
+1. TABLE OF CONTENTS:
+<div style="background:#f0f5f0;border-left:4px solid #3a6b35;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:28px;"><strong style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:#2d5428;margin-bottom:10px;">IN THIS ARTICLE</strong><div style="margin:4px 0;"><a href="#basic-information" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Basic Information</a></div><div style="margin:4px 0;"><a href="#indoors-vs-outdoors" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Indoors vs Outdoors</a></div><div style="margin:4px 0;"><a href="#general-care" style="color:#3a6b35;text-decoration:none;font-size:14px;">» General Care</a></div><div style="margin:4px 0;"><a href="#extra-care" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Extra Care</a></div><div style="margin:4px 0;"><a href="#common-problems" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Common Problems</a></div><div style="margin:4px 0;"><a href="#tips" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Succulents Box's Tips</a></div><div style="margin:4px 0;"><a href="#qa" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Q&amp;A for ${plantName}</a></div><div style="margin:4px 0;"><a href="#where-to-buy" style="color:#3a6b35;text-decoration:none;font-size:14px;">» Where to buy ${plantName} online?</a></div></div>
+
+2. Updated tag + 2-sentence intro:
+<p style="font-size:12px;color:#888;font-style:italic;">Updated ${month}</p>
+<p>[2-sentence intro. If product URL is provided (${productUrl||'none'}), hyperlink the plant name to it]</p>
+
+3. Basic Information (id="basic-information") — 12-row table: Botanical Name, Family, Plant Type, Mature Size, Sun Exposure, Soil Type, Soil pH, Bloom Time, Flower, Hardiness Zones, Native Area, Toxicity:
+<h2 id="basic-information">Basic Information</h2>
+<table style="border-collapse:collapse;width:100%;margin:12px 0;"><tr><th style="background:#f0f5f0;color:#2d5428;border:1px solid #dde;padding:8px 12px;">Feature</th><th style="background:#f0f5f0;color:#2d5428;border:1px solid #dde;padding:8px 12px;">Details</th></tr>[12 rows — td style="border:1px solid #dde;padding:8px 12px;"]</table>
+
+4. Indoors vs Outdoors (id="indoors-vs-outdoors"):
+<h2 id="indoors-vs-outdoors">Should we grow ${plantName} indoors or outdoors?</h2>
+<p><strong>Indoors</strong>, [2 sentences]</p><p><strong>Outdoors</strong>, [2 sentences]</p>
+
+5. General Care (id="general-care") — 5 H3 subsections:
+<h2 id="general-care">General Care</h2>
+<h3>1. Lighting</h3><p>[2-3 sentences]</p>
+<h3>2. Watering</h3><p>[2-3 sentences. Link "overwatered succulents" → https://succulentsbox.com/blogs/blog/overwatered-vs-underwatered]</p>
+<h3>3. Soil &amp; Fertilizer</h3><p>[2 sentences. Link "Succulent Potting Soil" → https://succulentsbox.com/collections/succulent-tools/products/succulent-potting-soil]</p>
+<h3>4. Temperature &amp; Humidity</h3><p>[2 sentences with °F ranges]</p>
+<h3>5. Toxicity</h3><p>[1-2 sentences. Link "Toxic and Non-Toxic Succulents for Pets" → https://succulentsbox.com/blogs/blog/toxic-and-non-toxic-succulents-for-pets]</p>
+
+6. Extra Care (id="extra-care") — 5 H3 subsections:
+<h2 id="extra-care">Extra Care</h2>
+<h3>1. Potting &amp; Repotting</h3><p>[2 sentences. Link "Terracotta pot" → https://succulentsbox.com/collections/succulents-pot/products/2-or-4-3-terracotta-pot]</p>
+<h3>2. Pruning</h3><p>[2 sentences. Link "How and When to Prune" → https://succulentsbox.com/blogs/blog/how-and-when-to-prune-your-succulents]</p>
+<h3>3. Propagation</h3><p>[2-3 sentences]</p>
+<h3>4. Blooming</h3><p>[2 sentences]</p>
+<h3>5. Seasonal Care Tips</h3><ul><li><strong>Fall and Winter:</strong> [1-2 sentences. Link "Winter Care Guide" → https://succulentsbox.com/blogs/blog/indoor-outdoor-winter-care-guide-for-succulents]</li><li><strong>Spring &amp; Summer:</strong> [1-2 sentences]</li></ul>
+
+7. Common Problems (id="common-problems"):
+<h2 id="common-problems">Common Problems</h2><p>[2-3 sentences]</p>${buyBtn}
+
+8. Tips (id="tips") — exactly 5 bullet points:
+<h2 id="tips">Succulents Box's Tips</h2><ul><li>[tip]</li>[5 total]</ul>
+
+9. Q&A (id="qa") — exactly 5 styled Q&As:
+<h2 id="qa">Q&amp;A for ${plantName}</h2>
+<ul style="list-style:none;padding:0;"><li style="border:1px solid #e0e8e0;border-radius:8px;margin-bottom:10px;overflow:hidden;"><div style="background:#f9fbf9;padding:12px 16px;font-weight:700;color:#2d5428;">[Q?]</div><div style="padding:10px 16px;font-size:14px;line-height:1.6;">[A]</div></li>[5 total]</ul>
+
+10. Where to Buy (id="where-to-buy"):
+<h2 id="where-to-buy">Where to buy ${plantName} online?</h2>
+<p>If you're looking to buy ${plantName} online, <strong>Succulents Box</strong> is one of the top sources for succulents and houseplants in the U.S., with our own greenhouses in California. We ship directly to your door with a live plant guarantee.</p>
+${buyBtn}
+<p>We also offer a wide variety of <a href="https://succulentsbox.com/collections/succulents" style="color:#3a6b35;">succulents and houseplants</a> to pair with ${plantName}. Visit <a href="https://succulentsbox.com" style="color:#3a6b35;">Succulents Box</a> to explore our full collection.</p>
+
+${refsNote ? `REFERENCE LINKS — weave naturally into relevant sections:\n${refsNote}` : ''}
+RULES: Only raw HTML. No placeholders. Every section fully written. Start with the TOC div.`;
+
+  const catalogStr = CATALOG.map(p=>`${p.t}|${p.h}|${p.p}|${p.i}|${p.cat}`).join('\n');
+
+  const keywords = plantName.toLowerCase().split(/[\s\-\/]+/).filter(w=>w.length>3);
+  const genus = keywords[0]||'';
+  const scored = ARTICLES.map(a=>{
+    const hay=(a.t+' '+a.u).toLowerCase(); let score=0;
+    const slug=a.u.split('/blogs/blog/')[1]||'';
+    if(slug.includes(plantName.toLowerCase().replace(/\s+/g,'-'))) score+=100;
+    if(genus&&hay.includes(genus)) score+=20;
+    keywords.forEach(k=>{if(hay.includes(k)) score+=5;});
+    if(hay.includes('care')||hay.includes('propagat')||hay.includes('water')) score+=1;
+    return {a,score};
+  }).sort((x,y)=>y.score-x.score);
+  const articlesStr = scored.slice(0,80).map(({a})=>`${a.t}|${a.u}`).join('\n');
+
+  const recsPrompt = `Plant blog post subject: "${plantName}"${sciName?` (${sciName})`:''}
+
+Return ONLY a valid JSON object — no explanation, no markdown:
+{"products":[{"t":"title","h":"handle","p":"price","i":"image_url"},{"t":"...","h":"...","p":"...","i":"..."},{"t":"...","h":"...","p":"...","i":"..."},{"t":"...","h":"...","p":"...","i":"..."}],"articles":[{"t":"title","u":"url"},{"t":"...","u":"..."},{"t":"...","u":"..."}]}
+
+Rules:
+- 4 products: pick plants a ${plantName} owner would also enjoy. Same genus first, then similar care or aesthetics. Do NOT include the exact same plant.
+- 3 articles: MOST CLOSELY related to "${plantName}" care. Prefer articles about the same plant or genus. Then pick articles about care issues, propagation, or problems specific to this plant type.
+- Copy all values EXACTLY from the lists below.
+
+PRODUCTS (title|handle|price|image|category):
+${catalogStr}
+
+ARTICLES (title|url):
+${articlesStr}`;
+
+  setProgress(1);
+
+  try {
+    const res = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carePrompt, recsPrompt, token: _sessionToken })
+    });
+
+    setProgress(2);
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({error:'Server error'}));
+      throw new Error(err.error || `Server returned ${res.status}`);
+    }
+
+    const { careResult, recsResult } = await res.json();
+    setProgress(3);
+
+    let careHtml = String(careResult||'').replace(/^```html\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
+
+    let productsHtml = '', articlesHtml = '';
+    try {
+      const m = String(recsResult||'').match(/\{[\s\S]*\}/);
+      if (m) {
+        const recs = JSON.parse(m[0]);
+        setProgress(4);
+        productsHtml = buildProductCards(recs.products);
+        articlesHtml = buildRelatedArticles(recs.articles);
+      }
+    } catch(e) { console.warn('Recs parse error:', e, recsResult); }
+
+    setProgress(5);
+    const fullHtml = careHtml + productsHtml + articlesHtml;
+
+    document.getElementById('html-code').value = fullHtml;
+    document.getElementById('preview-pane').innerHTML =
+      `<h1>How to grow and care for ${plantName}${sciName?` (${sciName})`:''}</h1>` + fullHtml;
+
+    document.getElementById('progressCard').classList.remove('visible');
+    document.getElementById('outputCard').classList.add('visible');
+    switchTab('html');
+
+  } catch(err) {
+    document.getElementById('progressCard').classList.remove('visible');
+    document.getElementById('errorBox').textContent = 'Error: ' + (err.message||String(err));
+    document.getElementById('errorBox').classLi
