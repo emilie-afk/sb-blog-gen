@@ -3,6 +3,10 @@
   functions = "netlify/functions"
   publish = "."
 
+[build.environment]
+  NODE_VERSION = "22"
+  AWS_LAMBDA_JS_RUNTIME = "nodejs22.x"
+
 [functions]
   node_bundler = "nft"
   # The catalog, article index and gift collection allowlist live at the repo root

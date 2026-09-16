@@ -95,6 +95,7 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('gift catalog called with token', giftReq.token === 'pw');
   check('gift products listed', (await page.$$('.catalog-item')).length === 3);
   check('collection selector present', await page.isVisible('#giftCollection'));
+  check('all products filter is available', (await page.locator('#giftCollection option').allTextContents()).includes('All products'));
 
   // search by tag / product type
   await page.fill('#giftSearch', 'subscription');

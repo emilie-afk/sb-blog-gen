@@ -53,6 +53,15 @@ fallback if the live plant request fails. Selections from all three sources comb
 survives tab switches. Factual notes can be added to any confirmed product; those
 notes are the only product-level facts the article is allowed to state.
 
+The Gift Products selector also offers `All products`. Shopify collection pages
+are fetched in bounded batches of 250, deduplicated, cached, and searched in the
+browser. Only the first 100 matches are rendered at once. If the storefront walk
+reaches its time budget, the picker labels the result as potentially incomplete.
+
+The Netlify runtime is pinned to Node 22. The generate handler avoids optional
+chaining in its initialization path, and `tests/packaged.test.js` recreates the
+packaged file layout and verifies that a bad token reaches the handler as a 401.
+
 `data/*.js` are dual-mode: a classic script in the browser (globals) and a CommonJS
 module in the functions. `netlify.toml` bundles them into the functions explicitly.
 

@@ -9,6 +9,10 @@ const {
 
 const STORE_ORIGIN = 'https://succulentsbox.com';
 const FETCH_TIMEOUT_MS = 8000;
+const PAGE_SIZE = 250;
+const MAX_PAGES = 16;
+const PAGE_BATCH = 4;
+const WALK_BUDGET_MS = 7000;
 const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes on a warm instance
 const DESCRIPTION_LIMIT = 200;
 
@@ -62,9 +66,9 @@ function shortDescription(bodyHtml) {
   return text.slice(0, DESCRIPTION_LIMIT).replace(/\s+\S*$/, '') + '…';
 }
 
-function normalizeProducts(raw, sourceCollection, source) {
+function normalizeProducts(raw, sourceCollection, source, sharedSeen) {
   const products = Array.isArray(raw && raw.products) ? raw.products : [];
-  const seen = new Set();
+  const seen = sharedSeen || new Set();
   const out = [];
   for (const p of products) {
     if (!p || !p.handle || !p.title) continue;
@@ -92,8 +96,8 @@ function normalizeProducts(raw, sourceCollection, source) {
   return out;
 }
 
-async function fetchCollection(handle) {
-  const url = `${STORE_ORIGIN}/collections/${handle}/products.json?limit=250`;
+async function fetchPage(handle, page) {
+  const url = `${STORE_ORIGIN}/collections/${handle}/products.json?limit=${PAGE_SIZE}&page=${page}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -110,6 +114,34 @@ async function fetchCollection(handle) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchCollection(handle, source) {
+  const seen = new Set();
+  const products = [];
+  const deadline = Date.now() + WALK_BUDGET_MS;
+  let pages = 0;
+  let truncated = false;
+  const take = (raw, page) => {
+    const list = Array.isArray(raw && raw.products) ? raw.products : [];
+    if (list.length) pages = Math.max(pages, page);
+    products.push(...normalizeProducts({ products: list }, handle, source, seen));
+    return list.length;
+  };
+
+  if (take(await fetchPage(handle, 1), 1) < PAGE_SIZE) {
+    return { products, pages: 1, truncated: false };
+  }
+  for (let start = 2; start <= MAX_PAGES; start += PAGE_BATCH) {
+    const batch = [];
+    for (let i = 0; i < PAGE_BATCH && start + i <= MAX_PAGES; i += 1) batch.push(start + i);
+    const responses = await Promise.all(batch.map(page => fetchPage(handle, page)));
+    const sizes = responses.map((raw, i) => take(raw, batch[i]));
+    if (sizes.some(n => n < PAGE_SIZE)) return { products, pages, truncated: false };
+    if (Date.now() > deadline) { truncated = true; break; }
+    if (start + PAGE_BATCH > MAX_PAGES) truncated = true;
+  }
+  return { products, pages, truncated };
 }
 
 exports.handler = async (event) => {
@@ -160,22 +192,25 @@ exports.handler = async (event) => {
       collectionSource,
       products: cached.products,
       count: cached.products.length,
+      pages: cached.pages,
+      truncated: !!cached.truncated,
       cached: true,
       fetchedAt: new Date(cached.at).toISOString()
     }, { 'Cache-Control': 'private, max-age=900' });
   }
 
   try {
-    const raw = await fetchCollection(handle);
     const source = catalogType === 'plants' ? 'live-plant-catalog' : 'live-gift-catalog';
-    const products = normalizeProducts(raw, handle, source);
-    cache.set(cacheKey, { at: Date.now(), products });
+    const { products, pages, truncated } = await fetchCollection(handle, source);
+    cache.set(cacheKey, { at: Date.now(), products, pages, truncated });
     return json(200, {
       collection: handle,
       catalogType,
       collectionSource,
       products,
       count: products.length,
+      pages,
+      truncated,
       cached: false,
       fetchedAt: new Date().toISOString()
     }, { 'Cache-Control': 'private, max-age=900' });
@@ -192,4 +227,7 @@ exports.handler = async (event) => {
   }
 };
 
-exports._internals = { normalizeProducts, pickPrice, shortDescription, money, DEFAULT_GIFT_COLLECTION };
+exports._internals = {
+  normalizeProducts, pickPrice, shortDescription, money, fetchCollection,
+  DEFAULT_GIFT_COLLECTION, PAGE_SIZE, MAX_PAGES, PAGE_BATCH
+};

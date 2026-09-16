@@ -13,6 +13,7 @@ const ProductPicker = (function () {
   let onChange = () => {};
   let getContext = () => ({ occasion: '', token: null });
 
+  const RENDER_LIMIT = 100;
   const search = { gift: '', plants: '' };
   // The manual form keeps its values across re-renders: a validation error must
   // never wipe what the content user typed.
@@ -22,7 +23,7 @@ const ProductPicker = (function () {
 
   // Live gift catalog state, cached per collection for the session.
   const giftCache = new Map();
-  const gift = { status: 'idle', products: [], collection: '', error: '', requested: '' };
+  const gift = { status: 'idle', products: [], collection: '', error: '', truncated: false };
   const plantCache = new Map();
   const plants = { status: 'idle', products: [], collection: 'all', error: '', useFallback: false };
 
@@ -54,12 +55,14 @@ const ProductPicker = (function () {
   // ── Live gift catalog ──────────────────────────────────────────
   async function loadGiftCatalog(collectionOverride, force) {
     const ctx = getContext();
+    search.gift = '';
     const cacheKey = collectionOverride || ('occasion:' + (ctx.occasion || '').toLowerCase());
     if (!force && giftCache.has(cacheKey)) {
       const hit = giftCache.get(cacheKey);
       gift.status = 'ready';
       gift.products = hit.products;
       gift.collection = hit.collection;
+      gift.truncated = !!hit.truncated;
       gift.error = '';
       render();
       return;
@@ -82,7 +85,8 @@ const ProductPicker = (function () {
       gift.status = 'ready';
       gift.products = Array.isArray(data.products) ? data.products : [];
       gift.collection = data.collection || '';
-      giftCache.set(cacheKey, { products: gift.products, collection: gift.collection });
+      gift.truncated = !!data.truncated;
+      giftCache.set(cacheKey, { products: gift.products, collection: gift.collection, truncated: gift.truncated });
     } catch (err) {
       gift.status = 'error';
       gift.products = [];
@@ -217,14 +221,15 @@ const ProductPicker = (function () {
         <div class="hint">You can also switch to Live Plants or add products manually. Nothing you have already confirmed was lost.</div>
       </div>`;
     }
-    const term = search.gift.trim().toLowerCase();
-    const rows = gift.products.filter(p => giftMatches(p, term));
     if (!gift.products.length) {
       return collectionSelect + '<div class="picker-state">That collection returned no products. Try another collection, use Live Plants, or add the product manually.</div>';
     }
+    const term = search.gift.trim().toLowerCase();
+    const matches = gift.products.filter(p => giftMatches(p, term));
+    const rows = matches.slice(0, RENDER_LIMIT);
     return collectionSelect + `
       <div class="field"><label>Search gift products</label>
-        <input type="text" id="giftSearch" placeholder="Search by title, product type, tag or collection" value="${esc(search.gift)}"></div>
+        <input type="text" id="giftSearch" placeholder="Search by product name, type, tag or collection" value="${esc(search.gift)}"></div>
       <div class="catalog-grid">
         ${rows.map(p => {
           const on = isSelected(fromLive(p));
@@ -235,7 +240,7 @@ const ProductPicker = (function () {
           </label>`;
         }).join('') || '<p class="muted">No gift products match that search. Try another word, or add the product manually.</p>'}
       </div>
-      <div class="hint">${rows.length} of ${gift.products.length} products from the ${esc(gift.collection)} collection.</div>`;
+      <div class="hint">Showing ${rows.length} of ${matches.length} matching products, ${gift.products.length} loaded.${gift.truncated ? ' The storefront time limit was reached, so search may be incomplete.' : ''}</div>`;
   }
 
   function renderPlantsTab() {
