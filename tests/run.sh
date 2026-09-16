@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Runs every suite. The browser suite needs playwright and a chromium binary;
 # set CHROMIUM to override the path used by tests/ui.test.js.
-set -e
+# pipefail matters: several suites pipe into `tail`, which would otherwise
+# swallow a non-zero exit and report a failing run as a passing one.
+set -eo pipefail
 cd "$(dirname "$0")/.."
+echo "── artifact integrity ──";     node tests/artifact-integrity.test.js
 echo "── syntax ──"
 for f in app/*.js data/*.js netlify/functions/*.js netlify/functions/lib/*.js tests/*.js; do node --check "$f"; done
 echo "ok"
