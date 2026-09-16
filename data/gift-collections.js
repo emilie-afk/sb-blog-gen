@@ -5,6 +5,7 @@
 const DEFAULT_GIFT_COLLECTION = 'succulents-gift-boxes';
 
 const GIFT_COLLECTIONS = [
+  { handle: 'all', label: 'All products' },
   { handle: 'succulents-gift-boxes', label: 'Succulent gift boxes' },
   { handle: 'gift', label: 'All gifts' },
   { handle: 'christmas-gift-boxes', label: 'Christmas gift boxes' },

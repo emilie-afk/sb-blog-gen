@@ -40,17 +40,22 @@ function stripDashes(html) {
   return String(html || '').replace(/<[^>]*>|[^<]+/g, chunk => {
     if (chunk.startsWith('<')) return chunk;
     return chunk
-      .replace(/(\d)\s*[–—]\s*(\d)/g, '$1 to $2')
-      .replace(/\s*[–—]\s*/g, ', ')
+      .replace(/(\d)\s*[\u2013\u2014]\s*(\d)/g, '$1 to $2')
+      .replace(/\s*[\u2013\u2014]\s*/g, ', ')
       .replace(/,\s*,/g, ',');
   });
 }
 
 function stripDashesPlain(text) {
   return String(text || '')
-    .replace(/(\d)\s*[–—]\s*(\d)/g, '$1 to $2')
-    .replace(/\s*[–—]\s*/g, ', ')
+    .replace(/(\d)\s*[\u2013\u2014]\s*(\d)/g, '$1 to $2')
+    .replace(/\s*[\u2013\u2014]\s*/g, ', ')
     .replace(/,\s*,/g, ',');
+}
+
+function firstText(message) {
+  if (!message || !Array.isArray(message.content) || !message.content[0]) return '';
+  return message.content[0].text || '';
 }
 
 function parseMetadata(raw) {
@@ -160,7 +165,7 @@ exports.handler = async (event) => {
     });
   }
 
-  const html = stripDashes(stripFences(articleRes.value.content?.[0]?.text));
+  const html = stripDashes(stripFences(firstText(articleRes.value)));
   if (!html || html.length < 200) {
     return json(502, {
       error: 'The AI returned an incomplete article. Please try again.',
@@ -176,11 +181,11 @@ exports.handler = async (event) => {
   let meta = null;
 
   if (metadataRes.status === 'rejected') {
-    console.error('Anthropic metadata call failed:', metadataRes.reason?.message || metadataRes.reason);
+    console.error('Anthropic metadata call failed:', (metadataRes.reason && metadataRes.reason.message) || metadataRes.reason);
     warnings.push('The excerpt, meta description and related recommendations could not be generated. The article itself is fine.');
   } else {
     try {
-      meta = parseMetadata(metadataRes.value.content?.[0]?.text);
+      meta = parseMetadata(firstText(metadataRes.value));
       excerpt = stripDashesPlain(String(meta.excerpt || '').trim());
       metaDescription = stripDashesPlain(String(meta.meta_description || '').trim());
       relatedArticles = reconcileArticles(meta.articles);
