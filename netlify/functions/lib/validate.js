@@ -6,7 +6,6 @@ const ARTICLE_TYPES = ['care_guide', 'single_plant_gift', 'general_gift_guide', 
 
 const GIFT_ANGLES = ['Low maintenance', 'Beginner friendly', 'Small-space friendly', 'Desk or office gift',
   'Long-lasting alternative to flowers', 'Symbolic or meaningful', 'Eco-conscious', 'Custom angle'];
-const TONES = ['Celebratory', 'Romantic', 'Appreciative', 'Professional', 'Supportive', 'Sympathy or remembrance'];
 const CHARACTERISTICS = ['Low maintenance', 'Beginner friendly', 'Pet friendly', 'Low light', 'Desk friendly',
   'Small-space friendly', 'Easy to ship', 'Eco-conscious', 'Custom requirement'];
 
@@ -95,22 +94,30 @@ function products(value) {
       productType: str(p && p.productType, LIMITS.short, `${label} product type`),
       notes: str(p && p.notes, LIMITS.notes, `${label} notes`),
       handle: str(p && p.handle, LIMITS.short, `${label} handle`),
-      source: p && p.source === 'manual' ? 'manual' : 'catalog'
+      source: ['manual', 'live-gift-catalog', 'live-plant-catalog', 'local-fallback'].includes(p && p.source) ? p.source : 'manual',
+      sourceCollection: str(p && p.sourceCollection, LIMITS.short, `${label} source collection`)
     };
   });
 }
 
+// Capped at MAX_RECOMMENDATIONS so a single synchronous generation stays inside
+// the platform execution limit. A request above the cap is rejected, never
+// silently truncated.
+const MAX_RECOMMENDATIONS = 8;
+
 function count(value, label) {
   const n = Number(value);
-  if (!Number.isInteger(n) || n < 1 || n > 30) {
-    throw new ValidationError(`${label} must be a whole number between 1 and 30.`);
+  if (!Number.isInteger(n) || n < 1 || n > MAX_RECOMMENDATIONS) {
+    throw new ValidationError(
+      `${label} must be a whole number between 1 and ${MAX_RECOMMENDATIONS}. Longer guides can be created in a future multi-part workflow.`
+    );
   }
   return n;
 }
 
 function shared(raw) {
   return {
-    title: str(raw.title, LIMITS.short, 'Working title'),
+    titleDirection: str(raw.titleDirection, LIMITS.medium, 'Title direction'),
     primaryKeyword: str(raw.primaryKeyword, LIMITS.short, 'Primary SEO keyword'),
     references: references(raw.references),
     additionalInstructions: str(raw.additionalInstructions, LIMITS.long, 'Additional instructions')
@@ -130,8 +137,6 @@ function validateRequest(articleType, rawFields) {
     f.productUrl = url(raw.productUrl, 'Product URL');
     return { articleType, fields: f };
   }
-
-  if (!f.title) throw new ValidationError('Working article title is required for gift guides.', 'missing_required');
 
   if (articleType === 'single_plant_gift') {
     f.plantName = required(str(raw.plantName, LIMITS.short, 'Plant name'), 'Plant name');
@@ -179,11 +184,11 @@ function validateRequest(articleType, rawFields) {
     }
     f.occasionDate = str(raw.occasionDate, LIMITS.short, 'Verified occasion date');
     f.relationship = str(raw.relationship, LIMITS.short, 'Relationship');
-    f.tone = oneOf(raw.tone, TONES, 'Tone', true);
+    f.includeYearInTitle = raw.includeYearInTitle === true;
     f.sensitiveOccasion = raw.sensitiveOccasion === true;
   }
 
   return { articleType, fields: f };
 }
 
-module.exports = { validateRequest, ValidationError, ARTICLE_TYPES, GIFT_ANGLES, TONES, CHARACTERISTICS };
+module.exports = { validateRequest, ValidationError, ARTICLE_TYPES, GIFT_ANGLES, CHARACTERISTICS, MAX_RECOMMENDATIONS };

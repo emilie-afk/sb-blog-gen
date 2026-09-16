@@ -5,6 +5,8 @@ const { buildSinglePlantGiftPrompt } = require('./lib/prompt-single-plant-gift')
 const { buildGeneralGiftGuidePrompt } = require('./lib/prompt-general-gift-guide');
 const { buildOccasionGiftGuidePrompt } = require('./lib/prompt-occasion-gift-guide');
 const { buildMetadataAndRelatedPrompt, CATALOG_FORMATS } = require('./lib/prompt-metadata-related');
+const { resolveTitles } = require('./lib/title');
+const { validateArticleOutput } = require('./lib/validate-output');
 const { ARTICLES } = require('../../data/articles.js');
 const { CATALOG } = require('../../data/catalog.js');
 
@@ -93,14 +95,6 @@ function reconcileCatalogProducts(picked) {
   return out.slice(0, 4);
 }
 
-function resolveTitle(articleType, fields) {
-  if (fields.title) return fields.title;
-  if (articleType === 'care_guide') {
-    return `How to grow and care for ${fields.plantName}${fields.sciName ? ` (${fields.sciName})` : ''}`;
-  }
-  return fields.plantName || 'Untitled article';
-}
-
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -145,12 +139,12 @@ exports.handler = async (event) => {
   // receive the same user-confirmed product data. Nothing is selected by the model.
   const articleCall = client.messages.create({
     model: MODEL,
-    max_tokens: 8192,
+    max_tokens: 5000,
     messages: [{ role: 'user', content: articlePrompt }]
   });
   const metadataCall = client.messages.create({
     model: MODEL,
-    max_tokens: 1500,
+    max_tokens: 900,
     messages: [{ role: 'user', content: metadataPrompt }]
   });
 
@@ -179,13 +173,14 @@ exports.handler = async (event) => {
   let metaDescription = '';
   let relatedArticles = [];
   let catalogPicks = [];
+  let meta = null;
 
   if (metadataRes.status === 'rejected') {
     console.error('Anthropic metadata call failed:', metadataRes.reason?.message || metadataRes.reason);
     warnings.push('The excerpt, meta description and related recommendations could not be generated. The article itself is fine.');
   } else {
     try {
-      const meta = parseMetadata(metadataRes.value.content?.[0]?.text);
+      meta = parseMetadata(metadataRes.value.content?.[0]?.text);
       excerpt = stripDashesPlain(String(meta.excerpt || '').trim());
       metaDescription = stripDashesPlain(String(meta.meta_description || '').trim());
       relatedArticles = reconcileArticles(meta.articles);
@@ -202,10 +197,22 @@ exports.handler = async (event) => {
     }
   }
 
-  const products = CATALOG_FORMATS.includes(articleType) ? catalogPicks : fields.selectedProducts;
+  const { title, alternatives, usedFallback } = resolveTitles(articleType, fields, meta);
+  if (usedFallback) {
+    warnings.push('The title was built from your brief because the AI title could not be read. Edit it before publishing.');
+  }
+
+  // Structural checks on the finished HTML. These only add warnings, they never
+  // rewrite the article or insert facts of their own.
+  warnings.push(...validateArticleOutput(articleType, fields, html));
+
+  const products = CATALOG_FORMATS.includes(articleType)
+    ? catalogPicks
+    : fields.selectedProducts.slice(0, fields.numberOfRecommendations);
 
   return json(200, {
-    title: resolveTitle(articleType, fields),
+    title,
+    alternative_titles: alternatives,
     html,
     excerpt,
     meta_description: metaDescription,
