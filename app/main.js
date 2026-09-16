@@ -146,7 +146,32 @@ function renderForm() {
 
   bindFields();
   const picker = document.getElementById('productPicker');
-  if (picker) ProductPicker.mount(picker, () => { /* count rendered by the picker */ });
+  if (picker) {
+    ProductPicker.mount(
+      picker,
+      () => ({ occasion: state.values.occasion || '', token: _sessionToken }),
+      () => { /* the picker renders its own count */ }
+    );
+  }
+  renderSensitiveSuggestion();
+}
+
+// A non-blocking nudge. The checkbox is never set for the user.
+const SENSITIVE_HINTS = ['sympathy', 'bereavement', 'memorial', 'remembrance', 'pregnancy loss',
+  'infant loss', 'miscarriage', 'serious illness', 'funeral', 'condolence'];
+
+function renderSensitiveSuggestion() {
+  const box = document.getElementById('sensitiveSuggestion');
+  if (!box) return;
+  const occasion = String(state.values.occasion || '').toLowerCase();
+  const matched = state.articleType === 'occasion_gift_guide'
+    && !state.values.sensitiveOccasion
+    && SENSITIVE_HINTS.some(h => occasion.includes(h));
+  box.style.display = matched ? 'block' : 'none';
+  if (matched) {
+    box.innerHTML = 'This occasion reads as a sensitive or remembrance one. If that is right, tick '
+      + '"This is a sensitive or remembrance occasion" above so the article drops urgency and promotion.';
+  }
 }
 
 function bindFields() {
@@ -154,8 +179,12 @@ function bindFields() {
   document.querySelectorAll('#formFields .fld').forEach(el => {
     el.addEventListener('input', e => {
       const name = e.target.dataset.name;
-      state.values[name] = e.target.type === 'number' ? e.target.value : e.target.value;
+      state.values[name] = e.target.value;
       if (state.errors[name]) { delete state.errors[name]; e.target.classList.remove('invalid'); }
+      if (name === 'occasion') {
+        renderSensitiveSuggestion();
+        if (typeof ProductPicker !== 'undefined') ProductPicker.contextChanged();
+      }
     });
   });
   // Controls that reveal or hide other fields: update and re-render.
@@ -231,7 +260,7 @@ function validate() {
     const count = ProductPicker.count();
     if (!count) {
       state.errors.selectedProducts = 'Confirm at least one product. Gift guides only write about products you have confirmed.';
-    } else {
+    } else if (!state.errors.numberOfRecommendations) {
       const asked = Number(v.numberOfRecommendations);
       if (Number.isInteger(asked) && asked > count) {
         state.errors.numberOfRecommendations =
@@ -266,6 +295,7 @@ function buildFields() {
   }
   if (state.articleType === 'occasion_gift_guide') {
     fields.sensitiveOccasion = !!v.sensitiveOccasion;
+    fields.includeYearInTitle = !!v.includeYearInTitle;
   }
   return fields;
 }
@@ -289,7 +319,12 @@ const ERROR_TITLES = {
   incomplete_response: 'The AI response was incomplete',
   server_config: 'The server is not configured',
   invalid_article_type: 'Unknown article format',
-  invalid_input: 'Some input could not be accepted'
+  invalid_input: 'Some input could not be accepted',
+  gateway_timeout: 'Generation took too long',
+  bad_gateway: 'The generation service is unavailable',
+  server_error: 'The server hit an error',
+  unexpected_response: 'Unexpected server response',
+  storefront_failure: 'The Succulents Box storefront could not be reached'
 };
 
 async function generate() {
@@ -329,12 +364,14 @@ async function generate() {
 
     ticker.forEach(clearTimeout);
 
-    let data;
-    try { data = await res.json(); }
-    catch { throw Object.assign(new Error('The server returned a response that could not be read.'), { code: 'incomplete_response' }); }
+    const data = await readResponse(res);
 
     if (!res.ok) {
-      throw Object.assign(new Error(data.error || `Server returned ${res.status}`), { code: data.code });
+      throw Object.assign(new Error(data.error || `The server returned HTTP ${res.status}.`), { code: data.code });
+    }
+    if (data.nonJson || !data.html) {
+      throw Object.assign(new Error(data.error || 'The generation service returned a response without an article.'),
+        { code: data.code || 'incomplete_response' });
     }
 
     setProgress(4);
@@ -354,8 +391,8 @@ async function generate() {
 
 function renderOutput(data, fmt) {
   document.getElementById('html-code').value = data.html || '';
-  document.getElementById('title-text').value = data.title || '';
-  document.getElementById('preview-title').textContent = data.title || '';
+  setFinalTitle(data.title || '');
+  renderTitleOptions(data.title || '', data.alternative_titles || []);
   document.getElementById('preview-body').innerHTML = sanitizeHTML(data.html || '');
   document.getElementById('outputCard').classList.add('visible');
   switchTab('html');
@@ -380,6 +417,34 @@ function renderOutput(data, fmt) {
   document.getElementById('recsCard').classList.add('visible');
 
   showWarnings(data.warnings);
+}
+
+function setFinalTitle(title) {
+  document.getElementById('title-text').value = title;
+  document.getElementById('preview-title').textContent = title;
+}
+
+// The recommended title plus any alternatives. Choosing an alternative only
+// swaps the editable title, it never regenerates the article.
+function renderTitleOptions(recommended, alternatives) {
+  const box = document.getElementById('titleOptions');
+  const all = [{ label: 'Recommended', value: recommended }]
+    .concat((alternatives || []).map((a, i) => ({ label: 'Alternative ' + (i + 1), value: a })))
+    .filter(o => o.value);
+  if (all.length < 2) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div class="title-options-label">Title options</div>' + all.map((o, i) => `
+    <button type="button" class="title-option${i === 0 ? ' on' : ''}" data-title="${esc(o.value)}">
+      <span class="to-label">${esc(o.label)}</span>
+      <span class="to-value">${esc(o.value)}</span>
+    </button>`).join('');
+  box.querySelectorAll('.title-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      box.querySelectorAll('.title-option').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      setFinalTitle(btn.dataset.title);
+    });
+  });
 }
 
 // ── Boot ─────────────────────────────────────────────────────────
