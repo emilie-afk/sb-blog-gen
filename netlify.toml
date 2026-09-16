@@ -5,6 +5,9 @@
 
 [functions]
   node_bundler = "nft"
+  # The catalog and article index live at the repo root because both the browser
+  # and the functions read them. Bundle them with every function explicitly.
+  included_files = ["data/**"]
 
 [functions.generate]
   timeout = 30
