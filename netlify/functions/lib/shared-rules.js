@@ -34,7 +34,88 @@ function buildPlantAccuracyRules() {
 - Low maintenance is not the same as no maintenance. Be clear about what the plant still needs.
 - Never call a plant pet safe unless that has been confirmed in the supplied facts. Include toxicity cautions when they are relevant and known.
 - Do not invent symbolic or cultural meanings. If symbolism is uncertain, leave it out.
-- No medical, therapeutic or emotional healing claims.`;
+- No medical, therapeutic or emotional healing claims.
+- Never say a plant thrives on neglect, or that missing water is harmless.
+- Never promise that a plant recovers from damage, shipping stress or underwatering.`;
+}
+
+// The editorial voice for all gift formats. The occasion and relationship change
+// the emotional register, never this voice. There is no tone selector.
+function buildGiftVoiceRules(fields) {
+  const recipient = (fields && fields.recipient) || '';
+  const relationship = (fields && fields.relationship) || '';
+  const registerLine = recipient || relationship
+    ? `The reader is choosing a gift for: ${[recipient, relationship].filter(Boolean).join(', ')}. Let that set the emotional register, and keep it appropriate to that relationship.`
+    : `No recipient was specified. Write for a general reader and do not assume a relationship.`;
+
+  return `EDITORIAL VOICE:
+Warm, practical and knowledgeable. Written by an experienced plant gifting specialist. Helpful before persuasive. Specific rather than poetic. Honest about who each gift suits and what care it requires.
+${registerLine}
+Read the occasion and relationship and pitch the emotional register yourself. A workplace occasion stays professional and never affectionate. A romantic occasion is personal and never corporate. A housewarming is casual and useful. A remembrance occasion is quiet and never celebratory.
+
+VOICE AND STYLE:
+- Write like an experienced plant gifting specialist helping someone choose well.
+- Be warm but practical. Useful information comes before sentiment.
+- Be specific rather than poetic.
+- Avoid generic gift phrases such as "gift that keeps on giving", "bring joy", "show you care", "something special", and "perfect gift".
+- Do not repeatedly begin sentences with "It's the kind of..." or "This is a...".
+- Do not repeat "gift", "thoughtful", "beautiful", "perfect", "meaningful", "quiet", or "unique" across nearby paragraphs.
+- Avoid using polished three part sentences in every paragraph.
+- Mix sentence lengths naturally.
+- Do not assume the recipient is a family member unless the brief says so.
+- Explain why someone should choose one recommendation over another.
+- Use direct selection language when useful: "Choose this if...", "This suits...", "Skip this if...", and "Consider another option if...".
+- Each product recommendation must emphasize a different reason to choose it.
+- Limit emotional or symbolic framing to the introduction.
+- Keep individual product sections concrete.
+- Do not praise every product equally. Give the reader real distinctions.
+- Do not call every product low maintenance, beginner friendly or suitable for small spaces.
+The article should read like "here is what we would consider before sending this plant or gift box to someone", not like "plants are beautiful symbols of growth and joy".`;
+}
+
+// Evidence rules. These sit above general botanical knowledge: a genus level fact
+// may inform care guidance, but it can never become a claim about a product.
+function buildEvidenceRules() {
+  return `EVIDENCE RULES, these override anything else in this prompt:
+State the following ONLY when the value appears in the supplied product data or the confirmed factual notes for that product:
+pet safety, eco friendly attributes, gift packaging, included items, personalization, shipping behaviour, delivery expectations, temperature resilience, product dimensions, materials, subscription terms, guarantees, care level, light level.
+- General botanical knowledge may inform basic care guidance, but use qualified language ("most succulents prefer", "as a rule") and never present a genus level fact as a verified feature of a product.
+- Never call a product or plant pet safe, pet friendly, non toxic, eco friendly, gift ready or easy to ship unless that is in the supplied facts.
+- Never write shipping advice specific to a product unless it was supplied. No claims about how a plant travels, bruises, or recovers in transit.
+- Never invent a recommended ordering window, lead time, cutoff or delivery date.
+- Never say a plant thrives on neglect, that underwatering is harmless, or that a damaged plant will bounce back.
+- Never state that a product arrives ready to live in a home, arrives potted, or includes anything that was not supplied.
+- If a product has no confirmed care or light data, omit the "Care level" and "Light" lines for that product, or write a clearly general statement such as "Most succulents want bright light" outside the product specific facts.
+- If a guide characteristic was requested but no product level fact supports it, keep it as framing for the guide and never assert it about an individual product.
+- Do not print a label with an empty value. Omit the whole line instead.
+- Use the supplied product URL exactly as given when linking a product.`;
+}
+
+// Shared instructions for the comparison table. Written as a literal skeleton
+// because a table described in prose came back with merged headers.
+function comparisonTableSkeleton(includePrice) {
+  const th = 'style="background:#f0f5f0;color:#2d5428;border:1px solid #dde;padding:8px 12px;text-align:left;"';
+  const td = 'style="border:1px solid #dde;padding:8px 12px;"';
+  return `Copy this table skeleton exactly, including every separate <th> element, and fill one <tr> per recommendation:
+<table style="border-collapse:collapse;width:100%;margin:12px 0;">
+<thead>
+<tr>
+<th ${th}>Gift</th>
+<th ${th}>Best for</th>
+<th ${th}>Light</th>
+<th ${th}>Care level</th>${includePrice ? `\n<th ${th}>Price</th>` : ''}
+</tr>
+</thead>
+<tbody>
+<tr>
+<td ${td}>[product title]</td>
+<td ${td}>[best for]</td>
+<td ${td}>[light, or "Varies" when not known]</td>
+<td ${td}>[care level, or "Varies" when not known]</td>${includePrice ? `\n<td ${td}>[price, or "See product page" when no price was supplied]</td>` : ''}
+</tr>
+</tbody>
+</table>
+Every <th> must be its own element. Never merge the headers into one cell. Every row must match what you wrote above and what was supplied. Write "Varies" rather than inventing a value.`;
 }
 
 function buildProductAccuracyRules() {
@@ -51,17 +132,20 @@ function buildProductAccuracyRules() {
 function formatReferences(references) {
   const lines = (references || [])
     .filter(r => r && r.url && r.text)
-    .map((r, i) => `Reference ${i + 1} — link text: "${r.text}" → URL: ${r.url}`);
+    .map((r, i) => `Reference ${i + 1}, link text: "${r.text}" → URL: ${r.url}`);
   if (!lines.length) return '';
   return `\nREFERENCE LINKS, weave each one naturally into the most relevant sentence:\n${lines.join('\n')}\n`;
 }
 
+// Only these keys ever reach a prompt. Storefront marketing copy (description,
+// tags) is deliberately left out: it is not verified product fact.
 function formatProductsForPrompt(products) {
   return (products || []).map((p, i) => {
     const parts = [`${i + 1}. Title: ${p.title}`, `   URL: ${p.url}`];
     if (p.price) parts.push(`   Price: ${p.price}`);
     if (p.productType) parts.push(`   Product type: ${p.productType}`);
     if (p.notes) parts.push(`   Confirmed factual notes: ${p.notes}`);
+    else parts.push(`   No factual notes supplied. Do not state pet safety, packaging, contents, shipping, materials or care level for this product.`);
     return parts.join('\n');
   }).join('\n');
 }
@@ -94,6 +178,9 @@ module.exports = {
   buildSharedStyleRules,
   buildPlantAccuracyRules,
   buildProductAccuracyRules,
+  buildGiftVoiceRules,
+  buildEvidenceRules,
+  comparisonTableSkeleton,
   formatReferences,
   formatProductsForPrompt,
   updatedTag,

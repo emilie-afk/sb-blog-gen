@@ -5,12 +5,13 @@
 
 [functions]
   node_bundler = "nft"
-  # The catalog and article index live at the repo root because both the browser
-  # and the functions read them. Bundle them with every function explicitly.
+  # The catalog, article index and gift collection allowlist live at the repo root
+  # because both the browser and the functions read them. Bundle them explicitly.
   included_files = ["data/**"]
-
-[functions.generate]
-  timeout = 30
 
 [functions.auth]
   timeout = 5
+
+# No timeout override for the generate function. The previous custom 30s value
+# left no headroom: a live run measured 29.03s. It now runs inside Netlify's
+# standard synchronous execution limit.

@@ -42,6 +42,48 @@ function sanitizeHTML(html) {
   return doc.body.innerHTML;
 }
 
+// ── Response reading ─────────────────────────────────────────────
+// Netlify can answer with an HTML error page or a plain text gateway message
+// rather than our JSON. Read whatever actually came back, keep the status, and
+// never surface raw platform internals to the user.
+async function readResponse(res) {
+  const type = (res.headers.get('content-type') || '').toLowerCase();
+  let raw = '';
+  try { raw = await res.text(); } catch { raw = ''; }
+
+  if (type.includes('application/json')) {
+    try { return JSON.parse(raw); } catch { /* fall through to the text path */ }
+  }
+  if (raw.trim().startsWith('{')) {
+    try { return JSON.parse(raw); } catch { /* not JSON after all */ }
+  }
+  return { error: describeNonJson(res.status, raw), code: codeForStatus(res.status), nonJson: true };
+}
+
+function codeForStatus(status) {
+  if (status === 504 || status === 408) return 'gateway_timeout';
+  if (status === 502 || status === 503) return 'bad_gateway';
+  if (status === 500) return 'server_error';
+  return 'unexpected_response';
+}
+
+function describeNonJson(status, raw) {
+  const looksLikeTimeout = /task timed out|timed out|timeout/i.test(String(raw || ''));
+  if (status === 504 || status === 408 || looksLikeTimeout) {
+    return 'Generation took too long. Try again or use fewer products. (The server returned a ' + (status || 504) + ' timeout response.)';
+  }
+  if (status === 502 || status === 503) {
+    return `The generation service returned an unexpected response (HTTP ${status}). Try again in a moment.`;
+  }
+  if (status >= 500) {
+    return `The generation service returned an unexpected response (HTTP ${status}).`;
+  }
+  if (status === 401 || status === 403) {
+    return 'Your session is no longer valid. Please sign in again.';
+  }
+  return `The server returned an unreadable response (HTTP ${status}).`;
+}
+
 // ── Copy helpers ─────────────────────────────────────────────────
 function copyFrom(textareaId, buttonId, restoreLabel) {
   const ta = $(textareaId);

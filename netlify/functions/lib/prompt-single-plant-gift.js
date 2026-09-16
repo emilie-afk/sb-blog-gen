@@ -1,7 +1,7 @@
 // Single-Plant Gift Guide prompt. One plant, framed as a gift.
 const {
-  HEADING_COLOR, buildSharedStyleRules, buildPlantAccuracyRules, buildProductAccuracyRules,
-  formatReferences, updatedTag, ctaButton, additional, keywordLine
+  HEADING_COLOR, buildSharedStyleRules, buildPlantAccuracyRules, buildGiftVoiceRules,
+  buildEvidenceRules, formatReferences, updatedTag, ctaButton, additional, keywordLine
 } = require('./shared-rules');
 
 function buildSinglePlantGiftPrompt(fields) {
@@ -11,7 +11,6 @@ function buildSinglePlantGiftPrompt(fields) {
   const cta = ctaButton(fields.productUrl, `Shop ${plant}`);
 
   const brief = [
-    `Working title: ${fields.title}`,
     `Plant: ${plant}${sci}`,
     fields.recipient ? `Intended recipient: ${fields.recipient}` : '',
     fields.occasion ? `Occasion: ${fields.occasion}` : '',
@@ -63,11 +62,13 @@ Only describe packaging or personalization that Succulents Box actually offers i
 <p>[2 to 3 sentences. Succulents Box grows its plants in its own California greenhouses and ships with a live plant guarantee. Do not promise delivery dates or shipping times]</p>
 ${cta}
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
+${buildGiftVoiceRules(fields)}
+
 ${buildSharedStyleRules()}
 
 ${buildPlantAccuracyRules()}
 
-${buildProductAccuracyRules()}
+${buildEvidenceRules()}
 
 Start directly with the Updated tag.`;
 }
