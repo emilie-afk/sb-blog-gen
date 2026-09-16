@@ -9,9 +9,17 @@ echo "ok"
 echo "── prompts + validation ──";   node tests/prompts.test.js     | tail -3
 echo "── correction pass ──";        node tests/corrections.test.js | tail -3
 echo "── storefront catalog ──";     node tests/catalog.test.js
+echo "── catalog pagination ──";     node tests/pagination.test.js
+echo "── packaged function ──";      node tests/packaged.test.js
 echo "── generate handler ──";       node tests/generate.test.js    | tail -4
 echo "── browser ──"
-node tests/mock-server.js & SERVER=$!
-sleep 1.5
-node tests/ui.test.js | tail -3
-kill $SERVER
+if [ -x "${CHROMIUM:-/opt/pw-browsers/chromium}" ]; then
+  node tests/mock-server.js & SERVER=$!
+  trap 'kill $SERVER 2>/dev/null || true' EXIT
+  sleep 1.5
+  CHROMIUM="${CHROMIUM:-/opt/pw-browsers/chromium}" node tests/ui.test.js | tail -3
+  kill $SERVER
+  trap - EXIT
+else
+  echo "SKIP browser: Chromium not found; set CHROMIUM to its executable path."
+fi
