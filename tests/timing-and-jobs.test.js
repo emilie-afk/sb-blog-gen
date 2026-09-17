@@ -33,7 +33,11 @@ class FakeAnthropic {
   constructor() {
     this.messages = {
       create: async (opts) => {
-        const isArticle = opts.max_tokens > 1000;
+        // Identify the call by what it asks for, not by a token threshold: the
+        // article budget is per format now, so a numeric guess would drift.
+        // The metadata prompt is the one that demands a JSON object.
+        const prompt = String(opts.messages[0].content);
+        const isArticle = !/Return ONLY a valid JSON object/.test(prompt);
         lastCall[isArticle ? 'article' : 'metadata'] = { max_tokens: opts.max_tokens };
         await new Promise(r => setTimeout(r, isArticle ? behaviour.articleMs : behaviour.metadataMs));
         if (isArticle && behaviour.articleFail) throw new Error('overloaded');
@@ -61,7 +65,8 @@ process.env.ANTHROPIC_API_KEY = 'k';
 // real Netlify Blobs path.
 require(path.join(ROOT, 'netlify/functions/lib/job-store')).useMemoryStoreForTests();
 
-const { ARTICLE_MAX_TOKENS, METADATA_MAX_TOKENS } = require(path.join(ROOT, 'netlify/functions/lib/run-generation'));
+const { ARTICLE_MAX_TOKENS, GIFT_ARTICLE_MAX_TOKENS, METADATA_MAX_TOKENS, articleMaxTokens, GIFT_FORMATS, TRUNCATION_WARNING } =
+  require(path.join(ROOT, 'netlify/functions/lib/run-generation'));
 const generate = require(path.join(ROOT, 'netlify/functions/generate.js'));
 const background = require(path.join(ROOT, 'netlify/functions/generate-background.js'));
 const status = require(path.join(ROOT, 'netlify/functions/generate-status.js'));
@@ -100,11 +105,40 @@ const callSync = (articleType, fields) => generate.handler({
 
 (async () => {
   // ── Token budgets ──────────────────────────────────────────────
-  check('article max_tokens reduced to ~3500', ARTICLE_MAX_TOKENS === 3500, String(ARTICLE_MAX_TOKENS));
-  check('metadata max_tokens reduced to ~600', METADATA_MAX_TOKENS === 600, String(METADATA_MAX_TOKENS));
+  // A five product gift guide ran out of budget at 3500, so the gift formats get
+  // 6000. claude-haiku-4-5 documents a 64K output maximum, so this is well
+  // inside what the model serves.
+  check('gift article budget raised to 6000', GIFT_ARTICLE_MAX_TOKENS === 6000, String(GIFT_ARTICLE_MAX_TOKENS));
+  check('metadata budget unchanged at 600', METADATA_MAX_TOKENS === 600, String(METADATA_MAX_TOKENS));
+  check('care guide keeps its 3500 budget', ARTICLE_MAX_TOKENS === 3500 && articleMaxTokens('care_guide') === 3500,
+    String(articleMaxTokens('care_guide')));
+  check('every gift format is on the raised budget',
+    GIFT_FORMATS.length === 3 && GIFT_FORMATS.every(f => articleMaxTokens(f) === 6000),
+    JSON.stringify(GIFT_FORMATS.map(f => [f, articleMaxTokens(f)])));
+
+  // The values that actually reach the API, per format.
+  const budgetCases = [
+    ['occasion gift guide', 'occasion_gift_guide', occasionFields(5), 6000],
+    ['general gift guide', 'general_gift_guide', generalFields(5), 6000],
+    ['single-plant gift guide', 'single_plant_gift', { plantName: 'Snake Plant', giftAngle: 'Low maintenance' }, 6000],
+    ['care guide', 'care_guide', { plantName: 'Haworthia' }, 3500]
+  ];
+  for (const [label, type, fields, expected] of budgetCases) {
+    behaviour.products = products(5);
+    lastCall = {};
+    await callSync(type, fields);
+    check(`${label}: article call uses max_tokens ${expected}`,
+      lastCall.article && lastCall.article.max_tokens === expected,
+      JSON.stringify(lastCall.article));
+    check(`${label}: metadata call stays at 600`,
+      lastCall.metadata && lastCall.metadata.max_tokens === 600,
+      JSON.stringify(lastCall.metadata));
+  }
 
   // ── Required scenarios ─────────────────────────────────────────
   const scenarios = [
+    ['occasion guide, 5 products', 'occasion_gift_guide', occasionFields(5), 5],
+    ['general guide, 5 products', 'general_gift_guide', generalFields(5), 5],
     ['occasion guide, 4 products', 'occasion_gift_guide', occasionFields(4), 4],
     ['occasion guide, 8 products', 'occasion_gift_guide', occasionFields(8), 8],
     ['general guide, 4 products', 'general_gift_guide', generalFields(4), 4],
@@ -117,7 +151,7 @@ const callSync = (articleType, fields) => generate.handler({
     const body = JSON.parse(res.body);
     check(name + ': returns an article', res.statusCode === 200 && body.html.includes('<table'), String(res.statusCode));
     check(name + ': every confirmed product is used', body.products.length === n);
-    check(name + ': comparison table survives the smaller budget', /<th[\s>]/.test(body.html));
+    check(name + ': comparison table present', /<th[\s>]/.test(body.html));
     check(name + ': not flagged truncated', body.truncated === false);
     check(name + ': timing line emitted', logLines.length === 1 && logLines[0].context === 'generate');
     const t = logLines[0] || { phases: {} };
@@ -166,8 +200,14 @@ const callSync = (articleType, fields) => generate.handler({
   res = await callSync('occasion_gift_guide', occasionFields(4));
   body = JSON.parse(res.body);
   check('hitting the output cap is flagged, not hidden',
-    body.truncated === true && body.warnings.some(w => /cut off|stops mid-way/i.test(w)),
+    body.truncated === true && body.warnings.includes(TRUNCATION_WARNING),
     JSON.stringify(body.warnings.slice(0, 1)));
+  check('the truncation warning never blames the product count',
+    !/fewer (products|recommendations)|select fewer|split the guide/i.test(TRUNCATION_WARNING), TRUNCATION_WARNING);
+  check('a truncated response keeps its title and metadata',
+    !!body.title && !!body.excerpt && !!body.meta_description);
+  check('a truncated response keeps its other warning data', Array.isArray(body.warnings));
+  check('a truncated response is not turned into a failure', res.statusCode === 200 && !!body.html);
   behaviour.articleStopReason = 'end_turn';
 
   // ── Background job lifecycle ───────────────────────────────────

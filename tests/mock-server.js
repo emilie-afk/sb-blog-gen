@@ -34,7 +34,12 @@ function articlePayload(fields, truncated) {
     meta_description: 'A meta description that is quite short.',
     products: selected.length ? selected : [{ title: 'Echeveria', handle: 'echeveria', price: '$8.00', image: '', url: 'https://succulentsbox.com/products/echeveria', source: 'catalog' }],
     related_articles: [{ t: 'Watering Tips', u: 'https://succulentsbox.com/blogs/blog/watering-tips' }],
-    warnings: truncated ? ['The article hit the output limit and stops mid-way.'] : [],
+    // The server sends the truncation warning in the list too; the browser must
+    // show it once, as its own banner, and keep the unrelated warning visible.
+    warnings: truncated
+      ? ['The article reached the output limit and is incomplete. Please generate it again. If this continues, the article generator needs a higher output allowance.',
+         'No related articles matched this topic closely enough to recommend.']
+      : [],
     truncated: !!truncated
   };
 }
