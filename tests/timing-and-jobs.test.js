@@ -184,8 +184,12 @@ const callSync = (articleType, fields) => generate.handler({
   check('completed job carries the full payload',
     st.products.length === 8 && Array.isArray(st.alternative_titles) && !!st.meta_description);
 
-  const unknown = JSON.parse((await askStatus('job_missing_00000000')).body);
-  check('unknown job reports expired', unknown.status === 'expired' && unknown.code === 'job_expired');
+  // Old enough to be past the startup grace period, so a missing record really
+  // does mean the job is gone. A freshly minted id would be pending instead.
+  const goneId = 'job_' + (Date.now() - 10 * 60 * 1000).toString(36) + '_missing1missing2';
+  const unknown = JSON.parse((await askStatus(goneId)).body);
+  check('unknown job past the grace period reports expired',
+    unknown.status === 'expired' && unknown.code === 'job_expired', JSON.stringify(unknown.status));
   check('expired message tells the user their work is safe', /still here/.test(unknown.error));
 
   check('status rejects a bad job reference',
@@ -205,6 +209,57 @@ const callSync = (articleType, fields) => generate.handler({
     failed.status === 'failed' && failed.code === 'ai_failure' && !/\.js:\d+/.test(failed.error || ''),
     failed.error);
   behaviour.articleFail = false;
+
+  // ── Production lifecycle race ──────────────────────────────────
+  // Netlify answers a background invocation with an EMPTY 202 before the handler
+  // has necessarily run, so the browser's first status poll can land before
+  // createPending has written anything. A missing record must read as pending
+  // during the startup grace period, never as expired.
+  const jobStore = require(path.join(ROOT, 'netlify/functions/lib/job-store'));
+  const raceId = jobStore.newJobId();
+
+  // 1. The browser has its id and an empty 202. Nothing has been written yet.
+  const beforeStart = JSON.parse((await askStatus(raceId)).body);
+  check('race: status before createPending stays pending',
+    beforeStart.status === 'pending', JSON.stringify(beforeStart));
+  check('race: the early pending response is flagged as starting',
+    beforeStart.starting === true && typeof beforeStart.elapsedMs === 'number', JSON.stringify(beforeStart));
+  check('race: no record exists yet', (await jobStore.get(raceId)) === null);
+
+  // 2. A second poll before the handler runs is still pending, not expired.
+  const stillStarting = JSON.parse((await askStatus(raceId)).body);
+  check('race: repeated early polls never report expired', stillStarting.status === 'pending');
+
+  // 3. The background handler now runs with the browser's id and finishes.
+  behaviour.articleMs = 5;
+  behaviour.products = products(4);
+  const raceAccepted = await background.handler({
+    httpMethod: 'POST',
+    body: JSON.stringify({ token: 'pw', jobId: raceId, articleType: 'general_gift_guide', fields: generalFields(4) })
+  });
+  check('race: the handler keeps the browser job id', JSON.parse(raceAccepted.body).jobId === raceId);
+  const afterRun = JSON.parse((await askStatus(raceId)).body);
+  check('race: the job then completes and returns the article',
+    afterRun.status === 'complete' && afterRun.html.includes('<table'), afterRun.status);
+  check('race: the completed job carries its products', afterRun.products.length === 4);
+
+  // 4. A genuinely old job with no record is expired, not pending forever.
+  const staleId = 'job_' + (Date.now() - 10 * 60 * 1000).toString(36) + '_stale123stale456';
+  const stale = JSON.parse((await askStatus(staleId)).body);
+  check('race: a job older than the grace period reports expired',
+    stale.status === 'expired' && stale.code === 'job_expired', JSON.stringify(stale.status));
+
+  // 5. Malformed ids are still rejected rather than granted grace.
+  for (const bad of ['not-a-job', 'job_zz_x', 'job__abcdefgh', 'job_0_abcdefgh']) {
+    check('race: malformed id rejected: ' + bad,
+      (await askStatus(bad)).statusCode === 400);
+  }
+  // A far-future timestamp is clamped to now, so it cannot buy extra grace: it
+  // is treated as a job submitted this instant, which is pending, and it can
+  // never reach another job's record.
+  const future = JSON.parse((await askStatus('job_' + (Date.now() + 9e8).toString(36) + '_future12future34')).body);
+  check('race: a future-dated id is clamped, not trusted',
+    future.status === 'pending' && future.elapsedMs === 0, JSON.stringify(future.elapsedMs));
 
   check('background rejects a bad token',
     (await background.handler({ httpMethod: 'POST', body: JSON.stringify({ token: 'nope' }) })).statusCode === 401);

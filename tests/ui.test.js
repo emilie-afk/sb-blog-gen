@@ -214,6 +214,18 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('background path used for gift guides', /generate-background/.test(fs.readFileSync('/tmp/last-endpoint.txt', 'utf8')),
     fs.readFileSync('/tmp/last-endpoint.txt', 'utf8'));
 
+  // The empty 202 can land before the background handler writes its record. The
+  // browser must keep polling through that window rather than stopping.
+  setMode('jobrace');
+  await page.click('#genBtn');
+  await page.waitForTimeout(3500);
+  check('startup race keeps the browser waiting', await page.isVisible('#pendingNote'));
+  check('startup race is not reported as an error', !(await page.isVisible('#errorBox')));
+  check('startup race says the job is starting', /waiting for the job to start/i.test(await page.textContent('#pendingNote')),
+    await page.textContent('#pendingNote'));
+  await page.waitForSelector('#outputCard.visible', { timeout: 20000 });
+  check('startup race still completes once the job registers', (await page.inputValue('#html-code')).includes('<h2'));
+
   setMode('jobfail');
   await page.click('#genBtn');
   await page.waitForTimeout(4500);

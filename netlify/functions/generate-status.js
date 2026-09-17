@@ -1,8 +1,20 @@
 // Job status for background generation. The browser polls this with the job id
-// it was given. Four states reach the browser: pending, complete, failed and
+// it minted. Four states reach the browser: pending, complete, failed and
 // expired. Nothing here exposes prompts, credentials or stack traces.
+//
+// Startup race: Netlify answers a background invocation with an empty 202 before
+// the handler has necessarily run, so the first status poll can easily arrive
+// before createPending has written anything. A missing record is therefore
+// treated as pending until the job is older than STARTUP_GRACE_MS, measured from
+// the submit time encoded in the job id. Only after that does a missing record
+// mean the job is gone.
 
 const jobs = require('./lib/job-store');
+
+// Cold start, queueing and the first blob write. Generous on purpose: being a
+// little slow to report a genuinely lost job costs nothing, whereas calling a
+// starting job expired ends the poll and loses the user's generation.
+const STARTUP_GRACE_MS = 90 * 1000;
 
 function json(statusCode, payload) {
   return {
@@ -29,10 +41,13 @@ exports.handler = async (event) => {
     return json(401, { error: 'Your session has expired. Please sign in again.', code: 'unauthorized' });
   }
 
-  const jobId = typeof payload.jobId === 'string' ? payload.jobId.trim() : '';
-  if (!/^job_[a-z0-9_]{8,64}$/.test(jobId)) {
+  // The id carries its own submit time. An unparseable or implausible id is
+  // rejected here and never reaches the store.
+  const parsed = jobs.parseJobId(payload.jobId);
+  if (!parsed.valid) {
     return json(400, { error: 'That job reference is not valid.', code: 'bad_job_id' });
   }
+  const jobId = parsed.jobId;
 
   let record;
   try {
@@ -45,8 +60,18 @@ exports.handler = async (event) => {
     });
   }
 
-  // No record: either it was never created, or the store dropped it.
+  // No record yet. Inside the startup grace period this is the normal race with
+  // a cold starting background function, not a lost job.
   if (!record) {
+    if (parsed.ageMs <= STARTUP_GRACE_MS) {
+      return json(200, {
+        jobId,
+        status: 'pending',
+        startedAt: new Date(parsed.submittedAt).toISOString(),
+        elapsedMs: parsed.ageMs,
+        starting: true
+      });
+    }
     return json(200, {
       jobId,
       status: 'expired',

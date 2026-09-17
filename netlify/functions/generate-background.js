@@ -1,11 +1,13 @@
 // Background generation. Netlify runs any function whose name ends in
-// "-background" asynchronously: it answers 202 immediately and then has up to
-// 15 minutes, so a long gift guide is no longer racing the 60 second
-// synchronous limit. The result is written to the job store and the browser
-// polls generate-status.
+// "-background" asynchronously: it answers an EMPTY 202 immediately, before this
+// handler necessarily runs, and then gives the handler up to 15 minutes. A long
+// gift guide is therefore no longer racing the 60 second synchronous limit.
 //
-// The browser calls this directly. It returns 202 with the job id, and every
-// outcome after that lives in the job record.
+// The browser never sees anything this handler returns: Netlify's 202 has no
+// body. That is why the browser mints the job id and keeps using its own, and
+// why every outcome, including a start failure, is written to the job store
+// where generate-status can report it. The returned value below exists only for
+// local tests and for the function log.
 
 const { validateRequest, ValidationError } = require('./lib/validate');
 const { runGeneration } = require('./lib/run-generation');
@@ -57,17 +59,18 @@ exports.handler = async (event) => {
     });
   }
 
-  const jobId = typeof payload.jobId === 'string' && /^job_[a-z0-9_]{8,64}$/.test(payload.jobId)
-    ? payload.jobId
-    : jobs.newJobId();
+  // The browser's id is used when it is well formed, so the poll and the record
+  // agree. A missing or malformed id still gets a job, it just cannot be polled.
+  const parsedId = jobs.parseJobId(payload.jobId);
+  const jobId = parsedId.valid ? parsedId.jobId : jobs.newJobId();
 
   await jobs.createPending(jobId, {
     articleType,
     recommendationCount: fields.numberOfRecommendations
   });
 
-  // A background invocation's return value is never seen by the browser, so
-  // every outcome is written to the job record instead.
+  // Netlify has already answered the browser with an empty 202, so every outcome
+  // from here on reaches the user only through the job record.
   try {
     const result = await runGeneration({ articleType, fields, apiKey, timer });
     const timing = logTiming('generate-background', timer, {
