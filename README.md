@@ -147,3 +147,42 @@ the app:
 These are deliberately unset today. Do not fill them with guessed values. This catalog
 is only an offline fallback, not the current Shopify catalog. Manual product entry
 also remains available.
+
+## Generation timing and the 60 second limit
+
+Netlify's synchronous function limit is 60 seconds and cannot be configured, so
+the list formats do not run synchronously any more.
+
+- `generate.js` still serves the care guide and single-plant formats, which are
+  bounded, and remains available as a fallback for the list formats.
+- `generate-background.js` runs the general and occasion gift guides. Netlify
+  executes any function whose name ends in `-background` asynchronously with a
+  15 minute budget, so a long guide is no longer racing the request timeout. It
+  answers 202 with a job id and writes the outcome to the job store.
+- `generate-status.js` is what the browser polls, every 2.5 seconds. It reports
+  `pending`, `complete`, `failed` or `expired`. The browser never clears the form
+  or the confirmed products, so any of those states leaves the work ready to
+  retry.
+- `lib/job-store.js` keeps job records in Netlify Blobs, with an in-memory
+  fallback so the lifecycle can be tested off-platform. Records expire after an
+  hour.
+
+Every generation logs one line per run:
+
+```json
+{"event":"generation_timing","context":"generate","totalMs":0,"phases":{
+  "validation":0,"prompt_build":0,"article_call":0,"metadata_call":0,
+  "ai_calls":0,"response_processing":0},"articleType":"...","productCount":0,
+  "recommendationCount":0,"articleChars":0,"truncated":false,"ok":true}
+```
+
+The keys are an allowlist in `lib/timing.js`: durations, small counts and the
+article type. No prompt text, article text, field values, passwords or API keys
+can appear in a log line. `ai_calls` is the wall-clock span of both model calls,
+which run in parallel, so it is close to the longer of the two rather than their
+sum.
+
+Output budget: the article call is capped at 3500 tokens and the metadata call at
+600. When the model stops because it hit the cap, the response carries
+`truncated: true` and a warning, and the browser shows it as an error. A cut-off
+article is never presented as a finished one.

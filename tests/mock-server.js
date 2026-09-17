@@ -1,5 +1,8 @@
 // Local test server: serves the static site and mocks the three Netlify functions.
 // MOCK_MODE: '' | 'giftfail' | 'timeout504' | 'text502' | 'warn'
+//             | 'jobfail'  background job reports failed
+//             | 'jobgone'  background job reports expired
+//             | 'jobtrunc' background job completes but flags truncation
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +20,23 @@ const LIVE_PLANTS = [
   { id: 11, title: 'Echeveria Amnesty', handle: 'echeveria-amnesty', url: 'https://succulentsbox.com/products/echeveria-amnesty', price: '$8.00', image: '', productType: 'Echeveria', tags: ['succulent'], description: '', sourceCollection: 'all', source: 'live-plant-catalog' },
   { id: 12, title: 'Snake Plant', handle: 'snake-plant', url: 'https://succulentsbox.com/products/snake-plant', price: '$18.00', image: '', productType: 'Houseplant', tags: ['low light'], description: '', sourceCollection: 'all', source: 'live-plant-catalog' }
 ];
+
+const JOBS = new Map();
+
+function articlePayload(fields, truncated) {
+  const selected = (fields && fields.selectedProducts) || [];
+  return {
+    title: 'Plant Gifts Worth Sending',
+    alternative_titles: ['Desk Plants Worth Giving', 'Low Light Plant Gifts for the Office'],
+    html: '<p style="font-size:12px;color:#888;">Updated September 2026</p><h2 style="color:#34bfa2" id="a">A section</h2><p>Body text with a <a href="https://succulentsbox.com">link</a>.</p>',
+    excerpt: 'An excerpt sentence. And another one.',
+    meta_description: 'A meta description that is quite short.',
+    products: selected.length ? selected : [{ title: 'Echeveria', handle: 'echeveria', price: '$8.00', image: '', url: 'https://succulentsbox.com/products/echeveria', source: 'catalog' }],
+    related_articles: [{ t: 'Watering Tips', u: 'https://succulentsbox.com/blogs/blog/watering-tips' }],
+    warnings: truncated ? ['The article hit the output limit and stops mid-way.'] : [],
+    truncated: !!truncated
+  };
+}
 
 const server = http.createServer((req, res) => {
   if (req.url.startsWith('/.netlify/functions/')) {
@@ -51,8 +71,38 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ collection, products, count: products.length, cached: false }));
       }
 
-      // generate
+      // background generation: 202 now, the result arrives via generate-status
+      if (req.url.endsWith('/generate-background')) {
+        fs.writeFileSync('/tmp/last-request.json', JSON.stringify(payload, null, 2));
+        fs.writeFileSync('/tmp/last-endpoint.txt', 'generate-background');
+        const jobId = payload.jobId || 'job_mock_00000000';
+        JOBS.set(jobId, { polls: 0, articleType: payload.articleType, fields: payload.fields });
+        res.setHeader('Content-Type', 'application/json');
+        res.statusCode = 202;
+        return res.end(JSON.stringify({ jobId, status: 'accepted' }));
+      }
+
+      if (req.url.endsWith('/generate-status')) {
+        res.setHeader('Content-Type', 'application/json');
+        const job = JOBS.get(payload.jobId);
+        if (!job) return res.end(JSON.stringify({ jobId: payload.jobId, status: 'expired', code: 'job_expired',
+          error: 'That generation is no longer available. Your brief and confirmed products are still here, so you can generate again.' }));
+        job.polls += 1;
+        if (m === 'jobgone') return res.end(JSON.stringify({ jobId: payload.jobId, status: 'expired', code: 'job_expired',
+          error: 'That generation did not finish in time. Your brief and confirmed products are still here, so you can generate again with fewer recommendations.' }));
+        if (m === 'jobfail') return res.end(JSON.stringify({ jobId: payload.jobId, status: 'failed', code: 'ai_failure',
+          error: 'The AI service could not generate the article.' }));
+        // First poll is pending so the browser shows its waiting state.
+        if (job.polls < 2) return res.end(JSON.stringify({ jobId: payload.jobId, status: 'pending', elapsedMs: 2500 }));
+        return res.end(JSON.stringify(Object.assign(
+          { jobId: payload.jobId, status: 'complete' },
+          articlePayload(job.fields, m === 'jobtrunc')
+        )));
+      }
+
+      // generate (synchronous)
       fs.writeFileSync('/tmp/last-request.json', JSON.stringify(payload, null, 2));
+      fs.writeFileSync('/tmp/last-endpoint.txt', 'generate');
       if (m === 'timeout504') {
         res.statusCode = 504;
         res.setHeader('Content-Type', 'text/html');
