@@ -412,6 +412,69 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForTimeout(2800);
   check('the button returns to its idle label', /Copy HTML/.test(await page.textContent('#copyBtn')));
 
+  // ── Copy status lifecycle ───────────────────────────────────────────────
+  // The status region is shared by all four buttons. It must appear, stay long
+  // enough to read, and clear when its button resets, without an older attempt's
+  // timer wiping a newer attempt's message.
+  const statusText = () => page.evaluate(() => {
+    const el = document.getElementById('copy-status');
+    return el ? el.textContent : null;
+  });
+
+  await page.click('#copyBtn');
+  await page.waitForTimeout(150);
+  check('a successful copy shows a status message', /Copied to clipboard/.test(await statusText()));
+  await page.waitForTimeout(1000);
+  check('the success message is still readable after a second', /Copied to clipboard/.test(await statusText()));
+  await page.waitForTimeout(2200);
+  check('the success message clears itself', (await statusText()) === '');
+  check('the status region is hidden while empty', !(await page.isVisible('#copy-status')));
+  check('the region keeps its accessibility attributes after clearing',
+    (await page.getAttribute('#copy-status', 'role')) === 'status' &&
+    (await page.getAttribute('#copy-status', 'aria-live')) === 'polite');
+  check('the button label reset with the status', /Copy HTML/.test(await page.textContent('#copyBtn')));
+
+  // A failed copy must follow the same lifecycle.
+  await page.evaluate(() => {
+    window.__origWrite2 = navigator.clipboard.writeText.bind(navigator.clipboard);
+    Object.defineProperty(navigator.clipboard, 'writeText', {
+      configurable: true, value: () => Promise.reject(new Error('blocked'))
+    });
+    window.__origExec2 = document.execCommand;
+    document.execCommand = () => false;
+  });
+  await page.click('#copyBtn');
+  await page.waitForTimeout(150);
+  check('a failed copy shows a status message', /Copy failed/.test(await statusText()));
+  check('the failed copy still leaves the text selected', await page.evaluate(() => {
+    const el = document.getElementById('html-code');
+    return el.selectionStart === 0 && el.selectionEnd === el.value.length;
+  }));
+  await page.waitForTimeout(3000);
+  check('the failure message clears itself', (await statusText()) === '');
+  check('the text is still selected after the status clears', await page.evaluate(() => {
+    const el = document.getElementById('html-code');
+    return el.selectionStart === 0 && el.selectionEnd === el.value.length;
+  }));
+  check('the button label reset after a failure', /Copy HTML/.test(await page.textContent('#copyBtn')));
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: window.__origWrite2 });
+    document.execCommand = window.__origExec2;
+  });
+
+  // Two attempts in quick succession: the first attempt's timer must not clear
+  // the second attempt's message.
+  await page.click('#copyBtn');
+  await page.waitForTimeout(1800);
+  await page.click('#titleCopyBtn');
+  await page.waitForTimeout(1000);
+  check('the older timer does not clear the newer message', /Copied to clipboard/.test(await statusText()), await statusText());
+  await page.waitForTimeout(1800);
+  check('the newer message clears on its own schedule', (await statusText()) === '');
+  check('both button labels reset',
+    /Copy HTML/.test(await page.textContent('#copyBtn')) &&
+    /Copy Title/.test(await page.textContent('#titleCopyBtn')));
+
   check('no script errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 
   console.log(results.join('\n'));
