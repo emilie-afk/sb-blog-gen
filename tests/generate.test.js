@@ -6,7 +6,8 @@ const sdkPath=require.resolve('@anthropic-ai/sdk',{paths:[path]});
 let mode='ok';
 class FakeAnthropic {
   constructor(){ this.messages={ create: async (opts)=>{
-    const isArticle = opts.max_tokens>4000;
+    // Article 3500 vs metadata 600: anything above 1000 is the article call.
+    const isArticle = opts.max_tokens>1000;
     if(mode==='articlefail' && isArticle) { const e=new Error('overloaded'); e.status=529; throw e; }
     if(mode==='metafail' && !isArticle) throw new Error('rate limited');
     if(mode==='metajunk' && !isArticle) return {content:[{text:'sorry, I cannot do that'}]};

@@ -224,6 +224,10 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
 .suggestion { background: #fffaf0; border: 1px solid #f0dcb0; border-radius: 8px; padding: 11px 14px;
   font-size: 12px; color: #8a6d1a; margin-bottom: 14px; line-height: 1.5; }
 
+/* ── Background job pending state ── */
+.pending-note { margin-top: 12px; padding: 10px 12px; background: #f4f9f4; border: 1px solid #d8e8d8;
+  border-radius: 8px; font-size: 12px; color: #3a6b35; line-height: 1.5; }
+
 /* ── Title options ── */
 .title-options { margin: 8px 0 12px; }
 .title-options-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 6px; }
@@ -279,6 +283,7 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
 
   <div class="progress-card" id="progressCard">
     <div id="progressRows"></div>
+    <div class="pending-note" id="pendingNote" style="display:none;"></div>
   </div>
 
   <div class="error-box" id="errorBox"></div>
