@@ -115,16 +115,41 @@ function copyStatusRegion() {
   return region;
 }
 
+// The status region is shared by all four buttons, so its lifecycle cannot be
+// owned by any one of them. It is guarded two ways:
+//   - one timer, cleared and replaced on every new attempt, so a newer message
+//     is never cut short by an older button's schedule;
+//   - a token, so a timer that somehow survives its clearTimeout still refuses
+//     to erase a message it did not write.
+// Without this the message was set and never cleared: the button went back to
+// its idle label while "Copied to clipboard" stayed pinned to the screen.
+let copyStatusTimer = null;
+let copyStatusToken = 0;
+
 function announceCopy(message) {
   const region = copyStatusRegion();
   // Clearing first makes a repeated identical message announce again.
   region.textContent = '';
   region.textContent = message;
+
+  const token = ++copyStatusToken;
+  if (copyStatusTimer) clearTimeout(copyStatusTimer);
+  copyStatusTimer = setTimeout(() => {
+    copyStatusTimer = null;
+    // Only the attempt that wrote the current message may clear it.
+    if (token !== copyStatusToken) return;
+    // Clear the text only. The element keeps its role and aria-live so the next
+    // message is announced from a region that was there all along, and CSS hides
+    // it while it is empty.
+    copyStatusRegion().textContent = '';
+  }, COPY_RESET_MS);
+  return token;
 }
 
 // Restores a button to its idle label. Any timer already pending for that button
 // is cleared first, so two quick clicks cannot leave an earlier timer to wipe the
-// newer label out from under it.
+// newer label out from under it. The status message clears on its own schedule,
+// started by announceCopy at the same moment, so the two reset together.
 function scheduleCopyReset(btn, buttonId, original) {
   if (copyTimers[buttonId]) clearTimeout(copyTimers[buttonId]);
   copyTimers[buttonId] = setTimeout(() => {
