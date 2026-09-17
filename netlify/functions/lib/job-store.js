@@ -44,10 +44,10 @@ function getStore() {
 
 // job_<base36 submit time>_<random>. The browser mints the id and the same id is
 // used end to end, because a Netlify background invocation answers with an empty
-// 202 and never returns a body to the browser.
+// 202 and never returns a body to the browser. A job that runs under any other
+// id cannot be polled at all: the browser only ever knows the id it minted.
 const JOB_ID_PATTERN = /^job_([0-9a-z]{6,12})_([0-9a-z]{6,40})$/;
 const EARLIEST_PLAUSIBLE_MS = Date.UTC(2020, 0, 1);
-const CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 function newJobId() {
   const rand = () => Math.random().toString(36).slice(2, 10);
@@ -55,9 +55,12 @@ function newJobId() {
 }
 
 // Reads the submit time out of a job id without trusting it for anything but
-// timing. An id whose shape or timestamp is not plausible is rejected outright;
-// a timestamp in the future is clamped to now, so a forged id can only ever
-// shorten the grace period it would get, never extend it or reach another job.
+// timing. An id whose shape or timestamp is not plausible is rejected outright.
+// ANY timestamp ahead of the server clock is clamped to now, with no skew
+// allowance: a tolerated future timestamp would add its own offset to the
+// startup grace period, so even a minute of drift would stretch 90 seconds of
+// grace into several minutes. Clamping means a forged id can only ever shorten
+// the grace it would get, never extend it or reach another job's record.
 function parseJobId(jobId) {
   const id = typeof jobId === 'string' ? jobId.trim() : '';
   const match = JOB_ID_PATTERN.exec(id);
@@ -67,8 +70,8 @@ function parseJobId(jobId) {
   if (!Number.isFinite(submittedAt) || submittedAt < EARLIEST_PLAUSIBLE_MS) return { valid: false };
 
   const now = Date.now();
-  if (submittedAt > now + CLOCK_SKEW_MS) return { valid: true, jobId: id, submittedAt: now, ageMs: 0 };
-  return { valid: true, jobId: id, submittedAt, ageMs: Math.max(0, now - submittedAt) };
+  if (submittedAt > now) return { valid: true, jobId: id, submittedAt: now, ageMs: 0 };
+  return { valid: true, jobId: id, submittedAt, ageMs: now - submittedAt };
 }
 
 function isExpired(record) {

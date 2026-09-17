@@ -60,7 +60,10 @@ exports.handler = async (event) => {
   }
 
   // The browser's id is used when it is well formed, so the poll and the record
-  // agree. A missing or malformed id still gets a job, it just cannot be polled.
+  // agree. A missing or malformed id is replaced only so the run can be recorded
+  // and logged: the browser has no way to learn the replacement, because Netlify
+  // returns an empty 202, so that run is not reachable by polling and the user
+  // sees it expire. In practice the browser always sends a well formed id.
   const parsedId = jobs.parseJobId(payload.jobId);
   const jobId = parsedId.valid ? parsedId.jobId : jobs.newJobId();
 
