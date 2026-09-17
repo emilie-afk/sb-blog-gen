@@ -326,6 +326,7 @@ const ERROR_TITLES = {
   unexpected_response: 'Unexpected server response',
   storefront_failure: 'The Succulents Box storefront could not be reached',
   job_expired: 'That generation is no longer available',
+  client_wait_timeout: 'This browser stopped waiting',
   job_store_unavailable: 'The job store could not be read',
   bad_job_id: 'That job reference is not valid'
 };
@@ -335,7 +336,11 @@ const ERROR_TITLES = {
 // and single-plant formats are bounded and stay on the synchronous endpoint.
 const BACKGROUND_FORMATS = ['general_gift_guide', 'occasion_gift_guide'];
 const POLL_INTERVAL_MS = 2500;
-const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+// Netlify background functions may run for up to 15 minutes, so the browser
+// waits for the whole platform limit plus a buffer. Giving up earlier would mean
+// calling a job dead while the server is still working on it.
+const BACKGROUND_LIMIT_MS = 15 * 60 * 1000;
+const POLL_TIMEOUT_MS = BACKGROUND_LIMIT_MS + 30 * 1000;
 
 function newJobId() {
   const rand = () => Math.random().toString(36).slice(2, 10);
@@ -372,11 +377,14 @@ async function waitForJob(jobId, onTick) {
     if (data.status === 'failed' || data.status === 'expired') {
       throw Object.assign(new Error(data.error || 'The generation did not finish.'), { code: data.code });
     }
-    if (onTick) onTick(Math.round((data.elapsedMs || 0) / 1000));
+    if (onTick) onTick(Math.round((data.elapsedMs || 0) / 1000), !!data.starting);
   }
+  // The browser stopped waiting. That is not the same as the job expiring: the
+  // background function may well have finished, so the message says so rather
+  // than claiming the server gave up.
   throw Object.assign(
-    new Error('The generation is still running after five minutes. Your brief and confirmed products are still here, so you can try again with fewer recommendations.'),
-    { code: 'job_expired' }
+    new Error('This browser stopped waiting after 15 minutes. The job may still finish on the server. Your brief and confirmed products are still here, so you can generate again.'),
+    { code: 'client_wait_timeout' }
   );
 }
 
@@ -416,17 +424,20 @@ async function generate() {
 
     if (useBackground) {
       const jobId = newJobId();
-      setPending('Writing the guide. This runs in the background and usually takes under a minute, longer for eight recommendations. You can leave this tab open.');
+      setPending('Starting the guide. This runs in the background, usually well under a minute, longer for eight recommendations. Keep this tab open.');
       const started = await postJson('/.netlify/functions/generate-background', Object.assign({ jobId }, requestBody));
-      // 202 is the expected answer: the work continues after the response.
+      // Netlify answers a background invocation with an empty 202 and no body,
+      // so there is nothing to read here and no job id to receive. Only a real
+      // failure status is worth reporting; the job id stays the one minted above.
       if (!started.res.ok && started.res.status !== 202) {
         throw Object.assign(
-          new Error(started.data.error || `The generation could not be started (HTTP ${started.res.status}).`),
-          { code: started.data.code });
+          new Error((started.data && started.data.error) || `The generation could not be started (HTTP ${started.res.status}).`),
+          { code: started.data && started.data.code });
       }
-      const acceptedId = (started.data && started.data.jobId) || jobId;
-      data = await waitForJob(acceptedId, seconds => {
-        setPending(`Still writing, ${seconds}s so far. You can leave this tab open.`);
+      data = await waitForJob(jobId, (seconds, starting) => {
+        setPending(starting
+          ? `Waiting for the job to start, ${seconds}s so far. Keep this tab open.`
+          : `Still writing, ${seconds}s so far. Keep this tab open.`);
       });
     } else {
       const sync = await postJson('/.netlify/functions/generate', requestBody);
