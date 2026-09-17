@@ -254,12 +254,35 @@ const callSync = (articleType, fields) => generate.handler({
     check('race: malformed id rejected: ' + bad,
       (await askStatus(bad)).statusCode === 400);
   }
-  // A far-future timestamp is clamped to now, so it cannot buy extra grace: it
-  // is treated as a job submitted this instant, which is pending, and it can
-  // never reach another job's record.
-  const future = JSON.parse((await askStatus('job_' + (Date.now() + 9e8).toString(36) + '_future12future34')).body);
-  check('race: a future-dated id is clamped, not trusted',
-    future.status === 'pending' && future.elapsedMs === 0, JSON.stringify(future.elapsedMs));
+  // Every future timestamp is clamped to now, with no skew allowance. A tolerated
+  // future value would add its own offset to the 90 second startup grace, so a
+  // minute of drift would become minutes of grace. Both a far-future id and one
+  // just inside what a clock-skew allowance would have covered are checked.
+  const futureCases = [
+    ['far future, several minutes ahead', 9 * 60 * 1000],
+    ['one minute ahead, inside any skew window', 60 * 1000],
+    ['two seconds ahead', 2000]
+  ];
+  for (const [label, offsetMs] of futureCases) {
+    const id = 'job_' + (Date.now() + offsetMs).toString(36) + '_future12future34';
+    const parsed = jobStore.parseJobId(id);
+    const before = Date.now();
+    check(`race: ${label} is clamped to now`,
+      parsed.valid && parsed.submittedAt <= before && parsed.ageMs === 0,
+      JSON.stringify({ submittedAt: parsed.submittedAt, now: before, ageMs: parsed.ageMs }));
+
+    const body = JSON.parse((await askStatus(id)).body);
+    check(`race: ${label} reports pending with no extra grace`,
+      body.status === 'pending' && body.elapsedMs === 0
+      && new Date(body.startedAt).getTime() <= Date.now(),
+      JSON.stringify({ status: body.status, elapsedMs: body.elapsedMs, startedAt: body.startedAt }));
+  }
+  // The clamp must not turn a future id into a job that outlives the grace
+  // period either: age starts at zero and runs forward from now, so it expires
+  // 90 seconds from the poll, exactly like a job submitted this instant.
+  const clamped = jobStore.parseJobId('job_' + (Date.now() + 60 * 1000).toString(36) + '_future12future34');
+  check('race: a clamped id ages from now, so grace is the normal 90 seconds',
+    Date.now() - clamped.submittedAt < 1000, String(Date.now() - clamped.submittedAt));
 
   check('background rejects a bad token',
     (await background.handler({ httpMethod: 'POST', body: JSON.stringify({ token: 'nope' }) })).statusCode === 401);
