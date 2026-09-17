@@ -10,6 +10,7 @@ const { buildOccasionGiftGuidePrompt } = require('./prompt-occasion-gift-guide')
 const { buildMetadataAndRelatedPrompt, CATALOG_FORMATS } = require('./prompt-metadata-related');
 const { resolveTitles } = require('./title');
 const { validateArticleOutput } = require('./validate-output');
+const { repairArticleHtml } = require('./repair-output');
 const { ARTICLES } = require('../../../data/articles.js');
 const { CATALOG } = require('../../../data/catalog.js');
 
@@ -167,7 +168,14 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   }
 
   const processingStart = timer ? timer.start() : 0;
-  const html = stripDashes(stripFences(firstText(articleRes.value)));
+  const rawHtml = stripDashes(stripFences(firstText(articleRes.value)));
+  // Deterministic structural repair of the collapsed comparison-table header,
+  // applied BEFORE validation and before anything is returned, so the preview,
+  // the Copy HTML value and the published post all carry the same repaired HTML.
+  // The repair refuses to act unless it is certain; validateArticleOutput still
+  // warns about anything it left alone.
+  const repair = repairArticleHtml(rawHtml);
+  const html = repair.html;
   if (!html || html.length < 200) {
     if (timer) timer.record('response_processing', timer.since(processingStart));
     return {
@@ -179,6 +187,10 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   }
 
   const warnings = [];
+
+  if (repair.repaired) {
+    warnings.push(`The comparison table header row came back merged into one cell and was rebuilt into separate header cells. Check the table before publishing.`);
+  }
 
   // The model stopped because it ran out of output budget, so the article is cut
   // off. This is surfaced loudly rather than returned as a finished article.

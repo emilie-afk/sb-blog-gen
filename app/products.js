@@ -38,10 +38,16 @@ const ProductPicker = (function () {
     };
   }
 
+  // Keep the storefront facts the article needs to describe an item accurately.
+  // Without the description a gift box reaches the writer as a title and a price,
+  // which is how vague filler gets written about it. The server re-validates and
+  // re-caps every one of these fields; nothing here is trusted downstream.
   function fromLive(p) {
     return {
       title: p.title, handle: p.handle, price: p.price || '', image: p.image || '',
       url: p.url, productType: p.productType || '', notes: '',
+      tags: Array.isArray(p.tags) ? p.tags.slice(0, 20) : [],
+      description: p.description || '',
       sourceCollection: p.sourceCollection || '', source: p.source || 'live-gift-catalog'
     };
   }
