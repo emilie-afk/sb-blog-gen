@@ -106,9 +106,9 @@ ${cta || (fields.collectionUrl && sensitive ? `<p>If it feels right, you can see
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
 ${buildGiftVoiceRules(fields)}
 
-${buildSharedStyleRules()}
+${buildSharedStyleRules({ gift: true })}
 
-${buildPlantAccuracyRules()}
+${buildPlantAccuracyRules({ withEvidence: true })}
 
 ${buildEvidenceRules()}
 

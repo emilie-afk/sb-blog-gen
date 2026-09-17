@@ -5,16 +5,21 @@
 const HEADING_COLOR = '#34bfa2';
 const BRAND_GREEN = '#3a6b35';
 
-function buildSharedStyleRules() {
+function buildSharedStyleRules(options) {
+  const gift = !!(options && options.gift);
+  // For gift formats the voice rules already cover word repetition and
+  // per-recommendation variety, so those lines are dropped here rather than
+  // stated twice. No guardrail is lost, only the duplicate wording.
+  const voiceLines = gift ? '' : `- Do not lean on the words "perfect", "thoughtful", "unique" and "meaningful". Use each at most once in the whole article.
+- Do not repeat the same selling point across every recommendation.
+`;
   return `WRITING RULES (apply to every section):
 - Warm, helpful and conversational, like a plant loving friend giving advice.
 - Written for real shoppers and plant recipients, useful before and after the purchase.
 - Short, scannable paragraphs. Natural contractions are fine (it's, you'll, don't).
 - Avoid corporate or clinical language.
-- Do not lean on the words "perfect", "thoughtful", "unique" and "meaningful". Use each at most once in the whole article.
-- Never use em dashes or en dashes. Use commas, periods, colons or parentheses instead.
+${voiceLines}- Never use em dashes or en dashes. Use commas, periods, colons or parentheses instead.
 - Do not make unsupported "best", "ultimate", "number one" or industry leading claims.
-- Do not repeat the same selling point across every recommendation.
 - Weave links naturally into sentences. Never write "For more information, check out...", "Learn more in our guide", "Check out our resource" or anything similar.
   BAD: "For more guidance on pruning, learn about How and When to Prune your plants."
   GOOD: "It's worth removing any leggy growth now and then, and here's how and when to prune your succulents."
@@ -25,18 +30,24 @@ HTML OUTPUT RULES:
 - Every h2 and h3 must carry style="color:${HEADING_COLOR}" inline.
 - Use only valid, Shopify friendly HTML: h2, h3, p, ul, ol, li, table, tr, th, td, a, strong, em, div, img, br.
 - Do not include placeholders, TODOs or bracketed instructions in the output.
-- Do not mention being an AI and do not explain the prompt.`;
+- Do not mention being an AI and do not explain the prompt.
+- Write every section listed above and finish the article. Keep each section tight rather than spending the length on any one of them.`;
 }
 
-function buildPlantAccuracyRules() {
+function buildPlantAccuracyRules(options) {
+  const withEvidence = !!(options && options.withEvidence);
+  // Pet safety, neglect and recovery claims are stated once in the evidence
+  // rules for the gift formats, so they are not repeated here.
+  const overlap = withEvidence ? '' : `- Never call a plant pet safe unless that has been confirmed in the supplied facts.
+- Never say a plant thrives on neglect, or that missing water is harmless.
+- Never promise that a plant recovers from damage, shipping stress or underwatering.
+`;
   return `PLANT ACCURACY RULES:
 - Never describe a plant as impossible to kill or "hard to kill". Say resilient or forgiving instead.
 - Low maintenance is not the same as no maintenance. Be clear about what the plant still needs.
-- Never call a plant pet safe unless that has been confirmed in the supplied facts. Include toxicity cautions when they are relevant and known.
-- Do not invent symbolic or cultural meanings. If symbolism is uncertain, leave it out.
-- No medical, therapeutic or emotional healing claims.
-- Never say a plant thrives on neglect, or that missing water is harmless.
-- Never promise that a plant recovers from damage, shipping stress or underwatering.`;
+- Include toxicity cautions when they are relevant and known.
+${overlap}- Do not invent symbolic or cultural meanings. If symbolism is uncertain, leave it out.
+- No medical, therapeutic or emotional healing claims.`;
 }
 
 // The editorial voice for all gift formats. The occasion and relationship change

@@ -210,17 +210,50 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForSelector('#outputCard.visible');
   check('includeYearInTitle sent when ticked', lastReq().fields.includeYearInTitle === true);
 
-  // ── Error handling
+  // ── Background job states (gift guides run through generate-background)
+  check('background path used for gift guides', /generate-background/.test(fs.readFileSync('/tmp/last-endpoint.txt', 'utf8')),
+    fs.readFileSync('/tmp/last-endpoint.txt', 'utf8'));
+
+  setMode('jobfail');
+  await page.click('#genBtn');
+  await page.waitForTimeout(4500);
+  let errText = await page.textContent('#errorBox');
+  check('failed job surfaces its reason', /could not generate the article/i.test(errText), errText.slice(0, 80));
+  check('failed job keeps the confirmed products', (await page.textContent('.picker-count')).startsWith('3 products'));
+  check('failed job keeps the brief', (await page.inputValue('[data-name="occasion"]')).length > 0);
+
+  setMode('jobgone');
+  await page.click('#genBtn');
+  await page.waitForTimeout(4500);
+  errText = await page.textContent('#errorBox');
+  check('expired job explains the work is safe', /still here/i.test(errText), errText.slice(0, 80));
+
+  setMode('jobtrunc');
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible');
+  await page.waitForTimeout(300);
+  errText = await page.textContent('#errorBox');
+  check('a truncated article is never presented as finished', /cut off/i.test(errText), errText.slice(0, 80));
+  check('the truncated article is still shown for inspection', await page.isVisible('#outputCard'));
+
+  setMode('');
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible');
+  check('background job completes after polling', (await page.inputValue('#html-code')).includes('<h2'));
+
+  // ── Synchronous endpoint error handling (care guide path)
+  await page.click('.format-option[data-type="care_guide"]');
+  await page.waitForTimeout(300);
   setMode('timeout504');
   await page.click('#genBtn');
-  await page.waitForTimeout(500);
-  let errText = await page.textContent('#errorBox');
+  await page.waitForTimeout(600);
+  errText = await page.textContent('#errorBox');
   check('504 HTML gives a timeout message', errText.includes('Generation took too long') && errText.includes('504'), errText.slice(0, 90));
   check('no platform internals leaked', !errText.includes('<html') && !errText.toLowerCase().includes('lambda'));
 
   setMode('text502');
   await page.click('#genBtn');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(600);
   errText = await page.textContent('#errorBox');
   check('plain-text 502 includes the status', errText.includes('502'), errText.slice(0, 90));
 
@@ -229,6 +262,8 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForSelector('#outputCard.visible');
   check('warnings shown with the article', await page.isVisible('#warningBox') && (await page.textContent('#warningBox')).includes('excerpt'));
   setMode('');
+  await page.click('.format-option[data-type="occasion_gift_guide"]');
+  await page.waitForTimeout(500);
 
   // ── Gift catalog failure is recoverable
   setMode('giftfail');

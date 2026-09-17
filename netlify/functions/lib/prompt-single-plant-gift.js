@@ -64,9 +64,9 @@ ${cta}
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
 ${buildGiftVoiceRules(fields)}
 
-${buildSharedStyleRules()}
+${buildSharedStyleRules({ gift: true })}
 
-${buildPlantAccuracyRules()}
+${buildPlantAccuracyRules({ withEvidence: true })}
 
 ${buildEvidenceRules()}
 

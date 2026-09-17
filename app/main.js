@@ -324,12 +324,66 @@ const ERROR_TITLES = {
   bad_gateway: 'The generation service is unavailable',
   server_error: 'The server hit an error',
   unexpected_response: 'Unexpected server response',
-  storefront_failure: 'The Succulents Box storefront could not be reached'
+  storefront_failure: 'The Succulents Box storefront could not be reached',
+  job_expired: 'That generation is no longer available',
+  job_store_unavailable: 'The job store could not be read',
+  bad_job_id: 'That job reference is not valid'
 };
+
+// List formats go through the background job: a long gift guide can outrun
+// Netlify's 60 second synchronous limit, which cannot be raised. The care guide
+// and single-plant formats are bounded and stay on the synchronous endpoint.
+const BACKGROUND_FORMATS = ['general_gift_guide', 'occasion_gift_guide'];
+const POLL_INTERVAL_MS = 2500;
+const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
+function newJobId() {
+  const rand = () => Math.random().toString(36).slice(2, 10);
+  return 'job_' + Date.now().toString(36) + '_' + rand() + rand();
+}
+
+function setPending(message) {
+  const el = document.getElementById('pendingNote');
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+}
+
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return { res, data: await readResponse(res) };
+}
+
+// Polls generate-status until the job finishes. The form and the confirmed
+// products are never touched here, so any outcome leaves them ready to retry.
+async function waitForJob(jobId, onTick) {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+    const { res, data } = await postJson('/.netlify/functions/generate-status', { jobId, token: _sessionToken });
+    if (!res.ok) {
+      throw Object.assign(new Error(data.error || `Status check failed (HTTP ${res.status}).`), { code: data.code });
+    }
+    if (data.status === 'complete') return data;
+    if (data.status === 'failed' || data.status === 'expired') {
+      throw Object.assign(new Error(data.error || 'The generation did not finish.'), { code: data.code });
+    }
+    if (onTick) onTick(Math.round((data.elapsedMs || 0) / 1000));
+  }
+  throw Object.assign(
+    new Error('The generation is still running after five minutes. Your brief and confirmed products are still here, so you can try again with fewer recommendations.'),
+    { code: 'job_expired' }
+  );
+}
 
 async function generate() {
   clearError();
   showWarnings([]);
+  setPending('');
 
   if (!validate()) {
     renderForm();
@@ -340,6 +394,7 @@ async function generate() {
   }
 
   const fmt = currentFormat();
+  const useBackground = BACKGROUND_FORMATS.includes(state.articleType);
   const btn = document.getElementById('genBtn');
   btn.disabled = true;
   document.getElementById('genLabel').textContent = 'Generating…';
@@ -350,25 +405,40 @@ async function generate() {
   setProgress(0);
 
   const ticker = [1, 2, 3].map((s, i) => setTimeout(() => setProgress(s), (i + 1) * 3500));
+  const requestBody = {
+    articleType: state.articleType,
+    fields: buildFields(),
+    token: _sessionToken
+  };
 
   try {
-    const res = await fetch('/.netlify/functions/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        articleType: state.articleType,
-        fields: buildFields(),
-        token: _sessionToken
-      })
-    });
+    let data;
+
+    if (useBackground) {
+      const jobId = newJobId();
+      setPending('Writing the guide. This runs in the background and usually takes under a minute, longer for eight recommendations. You can leave this tab open.');
+      const started = await postJson('/.netlify/functions/generate-background', Object.assign({ jobId }, requestBody));
+      // 202 is the expected answer: the work continues after the response.
+      if (!started.res.ok && started.res.status !== 202) {
+        throw Object.assign(
+          new Error(started.data.error || `The generation could not be started (HTTP ${started.res.status}).`),
+          { code: started.data.code });
+      }
+      const acceptedId = (started.data && started.data.jobId) || jobId;
+      data = await waitForJob(acceptedId, seconds => {
+        setPending(`Still writing, ${seconds}s so far. You can leave this tab open.`);
+      });
+    } else {
+      const sync = await postJson('/.netlify/functions/generate', requestBody);
+      if (!sync.res.ok) {
+        throw Object.assign(new Error(sync.data.error || `The server returned HTTP ${sync.res.status}.`), { code: sync.data.code });
+      }
+      data = sync.data;
+    }
 
     ticker.forEach(clearTimeout);
+    setPending('');
 
-    const data = await readResponse(res);
-
-    if (!res.ok) {
-      throw Object.assign(new Error(data.error || `The server returned HTTP ${res.status}.`), { code: data.code });
-    }
     if (data.nonJson || !data.html) {
       throw Object.assign(new Error(data.error || 'The generation service returned a response without an article.'),
         { code: data.code || 'incomplete_response' });
@@ -378,8 +448,13 @@ async function generate() {
     renderOutput(data, fmt);
     setProgress(5);
     document.getElementById('progressCard').classList.remove('visible');
+    if (data.truncated) {
+      showError('The article was cut off',
+        'It hit the output limit and stops mid-way. Do not publish it as it is. Generate again with fewer recommendations, or split the guide.');
+    }
   } catch (err) {
     ticker.forEach(clearTimeout);
+    setPending('');
     document.getElementById('progressCard').classList.remove('visible');
     showError(ERROR_TITLES[err.code] || 'Generation failed', err.message || String(err));
   }
