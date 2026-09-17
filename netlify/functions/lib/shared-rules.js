@@ -61,7 +61,14 @@ function buildGiftVoiceRules(fields) {
 
   return `WHO IS WRITING:
 You are writing for the Succulents Box blog. These are OUR gifts, from our own collection, and we know them. Write in first person as the brand: "we", "our", "you", "the person you have in mind". Use that voice naturally rather than in every sentence, and never let it turn into advertising copy.
-Refer to a confirmed item as "our [exact item name]", "this arrangement", "this gift box", "this plant gift", or by its name alone. Do not call the collection "products" over and over.
+Refer to a confirmed item as "our [exact item name]", "this arrangement", "this gift box", or by its name alone. Do not call the collection "products" over and over.
+
+WHAT TO CALL THESE ITEMS. "Plant gift" is not the default noun and must not become the phrase you reach for. Prefer, in this order:
+1. The exact item name as supplied.
+2. What the item actually is: an arrangement, a gift box, a planted container, a terrarium, a set of two succulents, a single plant in a ceramic pot. Use the storefront description to know which.
+3. Plain "gift".
+4. "Living gift", occasionally, and never more than once in the article.
+5. "Plant gift", last, and only where nothing above fits.
 
 NEVER WRITE LIKE A THIRD PARTY. This is not an affiliate post, a product review site, a marketplace comparison or a retailer summary. Never write "Succulents Box offers", "Succulents Box sells", "the company", "this seller", "the retailer", "according to the retailer", "we found", "our top pick", "best value", "worth the price", "buyers should check", or "customers should ask the seller". Never imply we do not know our own items.
 
@@ -86,6 +93,38 @@ VOICE AND STYLE:
 - Never tell a customer to inspect, repair, rewrap, repot, modify or add anything to one of our gifts.
 - No corporate language, no exaggerated emotional claims, no generic filler that could appear in any gift guide on any site.
 
+TREAT EACH ITEM AS ONE COMPLETE GIFT. This governs every arrangement, dish garden, gift box and gift set, and it overrides any instruction that would have you list what is inside.
+- Write about the gift as a whole thing someone receives. Never dismantle it into its parts and discuss each part in turn.
+- Do not walk an item like an inventory: plant, then pot, then moss, then dish, then candle, then card, then packaging, then accessories. That reads as a product page, not a recommendation.
+- The official storefront description is evidence for understanding what the item is. It is NOT a checklist of details that must appear in the article, and it is not an outline for the paragraph.
+- Each recommendation answers three questions: what the gift feels like as a whole, who or what moment it suits, and what basic care its plant needs.
+- You may mention an included element when it materially explains the overall gift. Never review the elements separately, and never assign each one its own benefit.
+- If the supplied data does not say much, write a short recommendation about what is known and stop. A brief accurate paragraph is better than a long vague one. Do not pad it out with atmosphere.
+- Never claim the box is boxed, gift ready, ready to give, ready to ship, includes a gift message, a card, a care card, ribbon, tissue or any packaging detail unless that was supplied.
+- Never describe an unboxing, an arrival, a reveal or a first impression.
+- These phrases are banned outright, in any form, including as parts of longer sentences: "curated gift box", "carefully curated", "thoughtfully curated", "curated selection", "handpicked collection", "handpicked", "specially selected", "perfectly paired", "coordinated set", "the gift box is the gift itself", "this one carries that energy", "the meaning is built in", "removes guesswork". Do not use the word "curated" at all.
+- Do not describe a set as designed, paired, matched or chosen to complement unless the supplied data says so. Items in a box are contents, not a stated design intent.
+
+NO MANUFACTURING LANGUAGE. These words make a living gift sound like a manufactured object. Do not use them: "assembled", "constructed", "secured", "anchored", "built", "requires no setup", "comes complete", "individual components". Write instead in language that helps the reader picture the gift in the person's space.
+
+CARE GUIDANCE INSIDE A RECOMMENDATION. The plant itself may be discussed separately from the gift, but only to give concise, useful care guidance, and only in one or two natural sentences inside that recommendation.
+- Useful distinctions, when they apply to that item: air plants grow without soil; air plants still need bright light, airflow and regular misting or rinsing; succulents generally need watering less often than many houseplants; succulent soil should dry between waterings; succulents still need a bright spot; a plant may not suit a windowless office. Pet safety may be mentioned only when it was verified for that item.
+- Never expand this into a care tutorial, and never write a standalone care section. See the section list for what must not exist.
+
+WORKED EXAMPLES, showing the difference between taking a gift apart and describing it whole. Never copy their claims: they show the approach only.
+  Do NOT write: "Three live Tillandsia air plants rise from preserved reindeer moss in a black glazed terracotta dish. The different shapes give the garden plenty to look at, while the low dish keeps the whole arrangement compact. It arrives assembled, so there is nothing for them to plant or arrange." That is a product description that takes the gift apart.
+  Write instead: "The Air Plant Dish Garden has a playful, sculptural look that brings personality to a desk without feeling overly decorative. Its Tillandsia grow without soil, but they still need bright light and regular misting or rinsing."
+  Do NOT write: "The purple and orange succulents contrast with the white planter and matching dish." That describes separate physical components.
+  Write instead: "The Purple and Orange Succulent Arrangement has a warm, colorful look that can brighten a workspace. Like other succulent arrangements, it needs a bright spot and should dry between waterings."
+  Do NOT write: "The box includes a succulent, candle, and notecard. The candle adds warmth, the card makes it personal, and the succulent lasts after the occasion." That dismantles the gift and gives each piece its own marketing benefit.
+  Write instead: "This birthday box brings the celebration together in one cheerful presentation, with a live succulent and room for a handwritten message from you."
+
+BANNED FILLER. Do not write vague AI filler, and do not pass judgement the facts cannot support:
+- No sentences that would be equally true of any gift on any site. If a sentence would survive swapping in a different item name, rewrite it or cut it.
+- No "in today's world", "at the end of the day", "when it comes to", "look no further", "whether you are ... or ...", "there is something for everyone", "speaks for itself", "sure to delight", "adds a touch of".
+- Do not repeat the same observation in different words across sections.
+- Accuracy beats symmetry. Recommendations do not need to be the same length, and an item with less supplied data gets a shorter entry rather than an invented one.
+
 STYLE EXAMPLES. These show rhythm and perspective only. Never copy their claims: use them only as a model for how the writing should sound.
   Opening: "Choosing a Christmas gift becomes easier when you start with the person and the space they call their own. This collection includes compact festive designs for desks and shelves, along with larger arrangements that can become part of the celebration. Here are a few of our favorites and what makes each one worth giving."
   Choosing between gifts: "For a smaller desk or shelf, start with the compact arrangements. The larger planted designs have more visual presence and work well when you want the gift to become part of the holiday display. A gift box offers a different experience, with more than one plant to enjoy."
@@ -107,7 +146,19 @@ pet safety, eco friendly attributes, gift packaging, gift wrapping, gift message
 - General botanical knowledge may inform a short, item specific care note where it genuinely helps, in qualified language. It may never become a verified feature of an item, and it may never become a care tutorial.
 - Never say a plant thrives on neglect, that underwatering is harmless, or that a damaged plant will bounce back.
 - Never state that an item arrives ready to live in a home, arrives potted, or includes anything that was not supplied.
+
+GUIDE CHARACTERISTICS ARE A REQUESTED ANGLE, NEVER A VERIFIED FACT. This rule is absolute and overrides every other instruction in this prompt.
+- The characteristics in the brief (low maintenance, beginner friendly, pet friendly, low light, desk friendly, small space friendly, easy to ship, eco conscious, or any custom requirement) describe the angle the content team asked for. They are NOT facts about the confirmed items, and confirming an item for the guide does not verify any of them.
+- Never state, imply, summarise or restate a requested characteristic as a property of an individual gift unless that specific item's supplied data states it.
+- Never state it about the collection as a whole either. Do not write "every gift here is low light" or "all of these are pet friendly".
+- The characteristic may shape what the article is about and what the reader is looking for. It may never become a claim.
 - If a guide characteristic was requested but no item level fact supports it, keep it as framing for the guide and never assert it about an individual gift.
+
+OFFICE, LIGHT AND CARE CLAIMS:
+- Never write that an item is suited to an office, a desk, a cubicle, a windowless room, a dorm, a bathroom or any specific setting unless the supplied data says so.
+- Never claim a plant tolerates low light, fluorescent light, artificial light or no direct sun unless the supplied data states that for that item.
+- Low light, bright indirect light, no direct sun, fluorescent office light and "a room with a window" are different conditions. Never treat any of them as equivalent, and never substitute one for another.
+- Never write that an item needs little water, little attention, little care or "almost no care" unless the supplied data states its care level.
 - Do not print a label with an empty value. Omit the whole line instead.
 - Use the supplied item URL exactly as given when linking a gift, and link only to that URL.
 - Use the verified price when one was supplied, and never invent or estimate one.`;
@@ -158,17 +209,39 @@ function formatReferences(references) {
   return `\nREFERENCE LINKS, weave each one naturally into the most relevant sentence:\n${lines.join('\n')}\n`;
 }
 
-// Only these keys ever reach a prompt. Storefront marketing copy (description,
-// tags) is deliberately left out: it is not verified product fact.
+// Only these keys ever reach a prompt, and each one arrives from validate.js,
+// which rebuilds it field by field: nothing the browser sent is passed through.
+//
+// The storefront description is included because without it a gift box is just a
+// name and a price, and the article can only describe it in vague language. It is
+// labelled for what it is, so the model treats it as a source of concrete item
+// details (what is inside, what form it takes) and not as evidence for the
+// adjectives the shop page uses to sell it. Confirmed factual notes stay a
+// separate, higher trust field: those were typed and vouched for by a person.
 function formatProductsForPrompt(products) {
   return (products || []).map((p, i) => {
     const parts = [`${i + 1}. Title: ${p.title}`, `   URL: ${p.url}`];
     if (p.price) parts.push(`   Price: ${p.price}`);
     if (p.productType) parts.push(`   Product type: ${p.productType}`);
+    if (p.description) parts.push(`   Official storefront description, use only for concrete item details: ${p.description}`);
+    if (p.tags && p.tags.length) parts.push(`   Storefront tags, categorisation only, not product facts: ${p.tags.join(', ')}`);
     if (p.notes) parts.push(`   Confirmed factual notes: ${p.notes}`);
-    else parts.push(`   No factual notes supplied. Do not state pet safety, packaging, contents, shipping, materials or care level for this product.`);
+    else parts.push(`   No factual notes supplied. Do not state pet safety, packaging, contents, shipping, materials or care level for this product beyond what the storefront description states outright.`);
     return parts.join('\n');
   }).join('\n');
+}
+
+// How the model is allowed to use the storefront description. Kept next to the
+// formatter above so the two are read together.
+function buildStorefrontDescriptionRules() {
+  return `USING THE OFFICIAL STOREFRONT DESCRIPTION:
+- The storefront description is our own product page copy. It is source material for understanding what the item is: what kind of gift it is, what plant is in it, what form and size it takes, what it is made of.
+- It is NOT a paragraph outline and NOT a checklist. Do not work through it detail by detail, and do not treat a detail as something that must appear in the article just because the product page mentions it. Understand the item from it, then write about the gift as a whole.
+- Paraphrase it in your own words. Never copy a sentence or a distinctive phrase from it into the article.
+- Promotional adjectives in that copy are marketing language, not evidence. Words like "perfect", "beautiful", "premium", "luxurious", "stunning", "hand selected", "carefully chosen" or "ideal for anyone" prove nothing and must not be restated or used to support a claim.
+- A concrete detail stated in the description counts as supplied fact for that item. An implication, a suggestion or a marketing adjective does not.
+- The storefront tags are categorisation. They may tell you what kind of item this is. They are never evidence of pet safety, care level, light needs, packaging or contents.
+- Where the description and the confirmed factual notes disagree, the confirmed factual notes win.`;
 }
 
 function updatedTag() {
@@ -201,6 +274,7 @@ module.exports = {
   buildProductAccuracyRules,
   buildGiftVoiceRules,
   buildEvidenceRules,
+  buildStorefrontDescriptionRules,
   comparisonTableSkeleton,
   formatReferences,
   formatProductsForPrompt,

@@ -3,7 +3,7 @@
 // the sensitive-occasion flag set the emotional register.
 const {
   HEADING_COLOR, buildSharedStyleRules, buildPlantAccuracyRules, buildGiftVoiceRules,
-  buildEvidenceRules, comparisonTableSkeleton, formatReferences, formatProductsForPrompt,
+  buildEvidenceRules, buildStorefrontDescriptionRules, comparisonTableSkeleton, formatReferences, formatProductsForPrompt,
   updatedTag, ctaButton, additional, keywordLine
 } = require('./shared-rules');
 
@@ -67,7 +67,7 @@ Do not open with lines like "Plants symbolize growth and love", "A plant is a gi
 
 2. The featured gifts. For each one, in the order above:
 <h3 style="color:${HEADING_COLOR}">[a natural heading built on the exact item name, hyperlinked to its exact URL]</h3>
-<p>[What makes this one distinctive as a gift, who might appreciate it, and the kind of space or moment it suits. Bring in its design, plant, container, arrangement or theme where that is what makes it special. Include the verified price when one was supplied.]</p>
+<p>[What this gift feels like as a whole, who might appreciate it, and the kind of space or moment it suits, then one or two natural sentences of care guidance for its plant. Write about the gift as one complete thing: do not work through its plant, container, moss, dish, candle, card or packaging one by one. Include the verified price when one was supplied.]</p>
 Vary the shape of these sections. Some can be two short paragraphs, some can carry a short list where that genuinely helps. Do not force the same bullets onto every gift, do not add a "Good to know" caution just to fill space, and do not raise a drawback unless it is verified and useful. A short, item specific care note is welcome where it matters, but these sections are about the gift, not about care.
 
 3. A quick comparison table:
@@ -86,6 +86,7 @@ SECTIONS THAT MUST NOT EXIST IN THIS ARTICLE:
 - Why plants suit the occasion, why plants make good gifts, or plant symbolism.
 - Ordering and timing, shipping advice, or delivery deadlines.
 - Care after the gift, a care primer, or any general succulent care section.
+- A light and space requirements section, a "where to put it" section, or any section built on light levels, room placement or care needs. There is no required section of this kind. Do not restore one under a different heading.
 Removing those sections is not a reason to write less. Spend the room on stronger, more specific writing about each gift.
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
 ${buildGiftVoiceRules(fields)}
@@ -95,6 +96,8 @@ ${buildSharedStyleRules({ gift: true })}
 ${buildPlantAccuracyRules({ withEvidence: true })}
 
 ${buildEvidenceRules()}
+
+${buildStorefrontDescriptionRules()}
 
 Start directly with the Updated tag.`;
 }

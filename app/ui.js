@@ -85,22 +85,135 @@ function describeNonJson(status, raw) {
 }
 
 // ── Copy helpers ─────────────────────────────────────────────────
-function copyFrom(textareaId, buttonId, restoreLabel) {
-  const ta = $(textareaId);
-  ta.select();
-  try { document.execCommand('copy'); } catch (e) { /* clipboard blocked */ }
-  if (window.getSelection) window.getSelection().removeAllRanges();
-  const btn = $(buttonId);
-  const original = restoreLabel || btn.textContent;
-  btn.textContent = '✅ Copied!';
-  btn.classList.add('ok');
-  setTimeout(() => { btn.textContent = original; btn.classList.remove('ok'); }, 2500);
+// The old version called document.execCommand('copy') and threw its return value
+// away, then said "Copied!" unconditionally. execCommand returns false whenever
+// the copy did not happen, and it is deprecated: in a page served over a context
+// where the clipboard is blocked, or where the browser has dropped execCommand,
+// the button reported success while the clipboard still held whatever was in it.
+// Someone then pasted the previous article into a post.
+//
+// Now: the async Clipboard API first, execCommand only as a fallback and only
+// when it returns exactly true, and "Copied!" only after one of those succeeded.
+// A failure says so, leaves the text selected and focused so it can be copied by
+// hand, and never alters the content being copied.
+
+const COPY_RESET_MS = 2500;
+const copyTimers = {};   // one pending restore timer per button
+
+// A polite, non-interrupting announcement region. Created once, on demand, so the
+// markup does not have to carry it and an older index.html still works.
+function copyStatusRegion() {
+  let region = document.getElementById('copy-status');
+  if (!region) {
+    region = document.createElement('div');
+    region.id = 'copy-status';
+    region.setAttribute('role', 'status');
+    region.setAttribute('aria-live', 'polite');
+    region.className = 'copy-status';
+    document.body.appendChild(region);
+  }
+  return region;
 }
 
-function copyHTML() { copyFrom('html-code', 'copyBtn', '📋 Copy HTML'); }
-function copyExcerpt() { copyFrom('excerpt-text', 'excerptCopyBtn', '📋 Copy Excerpt'); }
-function copyMeta() { copyFrom('meta-text', 'metaCopyBtn', '📋 Copy Meta Description'); }
-function copyTitle() { copyFrom('title-text', 'titleCopyBtn', '📋 Copy Title'); }
+function announceCopy(message) {
+  const region = copyStatusRegion();
+  // Clearing first makes a repeated identical message announce again.
+  region.textContent = '';
+  region.textContent = message;
+}
+
+// Restores a button to its idle label. Any timer already pending for that button
+// is cleared first, so two quick clicks cannot leave an earlier timer to wipe the
+// newer label out from under it.
+function scheduleCopyReset(btn, buttonId, original) {
+  if (copyTimers[buttonId]) clearTimeout(copyTimers[buttonId]);
+  copyTimers[buttonId] = setTimeout(() => {
+    delete copyTimers[buttonId];
+    btn.textContent = original;
+    btn.classList.remove('ok');
+    btn.classList.remove('copy-failed');
+  }, COPY_RESET_MS);
+}
+
+// Selects the field and focuses it. Used both as the execCommand fallback's
+// precondition and, on failure, as the way to leave the text ready to copy by
+// hand. It never changes the value.
+function selectField(el) {
+  try {
+    el.focus({ preventScroll: true });
+  } catch (e) {
+    try { el.focus(); } catch (e2) { /* not focusable, nothing to do */ }
+  }
+  try {
+    if (typeof el.setSelectionRange === 'function') el.setSelectionRange(0, el.value.length);
+    else if (typeof el.select === 'function') el.select();
+  } catch (e) {
+    try { el.select(); } catch (e2) { /* selection unavailable */ }
+  }
+}
+
+// Returns true ONLY when the text is known to have reached the clipboard.
+async function writeToClipboard(el, text) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // Permission denied, insecure context, or the document was not focused.
+      // Fall through and try the legacy path rather than reporting success.
+    }
+  }
+  if (typeof document.execCommand === 'function') {
+    try {
+      selectField(el);
+      // Strict equality: execCommand can return undefined where it is stubbed or
+      // partially removed, and undefined is not a successful copy.
+      if (document.execCommand('copy') === true) return true;
+    } catch (e) {
+      // Blocked. Treated as a failure, which is what it is.
+    }
+  }
+  return false;
+}
+
+async function copyFrom(textareaId, buttonId, restoreLabel) {
+  const el = $(textareaId);
+  const btn = $(buttonId);
+  if (!el || !btn) return false;
+
+  // The exact current value of the field, so Copy HTML copies precisely what is
+  // shown in #html-code, including any edit made in the textarea.
+  const text = typeof el.value === 'string' ? el.value : String(el.value || '');
+  const original = restoreLabel || btn.getAttribute('data-idle-label') || btn.textContent;
+  btn.setAttribute('data-idle-label', original);
+
+  const copied = await writeToClipboard(el, text);
+
+  if (copied) {
+    if (window.getSelection) {
+      try { window.getSelection().removeAllRanges(); } catch (e) { /* ignore */ }
+    }
+    btn.textContent = '✅ Copied!';
+    btn.classList.remove('copy-failed');
+    btn.classList.add('ok');
+    announceCopy('Copied to clipboard.');
+  } else {
+    // Leave it selected and focused: the person can finish the copy themselves.
+    selectField(el);
+    btn.textContent = '⚠️ Copy failed';
+    btn.classList.remove('ok');
+    btn.classList.add('copy-failed');
+    announceCopy('Copy failed. The text is selected, press Ctrl+C or Command+C to copy it.');
+  }
+
+  scheduleCopyReset(btn, buttonId, original);
+  return copied;
+}
+
+function copyHTML() { return copyFrom('html-code', 'copyBtn', '📋 Copy HTML'); }
+function copyExcerpt() { return copyFrom('excerpt-text', 'excerptCopyBtn', '📋 Copy Excerpt'); }
+function copyMeta() { return copyFrom('meta-text', 'metaCopyBtn', '📋 Copy Meta Description'); }
+function copyTitle() { return copyFrom('title-text', 'titleCopyBtn', '📋 Copy Title'); }
 
 function switchTab(t) {
   ['html', 'preview'].forEach(n => {

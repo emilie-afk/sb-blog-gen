@@ -1,7 +1,7 @@
 // Single-Plant Gift Guide prompt. One plant, framed as a gift.
 const {
   HEADING_COLOR, buildSharedStyleRules, buildPlantAccuracyRules, buildGiftVoiceRules,
-  buildEvidenceRules, formatReferences, updatedTag, ctaButton, additional, keywordLine
+  buildEvidenceRules, buildStorefrontDescriptionRules, formatReferences, updatedTag, ctaButton, additional, keywordLine
 } = require('./shared-rules');
 
 function buildSinglePlantGiftPrompt(fields) {
@@ -34,6 +34,7 @@ ${updatedTag()}
 <p>[Open on the gift angle and the person it is for${fields.productUrl ? `, hyperlinking ${plant} to ${fields.productUrl} once` : ''}. Do not argue in the abstract that plants make good gifts, and do not open with plant symbolism.]</p>
 
 2. What makes ${plant} distinctive as a gift. Its verified appearance, form, size or habit, and what that gives the person who receives it.
+   If ${plant} is an arrangement, a dish garden, a gift box or a gift set rather than a single plant, treat it as ONE complete gift throughout the article. Describe what it feels like as a whole. Do not take it apart into its plant, container, moss, dish, candle, card, packaging or accessories and discuss each in turn, and do not give each element its own benefit.
 
 3. Who might appreciate it, and the kind of space it suits. Be specific about the person and the room rather than listing every possible recipient.
 
@@ -59,6 +60,8 @@ ${buildSharedStyleRules({ gift: true })}
 ${buildPlantAccuracyRules({ withEvidence: true })}
 
 ${buildEvidenceRules()}
+
+${buildStorefrontDescriptionRules()}
 
 Start directly with the Updated tag.`;
 }

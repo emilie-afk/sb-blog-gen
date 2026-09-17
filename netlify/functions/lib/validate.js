@@ -17,6 +17,15 @@ const LIMITS = {
   notes: 1000
 };
 
+// Storefront copy that rides along with a confirmed product. It is not typed by
+// anyone, it is echoed back from the catalog function, so an over-long value is a
+// stale or tampered client rather than a mistake worth reporting: it is clamped,
+// not rejected. The caps below are what actually protects the prompt, because a
+// whole storefront page must never be able to flood it.
+const DESCRIPTION_CAP = 2000;
+const MAX_TAGS = 20;
+const TAG_CAP = 60;
+
 class ValidationError extends Error {
   constructor(message, code) {
     super(message);
@@ -65,6 +74,34 @@ function manyOf(value, allowed, label) {
   return value.map(v => oneOf(v, allowed, label, false)).filter(Boolean);
 }
 
+// Rebuilds the storefront description as plain text. Anything that is not a
+// string becomes an empty string, markup is removed rather than trusted, and the
+// result is cut to the cap. Nothing here throws: see the note on DESCRIPTION_CAP.
+function description(value) {
+  if (typeof value !== 'string') return '';
+  const text = value
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > DESCRIPTION_CAP ? text.slice(0, DESCRIPTION_CAP).trim() : text;
+}
+
+// Rebuilds the tag list: strings only, each trimmed, de-marked-up and capped,
+// empties dropped, duplicates dropped, and the whole list cut to MAX_TAGS.
+function tags(value) {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  for (const raw of value) {
+    if (out.length >= MAX_TAGS) break;
+    if (typeof raw !== 'string') continue;
+    const tag = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, TAG_CAP).trim();
+    if (!tag || out.includes(tag)) continue;
+    out.push(tag);
+  }
+  return out;
+}
+
 function references(value) {
   if (!value) return [];
   if (!Array.isArray(value)) throw new ValidationError('References must be a list.');
@@ -92,7 +129,12 @@ function products(value) {
       price: str(p && p.price, 40, `${label} price`),
       image: p && p.image ? url(p.image, `${label} image URL`) : '',
       productType: str(p && p.productType, LIMITS.short, `${label} product type`),
+      // Manual factual notes stay their own field. They are what a person typed and
+      // vouched for; the storefront description is marketing copy from the shop.
+      // The prompt builder labels the two differently, so they must not be merged.
       notes: str(p && p.notes, LIMITS.notes, `${label} notes`),
+      description: description(p && p.description),
+      tags: tags(p && p.tags),
       handle: str(p && p.handle, LIMITS.short, `${label} handle`),
       source: ['manual', 'live-gift-catalog', 'live-plant-catalog', 'local-fallback'].includes(p && p.source) ? p.source : 'manual',
       sourceCollection: str(p && p.sourceCollection, LIMITS.short, `${label} source collection`)
@@ -191,4 +233,7 @@ function validateRequest(articleType, rawFields) {
   return { articleType, fields: f };
 }
 
-module.exports = { validateRequest, ValidationError, ARTICLE_TYPES, GIFT_ANGLES, CHARACTERISTICS, MAX_RECOMMENDATIONS };
+module.exports = {
+  validateRequest, ValidationError, ARTICLE_TYPES, GIFT_ANGLES, CHARACTERISTICS,
+  MAX_RECOMMENDATIONS, DESCRIPTION_CAP, MAX_TAGS, TAG_CAP
+};

@@ -68,7 +68,10 @@ ok('em dash stripped from title', !/[\u2014\u2013]/.test(dashTitle), dashTitle);
 
 // ── output validation
 const f2=validateRequest('general_gift_guide',{numberOfRecommendations:2,selectedProducts:prods(2)}).fields;
-const goodTable=`<table><thead><tr><th>Gift</th><th>Best for</th><th>Light</th><th>Care level</th></tr></thead><tbody><tr><td>Gift Box 1</td><td>a</td><td>b</td><td>c</td></tr><tr><td>Gift Box 2</td><td>a</td><td>b</td><td>c</td></tr></tbody></table>`;
+// Headers match the skeleton the prompt actually asks for now. The old fixture
+// still used Light and Care level, which the skeleton stopped requiring once
+// light and care claims became evidence-gated.
+const goodTable=`<table><thead><tr><th>Gift</th><th>Best suited for</th><th>Style or format</th><th>Price</th></tr></thead><tbody><tr><td>Gift Box 1</td><td>a</td><td>b</td><td>c</td></tr><tr><td>Gift Box 2</td><td>a</td><td>b</td><td>c</td></tr></tbody></table>`;
 const links=`<a href="https://succulentsbox.com/products/g1">Gift Box 1</a><a href="https://succulentsbox.com/products/g2">Gift Box 2</a>`;
 ok('clean output has no warnings', validateArticleOutput('general_gift_guide',f2,goodTable+links).length===0, JSON.stringify(validateArticleOutput('general_gift_guide',f2,goodTable+links)));
 const merged=`<table><tr><th>GiftBest forLightCare levelPrice</th></tr><tr><td>x</td></tr></table>`;

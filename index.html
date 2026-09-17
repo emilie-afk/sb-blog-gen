@@ -162,6 +162,12 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
 .copy-btn { background: #3a6b35; color: white; border: none; border-radius: 7px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .copy-btn:hover { background: #2d5428; }
 .copy-btn.ok { background: #1a7a1a; }
+.copy-btn.copy-failed { background: #a12626; }
+.copy-btn.copy-failed:hover { background: #8a1f1f; }
+/* Visible, not visually hidden: a failed copy needs an on-screen message, and a
+   screen reader announces it through role="status" at the same time. */
+.copy-status { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 90%; background: #1a2a1a; color: #eafaea; border: 1px solid #3a6b35; border-radius: 8px; padding: 9px 16px; font-size: 13px; z-index: 50; }
+.copy-status:empty { display: none; }
 .copy-note { font-size: 12px; color: #6a9a6a; }
 .title-bar .copy-note { color: #999; }
 .error-box { display: none; background: #fff5f5; border: 1px solid #f5c0c0; border-radius: 10px; padding: 13px 17px; margin-bottom: 16px; color: #c00; font-size: 13px; }

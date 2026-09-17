@@ -14,7 +14,10 @@ const MAX_PAGES = 16;
 const PAGE_BATCH = 4;
 const WALK_BUDGET_MS = 7000;
 const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes on a warm instance
-const DESCRIPTION_LIMIT = 200;
+// Long enough to carry what is actually in a gift box, short enough that a
+// storefront page cannot flood a prompt. HTML, scripts and styles are stripped
+// before this cap applies.
+const DESCRIPTION_LIMIT = 1800;
 
 // Per-instance cache. Netlify recycles instances, so this is a best-effort
 // warm cache, backed up by the Cache-Control header below.
@@ -53,6 +56,8 @@ function pickPrice(variants) {
 // fact and never reaches an article prompt.
 function shortDescription(bodyHtml) {
   const text = String(bodyHtml || '')
+    // Drop script and style bodies outright, then every remaining tag.
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
