@@ -3,15 +3,70 @@
 
 let _sessionToken = null;
 
-const state = {
-  articleType: 'care_guide',
-  values: {
+// Article-specific state. Everything in here belongs to ONE article and is
+// cleared together by resetArticleState(). Application-level state that must
+// outlive an article lives outside it: _sessionToken above, and the picker's
+// loaded catalog caches.
+//
+// The defaults are defined once, as a factory, so the initial state and every
+// reset produce exactly the same shape. A reset that rebuilt the object by hand
+// is how fields quietly survive into the next article.
+function freshValues() {
+  return {
     numberOfRecommendations: 5,
     giftCharacteristics: [],
     sensitiveOccasion: false
-  },
-  errors: {}
+  };
+}
+
+const state = {
+  articleType: 'care_guide',
+  values: freshValues(),
+  errors: {},
+  // True once an article has been generated and is on screen.
+  hasOutput: false,
+  // Set false by every completed generation, true only by a Copy HTML that
+  // actually succeeded. Copying the title, excerpt or meta description does not
+  // touch it, and neither does a failed copy.
+  articleHtmlCopied: false,
+  // Incremented on every generation and every reset. An async result carrying a
+  // stale id is dropped rather than rendered: see the note on waitForJob.
+  generationId: 0,
+  // True while ANY generation is in flight, synchronous or background. The
+  // transport is an implementation detail: a care guide on the synchronous
+  // endpoint is just as much work in progress as a gift guide on a background
+  // job, and abandoning either one deserves the same question. Whether polling
+  // is involved is decided by BACKGROUND_FORMATS at the point of use, never by
+  // this flag.
+  generationPending: false
 };
+
+// The article HTML is the one field whose successful copy matters here.
+// Registered once, at load, so repeated resets cannot accumulate listeners.
+document.addEventListener('sbcopy', e => {
+  if (e && e.detail && e.detail.field === 'html-code' && e.detail.ok) {
+    state.articleHtmlCopied = true;
+  }
+});
+
+// An edit makes the copy stale. What reached the clipboard is no longer what is
+// on screen, so the article counts as uncopied again and starting a new one asks
+// before throwing the edit away.
+//
+// This listens for the `input` event, which fires for typing, deleting, pasting,
+// drag-and-drop and undo, but NOT for a programmatic assignment to .value. That
+// is exactly the distinction needed: renderOutput() and resetOutputState() both
+// set .value directly and must not trip this, and both already set the flag
+// themselves.
+//
+// Registered once, on the document rather than the element, so no number of
+// generations or resets can accumulate duplicate listeners, and so it survives
+// any future re-render of the output card.
+document.addEventListener('input', e => {
+  if (e && e.target && e.target.id === 'html-code') {
+    state.articleHtmlCopied = false;
+  }
+});
 
 // ── Login ────────────────────────────────────────────────────────
 async function login() {
@@ -208,8 +263,192 @@ function bindFields() {
   });
 }
 
-function setFormat(type) {
+// ── Article boundaries ───────────────────────────────────────────
+// The browser session used to be one continuous draft: changing format or
+// starting a different occasion left the previous article's confirmed products
+// and output in place, so products chosen for one article could end up attached
+// to another. These three functions are the explicit boundary.
+//
+// There is ONE full reset, used by every path that starts a new article. Several
+// partial resets, each clearing a different subset, is how a field survives into
+// the next article unnoticed.
+
+// Does the current draft hold work worth warning about before it is thrown away?
+function isArticleDirty() {
+  if (state.hasOutput || state.generationPending) return true;
+  const v = state.values;
+  const defaults = freshValues();
+  const meaningful = Object.keys(v).some(k => {
+    const value = v[k];
+    if (value === undefined || value === null || value === '') return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'boolean') return value !== (defaults[k] || false);
+    // A number field left at its default is not work the person has done.
+    if (k in defaults) return String(value) !== String(defaults[k]);
+    return true;
+  });
+  if (meaningful) return true;
+  if (typeof ProductPicker !== 'undefined' && ProductPicker.isDirty()) return true;
+  return false;
+}
+
+// Clears everything that belongs to the visible output: the article, its title
+// options, metadata, related items, warnings and errors. Used on its own when
+// products change under a generated article, and as part of the full reset.
+function resetOutputState() {
+  state.hasOutput = false;
+  state.articleHtmlCopied = false;
+
+  ['outputCard', 'excerptCard', 'metaCard', 'recsCard', 'progressCard'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('visible');
+  });
+  ['html-code', 'title-text', 'excerpt-text', 'meta-text'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const previewTitle = document.getElementById('preview-title');
+  if (previewTitle) previewTitle.textContent = '';
+  const previewBody = document.getElementById('preview-body');
+  if (previewBody) previewBody.innerHTML = '';
+  const titleOptions = document.getElementById('titleOptions');
+  if (titleOptions) { titleOptions.innerHTML = ''; titleOptions.style.display = 'none'; }
+  ['recsProducts', 'recsArticles'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+  if (document.getElementById('metaCounter')) updateMetaCounter();
+
+  clearError();
+  showWarnings([]);
+  setPending('');
+  switchTab('html');
+  // Copy timers and the shared status region belong to the article that is
+  // going away: a surviving timer would fire against the next one.
+  clearCopyState();
+}
+
+// Abandons whatever generation is in flight, synchronous or background. Neither
+// request is cancelled: a Netlify background function cannot be, and an
+// in-flight fetch would still have to be ignored on arrival anyway. What matters
+// is that no result can reach the form. Bumping generationId does that for both
+// transports: the poll loop stops on its next tick, and the synchronous path
+// finds the id has moved on when its fetch resolves.
+function abandonActiveGeneration() {
+  state.generationId += 1;
+  state.generationPending = false;
+}
+
+// THE full article reset. Every path that starts a new article goes through here.
+function resetArticleState(options) {
+  const opts = options || {};
+  abandonActiveGeneration();
+  resetOutputState();
+
+  state.values = freshValues();
+  state.errors = {};
+  if (opts.articleType && FORMATS[opts.articleType]) state.articleType = opts.articleType;
+
+  if (typeof ProductPicker !== 'undefined') ProductPicker.resetForNewArticle();
+
+  document.querySelectorAll('.format-option').forEach(el => {
+    el.classList.toggle('on', el.dataset.type === state.articleType);
+  });
+  renderForm();
+
+  const btn = document.getElementById('genBtn');
+  if (btn) {
+    btn.disabled = false;
+    document.getElementById('genLabel').textContent = currentFormat().buttonLabel;
+    document.getElementById('genIcon').textContent = '⚡';
+  }
+
+  if (opts.focusFormat !== false) focusArticleFormat();
+}
+
+// Returns the person to the top of the workflow and puts the keyboard on the
+// first selectable format, so a new article starts where a new article starts.
+function focusArticleFormat() {
+  const card = document.getElementById('formatCard');
+  if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const first = document.querySelector('#formatOptions .format-option.on')
+    || document.querySelector('#formatOptions .format-option');
+  if (first && typeof first.focus === 'function') {
+    try { first.focus({ preventScroll: true }); } catch (e) { try { first.focus(); } catch (e2) { /* ignore */ } }
+  }
+}
+
+const NEW_ARTICLE_BODY = 'Your current brief, selected products, and generated article will be cleared.';
+
+async function createAnotherArticle() {
+  // Generated output that has not actually reached the clipboard is work that
+  // would be lost for good, so it is worth a question. Output the person has
+  // successfully copied is already safe elsewhere, and a clean form has nothing
+  // to lose, so neither needs one.
+  const needsConfirm = state.generationPending || (state.hasOutput && !state.articleHtmlCopied);
+  if (needsConfirm) {
+    const body = state.generationPending
+      ? NEW_ARTICLE_BODY + ' The generation still running will no longer be shown.'
+      : NEW_ARTICLE_BODY;
+    const go = await confirmAction({
+      title: 'Start a new article?',
+      body,
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Start New Article'
+    });
+    if (!go) return false;   // Cancel preserves the complete current state.
+  }
+  resetArticleState();
+  return true;
+}
+
+async function clearSelectedProducts() {
+  const go = await confirmAction({
+    title: 'Clear selected products?',
+    body: 'This will remove all products currently confirmed for this article. Your brief will remain unchanged.',
+    cancelLabel: 'Cancel',
+    confirmLabel: 'Clear Products'
+  });
+  if (!go) return false;
+
+  ProductPicker.clearSelected();
+  // The generated article names the products that have just been removed, so it
+  // cannot stand. The brief and the chosen format are untouched.
+  if (state.hasOutput || state.generationPending) {
+    abandonActiveGeneration();
+    resetOutputState();
+  }
+  renderForm();
+  return true;
+}
+
+// Changing format is not editing a field: the new format's brief has different
+// questions and the confirmed products were chosen for the old one. It asks
+// first, but only when there is something to lose.
+async function setFormat(type) {
   if (!FORMATS[type]) return;
+  if (type === state.articleType) return;   // clicking the current format does nothing
+
+  if (isArticleDirty()) {
+    const go = await confirmAction({
+      title: 'Switch article format?',
+      body: 'The current brief, selected products, and generated article will be cleared.',
+      cancelLabel: 'Keep Current Article',
+      confirmLabel: 'Switch Format'
+    });
+    if (!go) {
+      // Keep the old format selected and every value with it. The buttons are
+      // re-synced in case a class was toggled optimistically.
+      document.querySelectorAll('.format-option').forEach(el => {
+        el.classList.toggle('on', el.dataset.type === state.articleType);
+      });
+      return;
+    }
+    resetArticleState({ articleType: type, focusFormat: false });
+    return;
+  }
+
+  // A clean form switches straight over: nothing is being thrown away.
   state.articleType = type;
   state.errors = {};
   document.querySelectorAll('.format-option').forEach(el => {
@@ -375,11 +614,22 @@ async function postJson(url, body) {
 
 // Polls generate-status until the job finishes. The form and the confirmed
 // products are never touched here, so any outcome leaves them ready to retry.
-async function waitForJob(jobId, onTick) {
+// A generation is abandoned when the person starts a new article or switches
+// format while it is in flight. The server job cannot be cancelled, so the
+// browser stops caring about it instead: every tick checks the generation id it
+// started under, and a stale loop stops polling and throws a marker the caller
+// swallows. Nothing from the old job ever reaches the form.
+class StaleGeneration extends Error {
+  constructor() { super('This generation was abandoned when a new article was started.'); this.stale = true; }
+}
+
+async function waitForJob(jobId, onTick, generationId) {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+    if (generationId !== state.generationId) throw new StaleGeneration();
     const { res, data } = await postJson('/.netlify/functions/generate-status', { jobId, token: _sessionToken });
+    if (generationId !== state.generationId) throw new StaleGeneration();
     if (!res.ok) {
       throw Object.assign(new Error(data.error || `Status check failed (HTTP ${res.status}).`), { code: data.code });
     }
@@ -422,6 +672,13 @@ async function generate() {
     document.getElementById(id).classList.remove('visible'));
   setProgress(0);
 
+  // This run's identity. Everything below checks it before touching the form, so
+  // a result that arrives after the person has moved on is dropped.
+  const generationId = ++state.generationId;
+  state.generationPending = true;
+  state.hasOutput = false;
+  state.articleHtmlCopied = false;
+
   const ticker = [1, 2, 3].map((s, i) => setTimeout(() => setProgress(s), (i + 1) * 3500));
   const requestBody = {
     articleType: state.articleType,
@@ -448,9 +705,10 @@ async function generate() {
         setPending(starting
           ? `Waiting for the job to start, ${seconds}s so far. Keep this tab open.`
           : `Still writing, ${seconds}s so far. Keep this tab open.`);
-      });
+      }, generationId);
     } else {
       const sync = await postJson('/.netlify/functions/generate', requestBody);
+      if (generationId !== state.generationId) throw new StaleGeneration();
       if (!sync.res.ok) {
         throw Object.assign(new Error(sync.data.error || `The server returned HTTP ${sync.res.status}.`), { code: sync.data.code });
       }
@@ -458,6 +716,8 @@ async function generate() {
     }
 
     ticker.forEach(clearTimeout);
+    if (generationId !== state.generationId) throw new StaleGeneration();
+    state.generationPending = false;
     setPending('');
 
     if (data.nonJson || !data.html) {
@@ -476,11 +736,19 @@ async function generate() {
     }
   } catch (err) {
     ticker.forEach(clearTimeout);
+    // An abandoned generation is not a failure to report: the person has already
+    // moved on, the form now belongs to a new article, and writing an error into
+    // it would be writing into someone else's work.
+    if (err && err.stale) return;
+    state.generationPending = false;
     setPending('');
     document.getElementById('progressCard').classList.remove('visible');
     showError(ERROR_TITLES[err.code] || 'Generation failed', err.message || String(err));
   }
 
+  // The reset may have run while this was in flight, in which case the button
+  // belongs to the new article and must not be relabelled from the old format.
+  if (generationId !== state.generationId) return;
   btn.disabled = false;
   document.getElementById('genLabel').textContent = fmt.buttonLabel;
   document.getElementById('genIcon').textContent = '⚡';
@@ -517,6 +785,12 @@ function renderOutput(data, fmt) {
   // of the general warning list: every other warning still renders normally.
   const warnings = (data.warnings || []).filter(w => !isTruncationWarning(w));
   showWarnings(warnings);
+
+  // A fresh article on screen: nothing has been copied out of it yet, so
+  // starting another one will ask before clearing it.
+  state.hasOutput = true;
+  state.articleHtmlCopied = false;
+  state.generationPending = false;
 }
 
 function setFinalTitle(title) {

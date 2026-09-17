@@ -13,6 +13,7 @@ echo "── prompts + validation ──";   node tests/prompts.test.js     | ta
 echo "── gift prompt voice ──";       node tests/prompt-voice.test.js | tail -3
 echo "── correction pass ──";        node tests/corrections.test.js | tail -3
 echo "── storefront + copy ──";       node tests/storefront-and-copy.test.js | tail -3
+echo "── article workflow ──";        node tests/workflow.test.js | tail -3
 echo "── storefront catalog ──";     node tests/catalog.test.js
 echo "── catalog pagination ──";     node tests/pagination.test.js
 echo "── packaged function ──";      node tests/packaged.test.js

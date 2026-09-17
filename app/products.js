@@ -313,6 +313,7 @@ const ProductPicker = (function () {
     container.innerHTML = `
       <div class="picker-head">
         <span class="picker-count">${selected.length} product${selected.length === 1 ? '' : 's'} confirmed</span>
+        ${selected.length ? '<button type="button" class="clear-products-btn" id="clearProductsBtn" onclick="clearSelectedProducts()">Clear Selected Products</button>' : ''}
         <span class="picker-note">Gift products and live plants are loaded from SucculentsBox.com. You can also add a missing product manually.</span>
       </div>
       <div class="chosen">${renderSelected()}</div>
@@ -401,6 +402,51 @@ const ProductPicker = (function () {
     },
     addManual,
     contextChanged,
+
+    // Does this picker hold work a person would be sorry to lose? Confirmed
+    // products, a half-typed manual entry, or a search they are in the middle of.
+    isDirty() {
+      if (selected.length) return true;
+      if (Object.keys(manualDraft).some(k => String(manualDraft[k] || '').trim())) return true;
+      if (String(search.gift || '').trim() || String(search.plants || '').trim()) return true;
+      return false;
+    },
+
+    // Product-only reset: everything chosen for THIS article goes, the loaded
+    // catalog and its caches stay. Refetching the storefront on every new
+    // article would be slow and pointless, and the catalog is not article state.
+    clearSelected() {
+      selected = [];
+      notesOpen = new Set();
+      manualError = '';
+      Object.keys(manualDraft).forEach(k => { manualDraft[k] = ''; });
+      render();
+    },
+
+    // Full article reset for the picker. Also drops the search terms, the manual
+    // draft, the active tab and the collection the person had chosen by hand, so
+    // the next article starts from the picker's initial state. giftCache and
+    // plantCache survive: they are loaded catalog data, not article state.
+    resetForNewArticle() {
+      selected = [];
+      notesOpen = new Set();
+      manualError = '';
+      Object.keys(manualDraft).forEach(k => { manualDraft[k] = ''; });
+      search.gift = '';
+      search.plants = '';
+      activeTab = 'gift';
+      collectionChosenByUser = false;
+      // The gift tab follows the occasion, and the occasion has just been
+      // cleared, so the next mount reloads for the new brief rather than showing
+      // the previous article's inferred collection.
+      gift.status = 'idle';
+      gift.products = [];
+      gift.collection = '';
+      gift.error = '';
+      gift.truncated = false;
+      plants.useFallback = false;
+      render();
+    },
     _state() { return { activeTab, giftStatus: gift.status, giftCollection: gift.collection, plantStatus: plants.status, plantCollection: plants.collection, plantFallback: plants.useFallback }; }
   };
 })();
