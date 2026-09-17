@@ -10,7 +10,10 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
 (async () => {
   setMode('');
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
-  const page = await browser.newPage();
+  // Clipboard permissions: without these the async Clipboard API rejects and the
+  // copy tests would pass or fail for the wrong reason.
+  const context = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
+  const page = await context.newPage();
   const consoleErrors = [];
   page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
 
@@ -326,6 +329,88 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForTimeout(250);
   check('offline fallback is explicitly labelled', (await page.textContent('.picker-state')).includes('Offline plant list in use'));
   setMode('');
+
+  // ── Copy buttons ────────────────────────────────────────────────────────
+  // The old implementation said "Copied!" whether or not anything was copied.
+  // These click every button for real and read the real clipboard back.
+  await page.click('#tab-html');
+  await page.waitForTimeout(100);
+  const readClipboard = () => page.evaluate(() => navigator.clipboard.readText());
+
+  const copyTargets = [
+    ['copyBtn', 'html-code', 'HTML'],
+    ['titleCopyBtn', 'title-text', 'Title'],
+    ['excerptCopyBtn', 'excerpt-text', 'Excerpt'],
+    ['metaCopyBtn', 'meta-text', 'Meta Description']
+  ];
+
+  for (const [btnId, fieldId] of copyTargets) {
+    const btn = await page.$('#' + btnId);
+    if (!btn) { check('copy button exists: ' + btnId, false); continue; }
+    await page.evaluate(() => navigator.clipboard.writeText('SENTINEL-NOT-COPIED'));
+    await btn.click();
+    await page.waitForTimeout(250);
+    const expected = await page.inputValue('#' + fieldId);
+    const actual = await readClipboard();
+    check('clipboard really holds the ' + fieldId + ' value', actual === expected, JSON.stringify(actual).slice(0, 80));
+    const label = await btn.textContent();
+    check('success label shown for ' + fieldId, /Copied!/.test(label), label);
+  }
+
+  // Copy HTML must copy the exact current #html-code value, character for
+  // character. The field is readonly, so the value is set directly.
+  await page.evaluate(() => { document.getElementById('html-code').value = '<h2>Exact & "quoted" \u00e9</h2>'; });
+  await page.evaluate(() => navigator.clipboard.writeText('SENTINEL-NOT-COPIED'));
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('Copy HTML copies the exact current textarea value',
+    (await readClipboard()) === '<h2>Exact & "quoted" \u00e9</h2>');
+
+  // A blocked clipboard must NOT report success.
+  await page.evaluate(() => {
+    window.__origWrite = navigator.clipboard.writeText.bind(navigator.clipboard);
+    Object.defineProperty(navigator.clipboard, 'writeText', {
+      configurable: true, value: () => Promise.reject(new Error('blocked'))
+    });
+    window.__origExec = document.execCommand;
+    document.execCommand = () => false;
+  });
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  const failedLabel = await page.textContent('#copyBtn');
+  check('a blocked copy never says Copied', !/Copied!/.test(failedLabel), failedLabel);
+  check('a blocked copy says it failed', /Copy failed/.test(failedLabel), failedLabel);
+  check('a blocked copy shows a visible message', /Copy failed/.test(await page.textContent('#copy-status')));
+  check('the status region announces politely',
+    (await page.getAttribute('#copy-status', 'aria-live')) === 'polite' &&
+    (await page.getAttribute('#copy-status', 'role')) === 'status');
+  check('a blocked copy leaves the text selected and focused', await page.evaluate(() => {
+    const el = document.getElementById('html-code');
+    return document.activeElement === el && el.selectionStart === 0 && el.selectionEnd === el.value.length;
+  }));
+  check('a blocked copy never modifies the content',
+    (await page.inputValue('#html-code')) === '<h2>Exact & "quoted" \u00e9</h2>');
+
+  // execCommand returning undefined (stubbed or removed) is not success either.
+  await page.evaluate(() => { document.execCommand = () => undefined; });
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('execCommand returning undefined is not treated as success',
+    /Copy failed/.test(await page.textContent('#copyBtn')));
+
+  // Restore, then confirm the button recovers and the timer guard holds.
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: window.__origWrite });
+    document.execCommand = window.__origExec;
+  });
+  await page.click('#copyBtn');
+  await page.waitForTimeout(200);
+  check('the button recovers after a failure', /Copied!/.test(await page.textContent('#copyBtn')));
+  await page.click('#copyBtn');
+  await page.waitForTimeout(200);
+  check('a second quick click still shows success', /Copied!/.test(await page.textContent('#copyBtn')));
+  await page.waitForTimeout(2800);
+  check('the button returns to its idle label', /Copy HTML/.test(await page.textContent('#copyBtn')));
 
   check('no script errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 

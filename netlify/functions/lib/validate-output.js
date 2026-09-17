@@ -4,7 +4,18 @@
 // or silently patched, and a failing check is never reported as a pass.
 
 const LIST_FORMATS = ['general_gift_guide', 'occasion_gift_guide'];
-const REQUIRED_HEADERS = ['gift', 'best for', 'light', 'care level'];
+
+// These match the comparison-table skeleton the prompt actually asks for. The old
+// list still required "light" and "care level" columns, which the skeleton stopped
+// asking for once light and care claims became evidence-gated: every generated
+// article was therefore warned about missing headers it was told not to write.
+// "best for" also never matched the skeleton's "Best suited for", so that header
+// was reported missing even when it was present.
+const REQUIRED_HEADERS = [
+  { label: 'Gift', match: c => c === 'gift' || c.startsWith('gift') },
+  { label: 'Best suited for', match: c => c.includes('best suited for') || c.includes('best for') },
+  { label: 'Style or format', match: c => c.includes('style') || c.includes('format') }
+];
 
 function stripTags(html) {
   return String(html || '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
@@ -35,7 +46,10 @@ function validateArticleOutput(articleType, fields, html) {
   const tables = findTables(html);
   const comparison = tables.find(t => {
     const cells = headerCells(t);
-    return cells.some(c => c.includes('best for')) || cells.some(c => c === 'gift');
+    // startsWith rather than equality on 'gift': when the header row collapses into
+    // a single cell, that cell reads "gift best suited for style or format price",
+    // and an equality test would fail to recognise the very table that is broken.
+    return cells.some(c => c.includes('best suited for') || c.includes('best for')) || cells.some(c => c.startsWith('gift'));
   });
 
   if (!tables.length) {
@@ -47,7 +61,7 @@ function validateArticleOutput(articleType, fields, html) {
     if (cells.length < 2) {
       warnings.push('The comparison table headers are merged into one cell instead of separate <th> elements. Rebuild the header row before publishing.');
     } else {
-      const missing = REQUIRED_HEADERS.filter(h => !cells.some(c => c.includes(h)));
+      const missing = REQUIRED_HEADERS.filter(h => !cells.some(c => h.match(c))).map(h => h.label);
       if (missing.length) {
         warnings.push(`The comparison table is missing these headers: ${missing.join(', ')}.`);
       }
