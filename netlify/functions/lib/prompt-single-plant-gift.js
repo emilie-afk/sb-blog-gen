@@ -20,47 +20,37 @@ function buildSinglePlantGiftPrompt(fields) {
     fields.productUrl ? `Primary product URL: ${fields.productUrl}` : ''
   ].filter(Boolean).join('\n');
 
-  return `You are writing a gift focused blog post for Succulents Box (succulentsbox.com) about one plant: ${plant}${sci}. Return ONLY raw HTML for the article body.
+  return `Write a gift focused post for the Succulents Box blog about one of our plants: ${plant}${sci}. Return ONLY raw HTML for the article body.
 
 BRIEF:
 ${brief}
 
-The gift angle controls the whole article. Every section should support the reader's decision to give this plant as a gift. This is NOT a standard care guide. Care information appears only where it helps someone decide to give the plant or helps the recipient keep it alive in the first weeks.
+The gift angle is the spine of the article. Every section supports someone deciding whether to give this plant. This is NOT a care guide with a gift title on it: care appears only where it helps that decision or helps the person receiving it through the first weeks.
 
-EXACT STRUCTURE:
+STRUCTURE. Write natural headings that suit this plant and this angle rather than reusing a fixed template.
 
-1. Updated tag and a gift oriented introduction, 2 to 3 sentences:
+1. Updated tag, then a short introduction of two or three paragraphs:
 ${updatedTag()}
-<p>[intro that opens on the gift angle, not on botany${fields.productUrl ? `. Hyperlink ${plant} to ${fields.productUrl} once` : ''}]</p>
+<p>[Open on the gift angle and the person it is for${fields.productUrl ? `, hyperlinking ${plant} to ${fields.productUrl} once` : ''}. Do not argue in the abstract that plants make good gifts, and do not open with plant symbolism.]</p>
 
-2. <h2 style="color:${HEADING_COLOR}" id="why-a-good-gift">Why ${plant} makes a gift worth giving</h2>
-<p>[2 short paragraphs built on the gift angle]</p>
+2. What makes ${plant} distinctive as a gift. Its verified appearance, form, size or habit, and what that gives the person who receives it.
 
-3. <h2 style="color:${HEADING_COLOR}" id="who-its-for">Who it is best for</h2>
-<p>[intro line]</p><ul><li>[4 to 6 specific recipient types, each with a short reason]</li></ul>
+3. Who might appreciate it, and the kind of space it suits. Be specific about the person and the room rather than listing every possible recipient.
 
-4. <h2 style="color:${HEADING_COLOR}" id="best-occasions">Best occasions for gifting it</h2>
-<ul><li><strong>[Occasion]:</strong> [one line]</li>[4 to 6 items]</ul>
+4. What to think about before giving it. Honest and useful: the light it needs, pets and small children, how much attention it wants. Candid, never salesy.
 
-5. <h2 style="color:${HEADING_COLOR}" id="before-you-gift">What to consider before gifting it</h2>
-<p>[honest considerations: light in the recipient's home, pets and small children, time and attention needed, climate or shipping season. Be candid, not salesy]</p>
+5. OPTIONAL, only when it adds something specific: presenting it, focused on the message and the moment rather than on altering the plant. Never suggest repotting, rewrapping, adding a spray bottle, a care card or an accessory we did not confirm.
 
-6. <h2 style="color:${HEADING_COLOR}" id="presentation">Presentation and styling ideas</h2>
-<ul><li>[4 to 5 ideas: pot pairing, wrapping, a handwritten care note, grouping]</li></ul>
-Only describe packaging or personalization that Succulents Box actually offers if that was supplied as a confirmed fact. Otherwise describe things the giver can do themselves.
+6. The essential care the person receiving it will need, kept to about 150 words. Light, watering rhythm, and anything genuinely particular to this plant. This is the one place a care note belongs, and it stays short: a full care guide belongs in a care guide.
 
-7. <h2 style="color:${HEADING_COLOR}" id="care-for-recipient">Care the recipient will need to know</h2>
-<p>[a compact, practical summary: light, watering rhythm, soil and potting, temperature. Keep it to about 200 words. Do not expand this into a full care guide]</p>
+7. Pets and the household. State toxicity honestly where it is known. If toxicity for this plant is not clearly established, say the giver should check before gifting into a home with pets or small children, and link "toxic and non-toxic succulents for pets" to https://succulentsbox.com/blogs/blog/toxic-and-non-toxic-succulents-for-pets
 
-8. <h2 style="color:${HEADING_COLOR}" id="pets-and-household">Pets and household considerations</h2>
-<p>[state toxicity honestly when it is known. If toxicity for this plant is not clearly established, say the giver should check before gifting into a home with pets or small children, and link "toxic and non-toxic succulents for pets" → https://succulentsbox.com/blogs/blog/toxic-and-non-toxic-succulents-for-pets]</p>
+8. OPTIONAL: a few real questions someone choosing this as a gift would ask, answered from what is actually known. No fixed number, and nothing about shipping, delivery, packaging, guarantees or gift messages unless it was supplied.
 
-9. <h2 style="color:${HEADING_COLOR}" id="qa">Questions gift givers ask</h2>
-<ul style="list-style:none;padding:0;"><li style="border:1px solid #e0e8e0;border-radius:8px;margin-bottom:10px;overflow:hidden;"><div style="background:#f9fbf9;padding:12px 16px;font-weight:700;color:#2d5428;">[Q?]</div><div style="padding:10px 16px;font-size:14px;line-height:1.6;">[A]</div></li>[exactly 5, all about gifting this plant]</ul>
-
-10. <h2 style="color:${HEADING_COLOR}" id="where-to-buy">Where to buy ${plant} as a gift</h2>
-<p>[2 to 3 sentences. Succulents Box grows its plants in its own California greenhouses and ships with a live plant guarantee. Do not promise delivery dates or shipping times]</p>
+9. A short closing from us that returns to the gift and invites the reader to it.
 ${cta}
+
+Do not write a section arguing why plants make good gifts, a plant symbolism section, an ordering and timing section, or a general succulent care section beyond the short note in step 6.
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
 ${buildGiftVoiceRules(fields)}
 

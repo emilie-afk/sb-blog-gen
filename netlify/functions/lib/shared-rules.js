@@ -59,47 +59,58 @@ function buildGiftVoiceRules(fields) {
     ? `The reader is choosing a gift for: ${[recipient, relationship].filter(Boolean).join(', ')}. Let that set the emotional register, and keep it appropriate to that relationship.`
     : `No recipient was specified. Write for a general reader and do not assume a relationship.`;
 
-  return `EDITORIAL VOICE:
-Warm, practical and knowledgeable. Written by an experienced plant gifting specialist. Helpful before persuasive. Specific rather than poetic. Honest about who each gift suits and what care it requires.
+  return `WHO IS WRITING:
+You are writing for the Succulents Box blog. These are OUR gifts, from our own collection, and we know them. Write in first person as the brand: "we", "our", "you", "the person you have in mind". Use that voice naturally rather than in every sentence, and never let it turn into advertising copy.
+Refer to a confirmed item as "our [exact item name]", "this arrangement", "this gift box", "this plant gift", or by its name alone. Do not call the collection "products" over and over.
+
+NEVER WRITE LIKE A THIRD PARTY. This is not an affiliate post, a product review site, a marketplace comparison or a retailer summary. Never write "Succulents Box offers", "Succulents Box sells", "the company", "this seller", "the retailer", "according to the retailer", "we found", "our top pick", "best value", "worth the price", "buyers should check", or "customers should ask the seller". Never imply we do not know our own items.
+
 ${registerLine}
 Read the occasion and relationship and pitch the emotional register yourself. A workplace occasion stays professional and never affectionate. A romantic occasion is personal and never corporate. A housewarming is casual and useful. A remembrance occasion is quiet and never celebratory.
 
 VOICE AND STYLE:
-- Write like an experienced plant gifting specialist helping someone choose well.
-- Be warm but practical. Useful information comes before sentiment.
-- Be specific rather than poetic.
+- Warm, thoughtful, confident and specific. Helpful before persuasive. Knowledgeable about plants, and clearly connected to Succulents Box.
+- Write about what makes each gift distinctive, who might appreciate it, the kind of space or moment it suits, and how its design, plant, container or theme contributes to the gift.
+- Be specific rather than poetic. Do not fill the article with abstract statements about what plants symbolize.
+- Mix sentence lengths. Use direct, natural sentences with varied rhythm.
 - Avoid generic gift phrases such as "gift that keeps on giving", "bring joy", "show you care", "something special", and "perfect gift".
-- Do not repeatedly begin sentences with "It's the kind of..." or "This is a...".
-- Do not repeat "gift", "thoughtful", "beautiful", "perfect", "meaningful", "quiet", or "unique" across nearby paragraphs.
-- Avoid using polished three part sentences in every paragraph.
-- Mix sentence lengths naturally.
-- Do not assume the recipient is a family member unless the brief says so.
-- Explain why someone should choose one recommendation over another.
-- Use direct selection language when useful: "Choose this if...", "This suits...", "Skip this if...", and "Consider another option if...".
-- Each product recommendation must emphasize a different reason to choose it.
-- Limit emotional or symbolic framing to the introduction.
-- Keep individual product sections concrete.
-- Do not praise every product equally. Give the reader real distinctions.
-- Do not call every product low maintenance, beginner friendly or suitable for small spaces.
-The article should read like "here is what we would consider before sending this plant or gift box to someone", not like "plants are beautiful symbols of growth and joy".`;
+- Do not repeatedly begin sentences with "It's the kind of...", "This is a..." or "If".
+- Avoid the word "recipient" repeatedly. Say "the person you have in mind", "someone you love", "a friend", or name the relationship from the brief.
+- Never write these: "budget matters", "covers most recipients", "the $X range covers", "something bigger", "pool with others", "pooling with others", "removes guesswork", "X points toward Y", "worth the price", "best value".
+- Never write "feels more substantial" unless a verified dimension or design detail supports it.
+- Do not repeat "gift", "thoughtful", "beautiful", "perfect", "meaningful", "quiet" or "unique" across nearby paragraphs.
+- Do not use the same sentence pattern or bullet shape for every recommendation. Each one should read as though written for that gift.
+- Each recommendation must give a genuinely different reason to choose it. Do not write one template with the names swapped.
+- Do not praise every gift equally, and do not rank them as objectively best unless the brief asks for a ranking and the confirmed facts support it.
+- Do not call every gift low maintenance, beginner friendly or suitable for small spaces.
+- Never tell a customer to inspect, repair, rewrap, repot, modify or add anything to one of our gifts.
+- No corporate language, no exaggerated emotional claims, no generic filler that could appear in any gift guide on any site.
+
+STYLE EXAMPLES. These show rhythm and perspective only. Never copy their claims: use them only as a model for how the writing should sound.
+  Opening: "Choosing a Christmas gift becomes easier when you start with the person and the space they call their own. This collection includes compact festive designs for desks and shelves, along with larger arrangements that can become part of the celebration. Here are a few of our favorites and what makes each one worth giving."
+  Choosing between gifts: "For a smaller desk or shelf, start with the compact arrangements. The larger planted designs have more visual presence and work well when you want the gift to become part of the holiday display. A gift box offers a different experience, with more than one plant to enjoy."
+  Closing: "Choose the design that reminds you most of the person you are celebrating. Whether it finds a place on a desk, a shelf, or the holiday table, it can keep a little piece of the occasion around after the decorations come down."`;
 }
 
 // Evidence rules. These sit above general botanical knowledge: a genus level fact
 // may inform care guidance, but it can never become a claim about a product.
 function buildEvidenceRules() {
   return `EVIDENCE RULES, these override anything else in this prompt:
-State the following ONLY when the value appears in the supplied product data or the confirmed factual notes for that product:
-pet safety, eco friendly attributes, gift packaging, included items, personalization, shipping behaviour, delivery expectations, temperature resilience, product dimensions, materials, subscription terms, guarantees, care level, light level.
-- General botanical knowledge may inform basic care guidance, but use qualified language ("most succulents prefer", "as a rule") and never present a genus level fact as a verified feature of a product.
-- Never call a product or plant pet safe, pet friendly, non toxic, eco friendly, gift ready or easy to ship unless that is in the supplied facts.
-- Never write shipping advice specific to a product unless it was supplied. No claims about how a plant travels, bruises, or recovers in transit.
-- Never invent a recommended ordering window, lead time, cutoff or delivery date.
+State the following ONLY when the value appears in the supplied item data or the confirmed factual notes for that item:
+pet safety, eco friendly attributes, gift packaging, gift wrapping, gift messages, included care cards, included accessories, included items, drainage holes, pot materials, which plant varieties are inside a mixed arrangement, whether plants were intentionally paired, exact dimensions, personalization, shipping behaviour, shipping speed, delivery dates, cold weather protection, heat packs, local pickup, inventory availability, guarantees, return policies, temperature resilience, subscription terms, care level, light level.
+- If a detail is not in the confirmed catalog record or the supplied reference material, leave it out. Do not infer it from the item name, the category, or the kind of thing it appears to be.
+- Never call an item or plant pet safe, pet friendly, non toxic, eco friendly, gift ready or easy to ship unless that is in the supplied facts.
+- Never describe packaging, wrapping, a gift message, a care card, an accessory, drainage, a pot material or what is inside an arrangement unless it was supplied.
+- Never write shipping advice, an ordering window, a lead time, a cutoff, a delivery date or weather protection advice unless it was supplied. No claims about how a plant travels, bruises or recovers in transit.
+- Never suggest repotting one of our arrangements, adding a saucer, adding a spray bottle, or altering the design.
+- Never give a universal watering schedule or light rule such as "water every two to three weeks", "most succulents need bright indirect light", "always use a south facing window", or "underwater rather than overwater".
+- General botanical knowledge may inform a short, item specific care note where it genuinely helps, in qualified language. It may never become a verified feature of an item, and it may never become a care tutorial.
 - Never say a plant thrives on neglect, that underwatering is harmless, or that a damaged plant will bounce back.
-- Never state that a product arrives ready to live in a home, arrives potted, or includes anything that was not supplied.
-- If a product has no confirmed care or light data, omit the "Care level" and "Light" lines for that product, or write a clearly general statement such as "Most succulents want bright light" outside the product specific facts.
-- If a guide characteristic was requested but no product level fact supports it, keep it as framing for the guide and never assert it about an individual product.
+- Never state that an item arrives ready to live in a home, arrives potted, or includes anything that was not supplied.
+- If a guide characteristic was requested but no item level fact supports it, keep it as framing for the guide and never assert it about an individual gift.
 - Do not print a label with an empty value. Omit the whole line instead.
-- Use the supplied product URL exactly as given when linking a product.`;
+- Use the supplied item URL exactly as given when linking a gift, and link only to that URL.
+- Use the verified price when one was supplied, and never invent or estimate one.`;
 }
 
 // Shared instructions for the comparison table. Written as a literal skeleton
@@ -107,26 +118,25 @@ pet safety, eco friendly attributes, gift packaging, included items, personaliza
 function comparisonTableSkeleton(includePrice) {
   const th = 'style="background:#f0f5f0;color:#2d5428;border:1px solid #dde;padding:8px 12px;text-align:left;"';
   const td = 'style="border:1px solid #dde;padding:8px 12px;"';
-  return `Copy this table skeleton exactly, including every separate <th> element, and fill one <tr> per recommendation:
+  return `The table helps someone tell our featured gifts apart, so every column must be a real difference between them. Copy this skeleton exactly, including every separate <th> element, and fill one <tr> per featured gift:
 <table style="border-collapse:collapse;width:100%;margin:12px 0;">
 <thead>
 <tr>
 <th ${th}>Gift</th>
-<th ${th}>Best for</th>
-<th ${th}>Light</th>
-<th ${th}>Care level</th>${includePrice ? `\n<th ${th}>Price</th>` : ''}
+<th ${th}>Best suited for</th>
+<th ${th}>Style or format</th>${includePrice ? `\n<th ${th}>Price</th>` : ''}
 </tr>
 </thead>
 <tbody>
 <tr>
-<td ${td}>[product title]</td>
-<td ${td}>[best for]</td>
-<td ${td}>[light, or "Varies" when not known]</td>
-<td ${td}>[care level, or "Varies" when not known]</td>${includePrice ? `\n<td ${td}>[price, or "See product page" when no price was supplied]</td>` : ''}
+<td ${td}>[exact item name]</td>
+<td ${td}>[who or what moment it suits, from what you wrote above]</td>
+<td ${td}>[what kind of gift it is: a compact arrangement, a planted container, a gift box, a single plant]</td>${includePrice ? `\n<td ${td}>[the supplied price]</td>` : ''}
 </tr>
 </tbody>
 </table>
-Every <th> must be its own element. Never merge the headers into one cell. Every row must match what you wrote above and what was supplied. Write "Varies" rather than inventing a value.`;
+Every <th> must be its own element. Never merge the headers into one cell, and never collapse the header row.
+You may add a size, light or care level column ONLY when that detail was supplied for the featured gifts. Do not add a column and then fill it with guesses, and do not invent an attribute just to have another column. Every cell must match what you wrote above and what was supplied.`;
 }
 
 function buildProductAccuracyRules() {

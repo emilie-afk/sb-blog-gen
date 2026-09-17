@@ -7,10 +7,12 @@ const { buildGeneralGiftGuidePrompt } = require('../netlify/functions/lib/prompt
 const { buildOccasionGiftGuidePrompt } = require('../netlify/functions/lib/prompt-occasion-gift-guide');
 const { buildMetadataAndRelatedPrompt } = require('../netlify/functions/lib/prompt-metadata-related');
 
-function ok(name, fn) { try { const r = fn(); console.log('PASS', name); return r; } catch(e){ console.log('FAIL', name, '::', e.message); } }
+let failureCount = 0;
+function fail(name, detail) { failureCount++; console.log('FAIL', name, '::', detail); }
+function ok(name, fn) { try { const r = fn(); console.log('PASS', name); return r; } catch(e){ fail(name, e.message); } }
 function expectFail(name, code, fn) {
-  try { fn(); console.log('FAIL', name, ':: expected error'); }
-  catch(e){ console.log(e.code === code ? 'PASS' : 'FAIL', name, '::', e.code, e.message); }
+  try { fn(); fail(name, 'expected error'); }
+  catch(e){ if (e.code === code) console.log('PASS', name, '::', e.code, e.message); else fail(name, e.code + ' ' + e.message); }
 }
 
 // care guide
@@ -57,3 +59,5 @@ console.log('  no-date rule:', /NO DATE WAS SUPPLIED/.test(ogp2), '| sensitive o
 // em dash check in built prompts
 const all = [buildCareGuidePrompt(care.fields), buildSinglePlantGiftPrompt(spg.fields), ggp, ogp].join('');
 console.log('prompt instruction blocks present:', /Never use em dashes/.test(all));
+
+process.exitCode = failureCount ? 1 : 0;

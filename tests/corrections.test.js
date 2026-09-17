@@ -29,10 +29,14 @@ ok('cap message mentions 8', (()=>{try{validateRequest('general_gift_guide',{num
 // ── prompts
 const ogp=buildOccasionGiftGuidePrompt(og.fields);
 ok('no tone in occasion prompt', !/Tone:/.test(ogp));
-ok('voice rules present', /EDITORIAL VOICE/.test(ogp) && /gift that keeps on giving/.test(ogp));
+ok('voice rules present', /VOICE AND STYLE/.test(ogp) && /gift that keeps on giving/.test(ogp) && /first person as the brand/.test(ogp));
 ok('evidence rules present', /EVIDENCE RULES/.test(ogp) && /thrives on neglect/.test(ogp));
 ok('table skeleton has separate th', (ogp.match(/<th /g)||[]).length>=4);
-ok('no ordering window promises', /never suggest a specific number of days/i.test(ogp));
+// The standalone "Ordering and timing" section is gone; the ban now lives in the
+// evidence rules, which cover the same ground more broadly.
+ok('no ordering window promises',
+  /Never write shipping advice, an ordering window, a lead time, a cutoff, a delivery date/i.test(ogp)
+  && /Ordering and timing, shipping advice, or delivery deadlines/.test(ogp));
 const gg=validateRequest('general_gift_guide',{numberOfRecommendations:2,selectedProducts:prods(2),recipient:'Coworkers'});
 const ggp=buildGeneralGiftGuidePrompt(gg.fields);
 ok('general prompt has no-notes warning', /No factual notes supplied/.test(ggp));
@@ -77,4 +81,6 @@ ok('unconfirmed product url flagged', validateArticleOutput('general_gift_guide'
 ok('care guide skips table checks', validateArticleOutput('care_guide',{},'<p>no table</p>').length===0);
 
 console.log(out.join('\n'));
-console.log('\n'+out.filter(r=>r.startsWith('FAIL')).length+' failures of '+out.length);
+const failureCount = out.filter(r=>r.startsWith('FAIL')).length;
+console.log('\n'+failureCount+' failures of '+out.length);
+process.exitCode = failureCount ? 1 : 0;

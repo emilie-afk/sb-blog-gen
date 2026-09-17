@@ -20,56 +20,47 @@ function buildGeneralGiftGuidePrompt(fields) {
     chars.length ? `Gift characteristics the guide is built around: ${chars.join(', ')}` : ''
   ].filter(Boolean).join('\n');
 
-  return `You are writing a plant gift guide for Succulents Box (succulentsbox.com). Return ONLY raw HTML for the article body.
+  return `Write a gift guide for the Succulents Box blog, introducing gifts from our own collection. Return ONLY raw HTML for the article body.
 
 BRIEF:
 ${brief}
 
-CONFIRMED PRODUCTS, the only products that may appear in this article, in this order:
+OUR FEATURED GIFTS, the only items that may appear in this article, in this order:
 ${formatProductsForPrompt(shown)}
 
-Write exactly ${count} recommendations, one per confirmed product. Do not add any other product. Do not merge or drop any of them.
+Write one section for each of the ${count} featured gifts. Never add, invent or substitute an item.
 
-EXACT STRUCTURE:
+STRUCTURE. Write natural headings that suit this guide and these gifts. Do not reuse a fixed SEO template, and do not use the headings below as literal titles unless they genuinely fit.
 
-1. Updated tag and introduction, 2 to 3 sentences that say who this guide is for and what the picks have in common:
+1. Updated tag, then a short introduction of two or three paragraphs:
 ${updatedTag()}
-<p>[intro]</p>
+<p>[Open on the gifting need and the person it is for, then introduce the featured gifts and lead straight into them.]</p>
+The introduction must NOT be followed by a section explaining why plants make good gifts. Do not write a section titled "Why plants make great gifts", "Why choose a plant gift", "Benefits of plant gifts", "The meaning of giving plants" or anything equivalent, and do not argue in the abstract that plants can be gifts.
+Do not open with lines like "Plants symbolize growth and love", "A plant is a gift that keeps on giving", "Plants bring life into any space", "Finding the perfect gift can be difficult", or "Whether you are shopping for friends or family, we have something for everyone". Respond to this actual audience and these actual gifts.
 
-2. <h2 style="color:${HEADING_COLOR}" id="how-we-chose">How we chose these gifts</h2>
-<p>[short paragraph on the selection criteria, grounded in the brief. Be honest: these are picks from the Succulents Box range that fit it]</p>
+2. The featured gifts. For each one, in the order above:
+<h3 style="color:${HEADING_COLOR}">[a natural heading built on the exact item name, hyperlinked to its exact URL]</h3>
+<p>[What makes this one distinctive as a gift, who might appreciate it, and the kind of space or moment it suits. Bring in its design, plant, container, arrangement or theme where that is what makes it special. Include the verified price when one was supplied.]</p>
+Vary the shape of these sections. Some can be two short paragraphs, some can carry a short list where that genuinely helps. Do not force the same bullets onto every gift, do not add a "Good to know" caution just to fill space, and do not raise a drawback unless it is verified and useful. A short, item specific care note is welcome where it matters, but these sections are about the gift, not about care.
 
-3. <h2 style="color:${HEADING_COLOR}" id="the-gifts">The gift picks</h2>
-Then, for each confirmed product in order:
-<h3 style="color:${HEADING_COLOR}">[number]. [exact product title, hyperlinked to the exact product URL]</h3>
-<p>[2 to 3 sentences. Lead with what makes this one different from the others in the list, then who it suits. Use "Choose this if..." or "Skip this if..." where it helps the reader decide]</p>
-<ul>
-<li><strong>Best for:</strong> [recipient or situation]</li>
-<li><strong>Light and care:</strong> [only what is genuinely known. Omit this line entirely when nothing was supplied and no safe general statement applies]</li>
-<li><strong>Good to know:</strong> [one honest, specific caution. Omit the line if there is nothing real to say]</li>
-<li><strong>Price:</strong> [only if a price was supplied, otherwise omit this line entirely]</li>
-</ul>
-<p><a href="[exact product URL]" style="color:#3a6b35;font-weight:700;">See [product title]</a></p>
-Each pick must earn its place for a different reason. Do not reuse the same justification twice.
-
-4. <h2 style="color:${HEADING_COLOR}" id="comparison">Quick comparison</h2>
+3. A quick comparison table:
 ${comparisonTableSkeleton(shown.some(p => p.price))}
 
-5. <h2 style="color:${HEADING_COLOR}" id="how-to-choose">How to choose the right gift</h2>
-<p>[practical guidance that helps the reader pick between the options above: match the plant to the recipient's light, time and space rather than to a price tag]</p>
+4. Guidance that helps someone choose between these gifts. Give it a natural heading. Build it on real differences between the featured items: compact against centerpiece, single plant against arrangement, gift box against planted container, desk sized against statement piece, the kind of person it is for, and the supplied prices. Do not restate every recommendation, and never write in the transactional register the style rules forbid.
 
-6. <h2 style="color:${HEADING_COLOR}" id="presentation">Presentation and personalization ideas</h2>
-<ul><li>[4 to 5 ideas the giver can do themselves. Do not describe packaging Succulents Box offers unless it was supplied as a fact]</li></ul>
+5. OPTIONAL, only when it adds something specific: a short section on making the gift personal, with a natural heading. Keep it to the message and the moment: a handwritten note, saying why this gift reminded you of them, choosing when to give it. Never suggest rewrapping, repotting, adding a spray bottle, a care card, an accessory or anything else we did not confirm. Leave this section out rather than write filler.
 
-7. <h2 style="color:${HEADING_COLOR}" id="care-basics">Care basics to pass along</h2>
-<p>[a short shared care primer covering light, watering and drainage, about 150 words, written as general succulent and houseplant guidance rather than as product facts]</p>
+6. OPTIONAL, only when there are real questions a gift buyer would ask about THESE gifts: a short question and answer section comparing the featured items. Answer only from confirmed information. Never answer questions about shipping speed, delivery dates, packaging, guarantees, gift messages, pet safety, drainage, included care materials, weather protection or local pickup. There is no required number: write only the questions the confirmed facts can answer, or leave the section out.
 
-8. <h2 style="color:${HEADING_COLOR}" id="qa">Questions people ask</h2>
-<ul style="list-style:none;padding:0;"><li style="border:1px solid #e0e8e0;border-radius:8px;margin-bottom:10px;overflow:hidden;"><div style="background:#f9fbf9;padding:12px 16px;font-weight:700;color:#2d5428;">[Q?]</div><div style="padding:10px 16px;font-size:14px;line-height:1.6;">[A]</div></li>[exactly 5]</ul>
-
-9. <h2 style="color:${HEADING_COLOR}" id="shop">Shop the gift collection</h2>
-<p>[2 sentences. Succulents Box grows its plants in its own California greenhouses. No delivery date, shipping time or packaging promises]</p>
+7. A short closing from us. Return to the gifting need, invite the reader to choose among the featured gifts, and sound welcoming and confident. Do not repeat the introduction, do not end with care advice, and do not claim anything about ordering, delivery or packaging.
 ${cta}
+
+SECTIONS THAT MUST NOT EXIST IN THIS ARTICLE:
+- Why plants make good gifts, or plant symbolism.
+- How we chose these gifts, or any selection methodology section.
+- Ordering and timing, shipping advice, or delivery deadlines.
+- Care after the gift, a care primer, or any general succulent care section.
+Removing those sections is not a reason to write less. Spend the room on stronger, more specific writing about each gift.
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
 ${buildGiftVoiceRules(fields)}
 

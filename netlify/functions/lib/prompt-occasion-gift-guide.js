@@ -43,7 +43,7 @@ SENSITIVE OCCASION MODE IS ON. This observance touches grief, loss, illness or a
 - If this is Pregnancy and Infant Loss Remembrance Day, treat it as a day of remembrance, never as a retail holiday. No festive framing whatsoever.
 ` : '';
 
-  return `You are writing an occasion based plant gift guide for Succulents Box (succulentsbox.com). Return ONLY raw HTML for the article body.
+  return `Write a gift guide for the Succulents Box blog, about our own gifts, for this occasion. Return ONLY raw HTML for the article body.
 
 BRIEF:
 ${brief}
@@ -52,57 +52,41 @@ DATE HANDLING, this rule is absolute:
 ${dateRule}
 Never guess or compute the date of any holiday or observance under any circumstance.
 
-CONFIRMED PRODUCTS, the only products that may appear in this article, in this order:
+OUR FEATURED GIFTS, the only items that may appear in this article, in this order:
 ${formatProductsForPrompt(shown)}
 
-Write exactly ${count} recommendations, one per confirmed product. Do not add, invent or substitute any product.
+Write one section for each of the ${count} featured gifts. Never add, invent or substitute an item.
 ${sensitiveBlock}
-EXACT STRUCTURE:
+STRUCTURE. Write natural headings that suit this occasion and these gifts. Do not reuse a fixed SEO template, and do not use the headings below as literal titles unless they genuinely fit.
 
-1. Updated tag and an introduction anchored on the occasion, 2 to 3 sentences:
+1. Updated tag, then a short introduction of two or three paragraphs:
 ${updatedTag()}
-<p>[intro]</p>
+<p>[Open on the occasion and the person being celebrated, then introduce the featured gifts and lead straight into them.]</p>
+The introduction must NOT be followed by a section explaining why plants make good gifts. Do not write a section titled "Why plant gifts suit this occasion", "Why plants make great gifts", "Why choose a plant gift", "The meaning of giving plants" or anything equivalent, and do not argue in the abstract that plants can be gifts.
+Do not open with lines like "Plants symbolize growth and love", "A plant is a gift that keeps on giving", "Plants bring life into any space", "Christmas is the season of giving", "The holidays are all about warmth and togetherness", "Finding the perfect gift can be difficult", or "Whether you are shopping for friends or family, we have something for everyone". Respond to this actual occasion, this audience and these actual gifts.
 
-2. <h2 style="color:${HEADING_COLOR}" id="why-plants">Why plants suit ${fields.occasion}</h2>
-<p>[2 short paragraphs connecting the occasion and this recipient to a living gift. This is the one place emotional framing belongs]</p>
+2. The featured gifts. For each one, in the order above:
+<h3 style="color:${HEADING_COLOR}">[a natural heading built on the exact item name, hyperlinked to its exact URL]</h3>
+<p>[What makes this one distinctive as a gift, who might appreciate it, and the kind of space or moment it suits. Bring in its design, plant, container, arrangement or theme where that is what makes it special. Include the verified price when one was supplied.]</p>
+Vary the shape of these sections. Some can be two short paragraphs, some can carry a short list where that genuinely helps. Do not force the same bullets onto every gift, do not add a "Good to know" caution just to fill space, and do not raise a drawback unless it is verified and useful. A short, item specific care note is welcome where it matters, but these sections are about the gift, not about care.
 
-3. <h2 style="color:${HEADING_COLOR}" id="the-gifts">Gift ideas for ${fields.occasion}</h2>
-For each confirmed product in order:
-<h3 style="color:${HEADING_COLOR}">[number]. [exact product title, hyperlinked to the exact product URL]</h3>
-<p>[2 to 3 sentences. Lead with what sets this pick apart from the others, then who it suits for this occasion. Use "Choose this if..." or "Skip this if..." where it helps]</p>
-<ul>
-<li><strong>Best for:</strong> [recipient or situation]</li>
-<li><strong>Light and care:</strong> [only what is genuinely known. Omit the line when nothing was supplied]</li>
-<li><strong>Good to know:</strong> [one honest, specific caution. Omit the line if there is nothing real to say]</li>
-<li><strong>Price:</strong> [only if supplied, otherwise omit the line]</li>
-</ul>
-<p><a href="[exact product URL]" style="color:#3a6b35;font-weight:700;">See [product title]</a></p>
-Each pick must earn its place for a different reason.
-
-4. <h2 style="color:${HEADING_COLOR}" id="comparison">Quick comparison</h2>
+3. A quick comparison table:
 ${comparisonTableSkeleton(shown.some(p => p.price))}
 
-5. <h2 style="color:${HEADING_COLOR}" id="how-to-choose">How to choose by recipient</h2>
-<p>[guidance keyed to the recipient and relationship in the brief, helping the reader pick between the options above]</p>
+4. Guidance that helps someone choose between these gifts. Give it a natural heading. Build it on real differences between the featured items: compact against centerpiece, single plant against arrangement, gift box against planted container, festive design against year round style, desk sized against statement piece, the relationship, the tone of the occasion, and the supplied prices. Do not restate every recommendation, and never write in the transactional register the style rules forbid.
 
-6. <h2 style="color:${HEADING_COLOR}" id="meaning">What these plants are said to represent</h2>
-<p>[Include this section ONLY if there is a well established, widely documented meaning for one of these plants. If you are not confident, omit this entire section including its heading. Never invent symbolism]</p>
+5. OPTIONAL, only when it adds something specific: a short section on making the gift personal, with a natural heading. Keep it to the message and the moment: a handwritten note, saying why this gift reminded you of them, wording that suits the occasion, choosing when to give it. Never suggest rewrapping, repotting, adding a spray bottle, a care card, an accessory or anything else we did not confirm. Leave this section out rather than write filler.
 
-7. <h2 style="color:${HEADING_COLOR}" id="presentation">Presentation and personalization ideas</h2>
-<ul><li>[4 to 5 ideas the giver can do themselves. Nothing about Succulents Box packaging unless it was supplied as a fact]</li></ul>
+6. OPTIONAL, only when there are real questions a gift buyer would ask about THESE gifts: a short question and answer section. Good questions compare the featured items, for example which one suits a desk, which works as a centerpiece, how the gift box differs from the arrangement, which suits someone new to plants. Answer only from confirmed information. Never answer questions about shipping speed, delivery dates, packaging, guarantees, gift messages, pet safety, drainage, included care materials, weather protection or local pickup. There is no required number: write only the questions the confirmed facts can answer, or leave the section out.
 
-8. <h2 style="color:${HEADING_COLOR}" id="ordering">Ordering and timing</h2>
-<p>[general, non promissory guidance only: give yourself room, think about the weather where it is going, send it somewhere a person can bring it inside. Never state shipping times, cutoffs, lead times or delivery dates, and never suggest a specific number of days before the occasion${sensitive ? '. Keep this brief and free of urgency' : ''}]</p>
-
-9. <h2 style="color:${HEADING_COLOR}" id="care-basics">Care after the gift</h2>
-<p>[short shared care primer, about 150 words: light, watering, drainage, written as general guidance rather than product facts]</p>
-
-10. <h2 style="color:${HEADING_COLOR}" id="qa">Questions people ask</h2>
-<ul style="list-style:none;padding:0;"><li style="border:1px solid #e0e8e0;border-radius:8px;margin-bottom:10px;overflow:hidden;"><div style="background:#f9fbf9;padding:12px 16px;font-weight:700;color:#2d5428;">[Q?]</div><div style="padding:10px 16px;font-size:14px;line-height:1.6;">[A]</div></li>[exactly 5]</ul>
-
-11. <h2 style="color:${HEADING_COLOR}" id="shop">${sensitive ? 'If you would like to send a plant' : 'Shop the ' + fields.occasion + ' collection'}</h2>
-<p>[${sensitive ? '1 to 2 gentle sentences, no pressure, no urgency' : '2 sentences. Own California greenhouses. No delivery or packaging promises'}]</p>
+7. A short closing from us. Return to the occasion, invite the reader to choose among the featured gifts, and sound welcoming and confident. Do not repeat the introduction, do not end with care advice, and do not claim anything about ordering, delivery or packaging.
 ${cta || (fields.collectionUrl && sensitive ? `<p>If it feels right, you can see the <a href="${fields.collectionUrl}" style="color:#3a6b35;">plants we grow</a> whenever you are ready.</p>` : '')}
+
+SECTIONS THAT MUST NOT EXIST IN THIS ARTICLE:
+- Why plants suit the occasion, why plants make good gifts, or plant symbolism.
+- Ordering and timing, shipping advice, or delivery deadlines.
+- Care after the gift, a care primer, or any general succulent care section.
+Removing those sections is not a reason to write less. Spend the room on stronger, more specific writing about each gift.
 ${formatReferences(fields.references)}${keywordLine(fields)}${additional(fields)}
 ${buildGiftVoiceRules(fields)}
 
