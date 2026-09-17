@@ -1,9 +1,10 @@
 // Local test server: serves the static site and mocks the three Netlify functions.
-// MOCK_MODE: '' | 'giftfail' | 'timeout504' | 'text502' | 'warn'
+// MOCK_MODE: '' | 'giftfail' | 'timeout504' | 'text502' | 'warn' | 'slowsync'
 //             | 'jobfail'  background job reports failed
 //             | 'jobgone'  background job reports expired
 //             | 'jobtrunc' background job completes but flags truncation
 //             | 'jobrace'  the empty 202 lands before the job record exists
+//             | 'slowjob'  stays pending long enough to abandon mid-generation
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -111,8 +112,12 @@ const server = http.createServer((req, res) => {
           error: 'That generation did not finish in time. Your brief and confirmed products are still here, so you can generate again with fewer recommendations.' }));
         if (m === 'jobfail') return res.end(JSON.stringify({ jobId: payload.jobId, status: 'failed', code: 'ai_failure',
           error: 'The AI service could not generate the article.' }));
+        // 'slowjob' stays pending for several polls, which is the window a test
+        // needs in order to abandon a generation while it is genuinely in flight
+        // and then watch the late result arrive with nowhere to go.
+        const pendingPolls = m === 'slowjob' ? 3 : 2;
         // First poll is pending so the browser shows its waiting state.
-        if (job.polls < 2) return res.end(JSON.stringify({ jobId: payload.jobId, status: 'pending', elapsedMs: 2500 }));
+        if (job.polls < pendingPolls) return res.end(JSON.stringify({ jobId: payload.jobId, status: 'pending', elapsedMs: 2500 }));
         return res.end(JSON.stringify(Object.assign(
           { jobId: payload.jobId, status: 'complete' },
           articlePayload(job.fields, m === 'jobtrunc')
@@ -134,7 +139,12 @@ const server = http.createServer((req, res) => {
       }
       res.setHeader('Content-Type', 'application/json');
       const n = (payload.fields.selectedProducts || []).length;
-      res.end(JSON.stringify({
+      // 'slowsync' holds the synchronous response open long enough for a test to
+      // act on a generation that is genuinely still running. Netlify's real
+      // synchronous limit is 60s, so a couple of seconds is well inside it.
+      const delay = m === 'slowsync' ? 2500 : 0;
+      const send = (body) => delay ? setTimeout(() => res.end(body), delay) : res.end(body);
+      send(JSON.stringify({
         title: 'Plant Gifts Worth Sending',
         alternative_titles: ['Desk Plants Worth Giving', 'Low Light Plant Gifts for the Office'],
         html: '<p style="font-size:12px;color:#888;">Updated September 2026</p><h2 style="color:#34bfa2" id="a">A section</h2><p>Body text with a <a href="https://succulentsbox.com">link</a>.</p><script>window.__XSS__=1;</scr' + 'ipt><img src=x onerror="window.__XSS2__=1">',

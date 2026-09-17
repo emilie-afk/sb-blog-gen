@@ -20,6 +20,25 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.goto(BASE);
   const fieldNames = async () => page.$$eval('#formFields [data-name]', els => els.map(e => e.dataset.name));
 
+  // Switching format now asks before discarding a dirty draft. This helper makes
+  // the existing tests state their intent: switch, and confirm if asked.
+  async function switchFormat(type) {
+    await page.click(`.format-option[data-type="${type}"]`);
+    await page.waitForTimeout(120);
+    if (await page.isVisible('#confirmOverlay.visible')) {
+      await page.click('#confirmOk');
+      await page.waitForTimeout(150);
+    }
+  }
+
+  // Create Another Article appears with the output actions, and again in the
+  // progress card while a generation is running, since the output card is hidden
+  // then. Click whichever one is on screen.
+  async function clickNewArticle() {
+    if (await page.isVisible('#newArticleBtn')) return page.click('#newArticleBtn');
+    return page.click('#newArticleBtnPending');
+  }
+
   // ── Login
   await page.fill('#pwd', 'nope');
   await page.click('#loginBtn');
@@ -75,11 +94,14 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('preview title follows selection', (await page.textContent('#preview-title')) === altText);
 
   // ── Single-plant gift: no title required
-  await page.click('.format-option[data-type="single_plant_gift"]');
+  await switchFormat('single_plant_gift');
   await page.waitForTimeout(200);
   names = await fieldNames();
   check('single-plant has no title field', !names.includes('title'));
   check('single-plant fields', names.includes('giftAngle') && names.includes('productNotes'));
+  // The brief no longer carries over between formats, so this article states its
+  // own plant rather than inheriting the care guide's.
+  await page.fill('[data-name="plantName"]', 'Echeveria');
   await page.selectOption('[data-name="giftAngle"]', 'Low maintenance');
   await page.waitForTimeout(150);
   await page.click('#genBtn');
@@ -87,7 +109,7 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('single-plant generates without a title', lastReq().articleType === 'single_plant_gift');
 
   // ── General gift guide: three-tab picker
-  await page.click('.format-option[data-type="general_gift_guide"]');
+  await switchFormat('general_gift_guide');
   await page.waitForTimeout(600);
   names = await fieldNames();
   check('general has no title field', !names.includes('title'));
@@ -173,14 +195,24 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('order preserved', req.fields.selectedProducts[2].title === 'Custom Gift Bundle');
 
   // ── Occasion gift guide
-  await page.click('.format-option[data-type="occasion_gift_guide"]');
+  await switchFormat('occasion_gift_guide');
   await page.waitForTimeout(500);
   names = await fieldNames();
   check('occasion has no tone field', !names.includes('tone'));
   check('occasion has no title field', !names.includes('title'));
   check('includeYearInTitle present', names.includes('includeYearInTitle'));
   check('sensitive checkbox renamed', (await page.textContent('#formFields')).includes('This is a sensitive or remembrance occasion'));
-  check('occasion keeps confirmed products', (await page.textContent('.picker-count')).startsWith('3 products'));
+  // Products no longer carry across a format switch: they were confirmed for the
+  // previous article. This one confirms its own.
+  check('confirmed products do not carry into the new format', (await page.textContent('.picker-count')).startsWith('0 products'));
+  await page.waitForSelector('.catalog-item');
+  await page.$$eval('.catalog-item input', els => { els[0].click(); });
+  await page.waitForTimeout(200);
+  await page.$$eval('.catalog-item input', els => { els[1].click(); });
+  await page.waitForTimeout(200);
+  await page.$$eval('.catalog-item input', els => { els[2].click(); });
+  await page.waitForTimeout(250);
+  check('occasion guide confirms its own products', (await page.textContent('.picker-count')).startsWith('3 products'));
 
   await page.fill('[data-name="occasion"]', 'Christmas');
   await page.waitForTimeout(200);
@@ -273,8 +305,10 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('background job completes after polling', (await page.inputValue('#html-code')).includes('<h2'));
 
   // ── Synchronous endpoint error handling (care guide path)
-  await page.click('.format-option[data-type="care_guide"]');
+  await switchFormat('care_guide');
   await page.waitForTimeout(300);
+  // The care guide's own brief: the format switch cleared the gift guide's.
+  await page.fill('[data-name="plantName"]', 'Haworthia');
   setMode('timeout504');
   await page.click('#genBtn');
   await page.waitForTimeout(600);
@@ -293,10 +327,20 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForSelector('#outputCard.visible');
   check('warnings shown with the article', await page.isVisible('#warningBox') && (await page.textContent('#warningBox')).includes('excerpt'));
   setMode('');
-  await page.click('.format-option[data-type="occasion_gift_guide"]');
+  await switchFormat('occasion_gift_guide');
   await page.waitForTimeout(500);
 
   // ── Gift catalog failure is recoverable
+  // Confirm products for THIS article first: the format switch above cleared the
+  // previous one's, and the point of the check below is that a catalog failure
+  // does not touch what is already confirmed.
+  await page.waitForSelector('.catalog-item');
+  await page.$$eval('.catalog-item input', els => { els[0].click(); });
+  await page.waitForTimeout(200);
+  await page.$$eval('.catalog-item input', els => { els[1].click(); });
+  await page.waitForTimeout(200);
+  await page.$$eval('.catalog-item input', els => { els[2].click(); });
+  await page.waitForTimeout(250);
   setMode('giftfail');
   await page.click('.picker-tab[data-tab="plants"]');
   await page.waitForTimeout(200);
@@ -333,6 +377,13 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   // ── Copy buttons ────────────────────────────────────────────────────────
   // The old implementation said "Copied!" whether or not anything was copied.
   // These click every button for real and read the real clipboard back.
+  // Generate an article so there is something to copy: the format switches above
+  // cleared the previous output.
+  setMode('');
+  await page.fill('[data-name="occasion"]', 'Christmas');
+  await page.fill('[data-name="numberOfRecommendations"]', '3');
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible');
   await page.click('#tab-html');
   await page.waitForTimeout(100);
   const readClipboard = () => page.evaluate(() => navigator.clipboard.readText());
@@ -474,6 +525,457 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('both button labels reset',
     /Copy HTML/.test(await page.textContent('#copyBtn')) &&
     /Copy Title/.test(await page.textContent('#titleCopyBtn')));
+
+  // ── Article workflow: finishing one article and starting another ─────────
+  // The session used to be one continuous draft, so products confirmed for one
+  // article could end up attached to the next. These cover the explicit boundary.
+  const dialogOpen = () => page.isVisible('#confirmOverlay.visible');
+  const count = async () => (await page.textContent('.picker-count')) || '';
+
+  async function buildOccasionArticle(occasion) {
+    await page.fill('[data-name="occasion"]', occasion);
+    await page.waitForTimeout(250);
+    await page.waitForSelector('.catalog-item');
+    for (let i = 0; i < 3; i++) {
+      await page.$$eval('.catalog-item input', (els, n) => els[n].click(), i);
+      await page.waitForTimeout(150);
+    }
+    await page.fill('[data-name="numberOfRecommendations"]', '3');
+    await page.click('#genBtn');
+    await page.waitForSelector('#outputCard.visible');
+  }
+
+  // 1-6: generate, Create Another Article, confirm, verify everything is cleared.
+  setMode('');
+  await switchFormat('occasion_gift_guide');
+  await page.waitForTimeout(400);
+  await buildOccasionArticle('Mother\\u2019s Day');
+  check('the new-article button is offered with the output actions', await page.isVisible('#newArticleBtn'));
+  check('it is not labelled add another blog',
+    !/add another blog/i.test(await page.textContent('#newArticleBtn')));
+
+  await page.click('#newArticleBtn');
+  await page.waitForTimeout(200);
+  check('uncopied output triggers the warning', await dialogOpen());
+  check('the warning names the new-article action',
+    /Start a new article\\?/.test(await page.textContent('#confirmTitle')));
+  check('the warning says what will be cleared',
+    /brief, selected products, and generated article will be cleared/.test(await page.textContent('#confirmBody')));
+  await page.click('#confirmOk');
+  await page.waitForTimeout(400);
+
+  check('brief fields cleared', (await page.inputValue('[data-name="occasion"]')) === '');
+  check('confirmed products cleared', (await count()).startsWith('0 products'));
+  check('generated article cleared', (await page.inputValue('#html-code')) === '');
+  check('title cleared', (await page.inputValue('#title-text')) === '');
+  check('title options cleared', (await page.$$('.title-option')).length === 0);
+  check('metadata cleared',
+    (await page.inputValue('#excerpt-text')) === '' && (await page.inputValue('#meta-text')) === '');
+  check('output cards hidden', !(await page.isVisible('#outputCard'))
+    && !(await page.isVisible('#excerptCard')) && !(await page.isVisible('#metaCard'))
+    && !(await page.isVisible('#recsCard')));
+  check('related articles cleared', (await page.textContent('#recsArticles')) === '');
+  check('warnings and errors cleared',
+    !(await page.isVisible('#warningBox')) && !(await page.isVisible('#errorBox')));
+  check('pending job note cleared', !(await page.isVisible('#pendingNote')));
+  check('copy status cleared after a reset', (await page.textContent('#copy-status')) === '');
+  check('job state cleared', await page.evaluate(() => state.generationPending === false && state.hasOutput === false));
+  check('authentication survives the reset', await page.isVisible('#app') && !(await page.isVisible('#login-overlay:not(.hidden)')));
+  check('the catalog is still loaded after a reset', (await page.$$('.catalog-item')).length > 0);
+  check('the page returns to the article format section',
+    await page.evaluate(() => {
+      const box = document.getElementById('formatCard').getBoundingClientRect();
+      return box.top < window.innerHeight && box.bottom > 0;
+    }));
+  check('focus lands on a format option',
+    await page.evaluate(() => !!document.activeElement && document.activeElement.classList.contains('format-option')));
+
+  // 8: Cancel preserves the complete article.
+  await buildOccasionArticle('Father\\u2019s Day');
+  const keptHtml = await page.inputValue('#html-code');
+  const keptTitle = await page.inputValue('#title-text');
+  await page.click('#newArticleBtn');
+  await page.waitForTimeout(200);
+  await page.click('#confirmCancel');
+  await page.waitForTimeout(250);
+  check('cancel keeps the article html', (await page.inputValue('#html-code')) === keptHtml);
+  check('cancel keeps the title', (await page.inputValue('#title-text')) === keptTitle);
+  check('cancel keeps the brief', (await page.inputValue('[data-name="occasion"]')).includes('Father'));
+  check('cancel keeps the products', (await count()).startsWith('3 products'));
+  check('cancel keeps the output visible', await page.isVisible('#outputCard'));
+
+  // 9: a successful Copy HTML lets the reset happen without a warning.
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('copy html marks the article as copied', await page.evaluate(() => state.articleHtmlCopied === true));
+  await page.click('#newArticleBtn');
+  await page.waitForTimeout(300);
+  check('copied output resets without a warning', !(await dialogOpen()));
+  check('copied output really was reset', (await page.inputValue('#html-code')) === '');
+
+  // 10-11: a failed Copy HTML, and copying another field, do not count.
+  await switchFormat('occasion_gift_guide');
+  await page.waitForTimeout(400);
+  await buildOccasionArticle('Graduation');
+  await page.evaluate(() => {
+    window.__w = navigator.clipboard.writeText.bind(navigator.clipboard);
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: () => Promise.reject(new Error('no')) });
+    window.__e = document.execCommand;
+    document.execCommand = () => false;
+  });
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('a failed copy html does not count as copied', await page.evaluate(() => state.articleHtmlCopied === false));
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: window.__w });
+    document.execCommand = window.__e;
+  });
+  await page.click('#titleCopyBtn');
+  await page.waitForTimeout(250);
+  check('copying the title does not count as copying the article',
+    await page.evaluate(() => state.articleHtmlCopied === false));
+  await page.click('#newArticleBtn');
+  await page.waitForTimeout(200);
+  check('an uncopied article still warns after a failed copy and a title copy', await dialogOpen());
+
+  // 24: keyboard and Escape behaviour for the new-article dialog.
+  check('focus moves into the dialog',
+    await page.evaluate(() => document.getElementById('confirmDialog').contains(document.activeElement)));
+  check('the dialog uses dialog semantics', await page.evaluate(() => {
+    const d = document.getElementById('confirmDialog');
+    return d.getAttribute('role') === 'dialog' && d.getAttribute('aria-modal') === 'true';
+  }));
+  check('the page behind is hidden from assistive tech',
+    (await page.getAttribute('#app', 'aria-hidden')) === 'true');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+  check('escape cancels the dialog', !(await dialogOpen()));
+  check('escape preserves the article', (await page.inputValue('#html-code')).length > 0);
+  check('the page behind is reachable again', (await page.getAttribute('#app', 'aria-hidden')) === null);
+  check('focus returns to the triggering button',
+    await page.evaluate(() => document.activeElement === document.getElementById('newArticleBtn')));
+
+  // 12-13: switching format with a dirty form, then cancelling.
+  await page.click('.format-option[data-type="care_guide"]');
+  await page.waitForTimeout(200);
+  check('switching format with a dirty form warns', await dialogOpen());
+  check('the switch warning uses the agreed copy',
+    /Switch article format\\?/.test(await page.textContent('#confirmTitle')));
+  check('the switch warning offers keeping the current article',
+    /Keep Current Article/.test(await page.textContent('#confirmCancel')));
+  await page.click('#confirmCancel');
+  await page.waitForTimeout(250);
+  check('cancelling a switch keeps the previous format',
+    await page.evaluate(() => state.articleType === 'occasion_gift_guide'));
+  check('cancelling a switch keeps the format button selected',
+    (await page.getAttribute('.format-option[data-type="occasion_gift_guide"]', 'class')).includes('on'));
+  check('cancelling a switch keeps the brief', (await page.inputValue('[data-name="occasion"]')).includes('Graduation'));
+  check('cancelling a switch keeps the products', (await count()).startsWith('3 products'));
+  check('cancelling a switch keeps the output', (await page.inputValue('#html-code')).length > 0);
+
+  // 14-15: switching format with a dirty form, confirmed.
+  await page.click('.format-option[data-type="general_gift_guide"]');
+  await page.waitForTimeout(200);
+  await page.click('#confirmOk');
+  await page.waitForTimeout(500);
+  check('confirming a switch activates the new format',
+    await page.evaluate(() => state.articleType === 'general_gift_guide'));
+  check('products do not carry into the new format', (await count()).startsWith('0 products'));
+  check('output does not carry into the new format', !(await page.isVisible('#outputCard')));
+  check('the new format shows its own empty form',
+    (await page.inputValue('[data-name="recipient"]')) === '');
+
+  // 16: a clean form switches with no warning at all.
+  await page.click('.format-option[data-type="care_guide"]');
+  await page.waitForTimeout(250);
+  check('a clean form switches without a warning', !(await dialogOpen()));
+  check('the clean switch went through', await page.evaluate(() => state.articleType === 'care_guide'));
+  await page.click('.format-option[data-type="care_guide"]');
+  await page.waitForTimeout(200);
+  check('clicking the already selected format does nothing', !(await dialogOpen()));
+
+  // 17: editing the occasion is not starting a new article.
+  await switchFormat('occasion_gift_guide');
+  await page.waitForTimeout(400);
+  await page.fill('[data-name="occasion"]', 'Christmas');
+  await page.waitForTimeout(250);
+  await page.waitForSelector('.catalog-item');
+  await page.$$eval('.catalog-item input', els => els[0].click());
+  await page.waitForTimeout(250);
+  check('a product is confirmed for the occasion guide', (await count()).startsWith('1 product'));
+  await page.fill('[data-name="occasion"]', 'Christmas 2026');
+  await page.waitForTimeout(300);
+  check('editing the occasion keeps confirmed products', (await count()).startsWith('1 product'));
+  check('editing the occasion asks nothing', !(await dialogOpen()));
+  await page.fill('[data-name="recipient"]', 'a coworker');
+  await page.waitForTimeout(250);
+  check('editing the recipient keeps confirmed products', (await count()).startsWith('1 product'));
+
+  // 18-21: Clear Selected Products, cancelled and confirmed.
+  check('the clear-products action is offered when products are confirmed',
+    await page.isVisible('#clearProductsBtn'));
+  await page.click('#clearProductsBtn');
+  await page.waitForTimeout(200);
+  check('clearing products asks first', await dialogOpen());
+  check('the clear-products warning says the brief is kept',
+    /brief will remain unchanged/.test(await page.textContent('#confirmBody')));
+  await page.click('#confirmCancel');
+  await page.waitForTimeout(250);
+  check('cancelling keeps the products', (await count()).startsWith('1 product'));
+
+  // Confirm a second product only if this collection offers one; the occasion
+  // edits above may have swapped the inferred collection.
+  const available = (await page.$$('.catalog-item input')).length;
+  const want = available > 1 ? 2 : 1;
+  if (available > 1) {
+    await page.$$eval('.catalog-item input', els => els[1].click());
+    await page.waitForTimeout(200);
+  }
+  await page.fill('[data-name="numberOfRecommendations"]', String(want));
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible');
+  await page.click('#clearProductsBtn');
+  await page.waitForTimeout(200);
+  await page.click('#confirmOk');
+  await page.waitForTimeout(400);
+  check('confirming removes every confirmed product', (await count()).startsWith('0 products'));
+  check('the clear-products action hides when nothing is confirmed',
+    !(await page.isVisible('#clearProductsBtn')));
+  check('the brief survives clearing products',
+    (await page.inputValue('[data-name="occasion"]')).includes('Christmas')
+    && (await page.inputValue('[data-name="recipient"]')) === 'a coworker');
+  check('the format survives clearing products',
+    await page.evaluate(() => state.articleType === 'occasion_gift_guide'));
+  check('product-dependent output is cleared', !(await page.isVisible('#outputCard')));
+  check('job state is cleared with the products', await page.evaluate(() => state.generationPending === false));
+
+  // 22-23: starting a new article while a generation is pending.
+  await page.$$eval('.catalog-item input', els => els[0].click());
+  await page.waitForTimeout(200);
+  await page.fill('[data-name="numberOfRecommendations"]', '1');
+  setMode('slowjob');
+  await page.click('#genBtn');
+  await page.waitForTimeout(1200);
+  check('a background generation is pending', await page.evaluate(() => state.generationPending === true));
+  const idBefore = await page.evaluate(() => state.generationId);
+  check('the new-article action is reachable while a generation runs',
+    await page.isVisible('#newArticleBtnPending'));
+  await clickNewArticle();
+  await page.waitForTimeout(200);
+  check('starting a new article mid-generation warns', await dialogOpen());
+  check('the warning says the running generation will not be shown',
+    /no longer be shown/.test(await page.textContent('#confirmBody')));
+  await page.click('#confirmOk');
+  await page.waitForTimeout(300);
+  check('the generation is abandoned', await page.evaluate(() => state.generationPending === false));
+  check('the generation identity moved on', await page.evaluate(id => state.generationId > id, idBefore));
+  setMode('');
+  // Well past the point the abandoned job would have finished and rendered.
+  await page.waitForTimeout(9000);
+  check('a late result cannot repopulate the new article', (await page.inputValue('#html-code')) === '');
+  check('a late result cannot show the output card', !(await page.isVisible('#outputCard')));
+  check('a late result cannot post an error into the new article', !(await page.isVisible('#errorBox')));
+  check('a late result cannot confirm products into the new article', (await count()).startsWith('0 products'));
+
+  // 26: repeated resets leave nothing behind.
+  const timersBefore = await page.evaluate(() => Object.keys(window.__copyTimersProbe || {}).length);
+  for (let i = 0; i < 3; i++) {
+    await page.click('.format-option[data-type="care_guide"]');
+    await page.waitForTimeout(150);
+    if (await dialogOpen()) { await page.click('#confirmOk'); await page.waitForTimeout(200); }
+    await switchFormat('occasion_gift_guide');
+    await page.waitForTimeout(300);
+  }
+  check('repeated resets leave the form clean', (await page.inputValue('[data-name="occasion"]')) === '');
+  check('repeated resets leave no products', (await count()).startsWith('0 products'));
+  check('repeated resets leave no output', !(await page.isVisible('#outputCard')));
+  check('repeated resets leave no dialog open', !(await dialogOpen()));
+  check('repeated resets do not stack dialog listeners', await page.evaluate(async () => {
+    // A stacked listener would resolve more than one pending confirmation from a
+    // single click. Open, cancel, and confirm the dialog is usable again.
+    return document.getElementById('confirmOverlay').classList.contains('visible') === false;
+  }));
+  check('no timer state survives repeated resets', timersBefore === 0);
+
+  // ── Fix 1: every active generation counts as pending ────────────────────
+  // The flag used to be set only for the background formats, so a synchronous
+  // care guide could be abandoned mid-flight with no question asked.
+  setMode('');
+  await switchFormat('care_guide');
+  await page.waitForTimeout(300);
+  await page.fill('[data-name="plantName"]', 'Haworthia');
+
+  // The mock answers the synchronous endpoint slowly enough to click through.
+  setMode('slowsync');
+  await page.click('#genBtn');
+  await page.waitForTimeout(700);
+  check('a synchronous generation counts as pending',
+    await page.evaluate(() => state.generationPending === true));
+  check('the new-article action is reachable during a synchronous generation',
+    await page.isVisible('#newArticleBtnPending'));
+  await clickNewArticle();
+  await page.waitForTimeout(200);
+  check('abandoning a synchronous generation warns', await dialogOpen());
+  check('the synchronous warning names the running generation',
+    /no longer be shown/.test(await page.textContent('#confirmBody')));
+
+  // Cancel: the generation must carry on and finish normally.
+  await page.click('#confirmCancel');
+  await page.waitForTimeout(250);
+  check('cancelling leaves the synchronous generation running',
+    await page.evaluate(() => state.generationPending === true));
+  await page.waitForSelector('#outputCard.visible', { timeout: 15000 });
+  check('a cancelled warning lets the synchronous generation complete',
+    (await page.inputValue('#html-code')).includes('<h2'));
+  check('completion clears the pending flag',
+    await page.evaluate(() => state.generationPending === false));
+
+  // Confirm: the late synchronous response must not reach the new article.
+  setMode('slowsync');
+  await page.click('#genBtn');
+  await page.waitForTimeout(700);
+  const syncIdBefore = await page.evaluate(() => state.generationId);
+  await clickNewArticle();
+  await page.waitForTimeout(200);
+  check('abandoning a second synchronous generation warns again', await dialogOpen());
+  await page.click('#confirmOk');
+  await page.waitForTimeout(300);
+  check('the synchronous generation is abandoned',
+    await page.evaluate(() => state.generationPending === false));
+  check('the synchronous generation identity moved on',
+    await page.evaluate(id => state.generationId > id, syncIdBefore));
+  setMode('');
+  await page.waitForTimeout(4000);
+  check('a late synchronous result cannot populate the new article',
+    (await page.inputValue('#html-code')) === '');
+  check('a late synchronous result shows no output card', !(await page.isVisible('#outputCard')));
+  check('a late synchronous result posts no error', !(await page.isVisible('#errorBox')));
+  check('a late synchronous result leaves the brief clean',
+    (await page.inputValue('[data-name="plantName"]')) === '');
+
+  // A synchronous FAILURE must clear the flag too, or the next new-article
+  // click would warn about a generation that is long over.
+  await page.fill('[data-name="plantName"]', 'Haworthia');
+  setMode('text502');
+  await page.click('#genBtn');
+  await page.waitForTimeout(800);
+  check('a failed generation clears the pending flag',
+    await page.evaluate(() => state.generationPending === false));
+  setMode('');
+
+  // The background path still behaves exactly as before.
+  await switchFormat('occasion_gift_guide');
+  await page.waitForTimeout(400);
+  await page.fill('[data-name="occasion"]', 'Christmas');
+  await page.waitForTimeout(250);
+  await page.waitForSelector('.catalog-item');
+  await page.$$eval('.catalog-item input', els => els[0].click());
+  await page.waitForTimeout(200);
+  await page.fill('[data-name="numberOfRecommendations"]', '1');
+  setMode('slowjob');
+  await page.click('#genBtn');
+  await page.waitForTimeout(1200);
+  check('a background generation still counts as pending',
+    await page.evaluate(() => state.generationPending === true));
+  await clickNewArticle();
+  await page.waitForTimeout(200);
+  check('abandoning a background generation still warns', await dialogOpen());
+  await page.click('#confirmCancel');
+  await page.waitForTimeout(250);
+  check('cancelling leaves the background generation running',
+    await page.evaluate(() => state.generationPending === true));
+  setMode('');
+  await page.waitForSelector('#outputCard.visible', { timeout: 30000 });
+  check('the background generation still completes after a cancelled warning',
+    (await page.inputValue('#html-code')).includes('<h2'));
+
+  // ── Fix 2: editing the article html makes the copy stale ────────────────
+  // The `input` event is what a person typing, deleting or pasting produces.
+  // #html-code is readonly today, so the test raises the same event the field
+  // would raise if it were not, which is what the handler actually listens for.
+  const editHtml = (text) => page.evaluate(t => {
+    const el = document.getElementById('html-code');
+    el.value = t;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, text);
+
+  check('a fresh article starts uncopied',
+    await page.evaluate(() => state.articleHtmlCopied === false));
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('a successful copy marks the article copied',
+    await page.evaluate(() => state.articleHtmlCopied === true));
+
+  await editHtml('<h2>Edited after copying</h2>');
+  await page.waitForTimeout(150);
+  check('editing the article html marks it uncopied again',
+    await page.evaluate(() => state.articleHtmlCopied === false));
+
+  await clickNewArticle();
+  await page.waitForTimeout(200);
+  check('an edited, uncopied article warns before it is cleared', await dialogOpen());
+  await page.click('#confirmCancel');
+  await page.waitForTimeout(250);
+  check('cancelling keeps the edit', (await page.inputValue('#html-code')) === '<h2>Edited after copying</h2>');
+
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('copying the edited html marks it copied again',
+    await page.evaluate(() => state.articleHtmlCopied === true));
+  check('the clipboard holds the edited html',
+    (await page.evaluate(() => navigator.clipboard.readText())) === '<h2>Edited after copying</h2>');
+
+  // Other copy buttons must not touch the flag.
+  await editHtml('<h2>Edited again</h2>');
+  await page.waitForTimeout(150);
+  for (const id of ['titleCopyBtn', 'excerptCopyBtn', 'metaCopyBtn']) {
+    if (!(await page.isVisible('#' + id))) continue;
+    await page.click('#' + id);
+    await page.waitForTimeout(250);
+    check('copying ' + id + ' does not mark the article html copied',
+      await page.evaluate(() => state.articleHtmlCopied === false));
+  }
+
+  // A failed article copy must leave it uncopied.
+  await page.evaluate(() => {
+    window.__w2 = navigator.clipboard.writeText.bind(navigator.clipboard);
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: () => Promise.reject(new Error('no')) });
+    window.__e2 = document.execCommand;
+    document.execCommand = () => false;
+  });
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  check('a failed article copy leaves it uncopied',
+    await page.evaluate(() => state.articleHtmlCopied === false));
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: window.__w2 });
+    document.execCommand = window.__e2;
+  });
+
+  // Newly generated html is inserted programmatically and must not look like an
+  // edit; a new generation sets the flag false on its own account anyway.
+  await page.click('#copyBtn');
+  await page.waitForTimeout(250);
+  const copiedBeforeRegen = await page.evaluate(() => state.articleHtmlCopied);
+  check('the article is copied before regenerating', copiedBeforeRegen === true);
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible', { timeout: 30000 });
+  check('a new generation leaves the article uncopied',
+    await page.evaluate(() => state.articleHtmlCopied === false));
+
+  // Repeated generations must not stack edit listeners: one edit, one flip.
+  const flips = await page.evaluate(() => {
+    let n = 0;
+    const probe = () => { n += 1; };
+    document.addEventListener('input', probe);
+    const el = document.getElementById('html-code');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    document.removeEventListener('input', probe);
+    return n;
+  });
+  check('one edit raises exactly one input event', flips === 1);
+  check('repeated generations leave the flag correct after an edit',
+    await page.evaluate(() => state.articleHtmlCopied === false));
 
   check('no script errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 
