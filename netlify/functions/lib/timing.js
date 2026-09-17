@@ -51,4 +51,25 @@ function logTiming(context, timer, facts) {
   return { phases, totalMs };
 }
 
-module.exports = { createTimer, logTiming, PHASES };
+// Lifecycle events. Same allowlist discipline as logTiming: ids, the article
+// type, counts, durations and a safe error code. Never prompts, article text,
+// product names, user fields or credentials.
+const EVENT_FACTS = ['jobId', 'articleType', 'productCount', 'recommendationCount',
+  'articleChars', 'truncated', 'elapsedMs', 'code', 'connected'];
+
+const LIFECYCLE_EVENTS = [
+  'blob_context_connected',
+  'pending_record_written',
+  'generation_started',
+  'generation_completed',
+  'generation_failed'
+];
+
+function logEvent(event, facts) {
+  if (!LIFECYCLE_EVENTS.includes(event)) return;
+  const safe = {};
+  EVENT_FACTS.forEach(k => { if (facts && facts[k] !== undefined) safe[k] = facts[k]; });
+  console.log(JSON.stringify(Object.assign({ event }, safe)));
+}
+
+module.exports = { createTimer, logTiming, logEvent, PHASES, LIFECYCLE_EVENTS, EVENT_FACTS };

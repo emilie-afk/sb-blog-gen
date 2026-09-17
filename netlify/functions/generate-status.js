@@ -10,6 +10,7 @@
 // mean the job is gone.
 
 const jobs = require('./lib/job-store');
+const { logEvent } = require('./lib/timing');
 
 // Cold start, queueing and the first blob write. Generous on purpose: being a
 // little slow to report a genuinely lost job costs nothing, whereas calling a
@@ -39,6 +40,21 @@ exports.handler = async (event) => {
   const sitePassword = process.env.SITE_PASSWORD;
   if (!sitePassword || payload.token !== sitePassword) {
     return json(401, { error: 'Your session has expired. Please sign in again.', code: 'unauthorized' });
+  }
+
+  // Lambda compatibility: connect the Blobs context before any store access.
+  // Without this the store throws, and reporting job_store_unavailable is the
+  // honest answer; silently reading process memory would always miss the record,
+  // because the background function ran in a different instance.
+  try {
+    const { connected } = jobs.connectJobStore(event);
+    logEvent('blob_context_connected', { connected });
+  } catch (err) {
+    console.error('Blobs context unavailable:', err && err.message);
+    return json(502, {
+      error: 'The job store is not available. Try generating again.',
+      code: 'job_store_unavailable'
+    });
   }
 
   // The id carries its own submit time. An unparseable or implausible id is
