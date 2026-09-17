@@ -173,6 +173,24 @@ const fields = n => ({ recipient: 'Coworkers', numberOfRecommendations: n, selec
   check('failure becomes visible to status',
     failedBody.status === 'failed' && failedBody.code === 'ai_failure', failedBody.status);
 
+  // ── 4b. A truncated article still completes the job ────────────
+  // Truncation is an article quality problem, not a job failure: the record must
+  // reach complete so the browser can show the partial article and its banner.
+  contextConnected = false;
+  jobs.connectJobStore(lambdaEvent({}));
+  const truncId = jobs.newJobId();
+  await jobs.createPending(truncId, { articleType: 'general_gift_guide', recommendationCount: 5 });
+  await jobs.completeJob(truncId, {
+    html: '<p>partial</p>', products: [], warnings: ['The article reached the output limit and is incomplete.'],
+    truncated: true, title: 'A Title', excerpt: 'One. Two.', meta_description: 'M'
+  }, { totalMs: 1 });
+  const truncStatus = JSON.parse((await status.handler(lambdaEvent({ token: 'pw', jobId: truncId }))).body);
+  check('a truncated article still reaches status complete',
+    truncStatus.status === 'complete' && truncStatus.truncated === true, JSON.stringify(truncStatus.status));
+  check('a truncated job keeps its title and metadata',
+    !!truncStatus.title && !!truncStatus.excerpt && !!truncStatus.meta_description);
+  check('a truncated job is not recorded as failed', truncStatus.code === undefined);
+
   // ── 5. Missing Blobs context: report, never fall back ──────────
   contextConnected = false;
   const noContext = { httpMethod: 'POST', headers: {}, body: JSON.stringify({ token: 'pw', jobId }) };

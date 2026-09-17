@@ -245,8 +245,24 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForSelector('#outputCard.visible');
   await page.waitForTimeout(300);
   errText = await page.textContent('#errorBox');
+  const warnText = (await page.isVisible('#warningBox')) ? await page.textContent('#warningBox') : '';
   check('a truncated article is never presented as finished', /cut off/i.test(errText), errText.slice(0, 80));
   check('the truncated article is still shown for inspection', await page.isVisible('#outputCard'));
+  check('truncation banner uses the agreed copy',
+    /reached the output limit and is incomplete/i.test(errText)
+    && /generate it again/i.test(errText)
+    && /higher output allowance/i.test(errText), errText.slice(0, 140));
+  check('the truncation message appears exactly once',
+    (errText + ' ' + warnText).match(/reached the output limit/gi).length === 1,
+    JSON.stringify({ banner: /reached the output limit/i.test(errText), warningBox: /reached the output limit/i.test(warnText) }));
+  check('truncation copy never tells the user to use fewer products',
+    !/fewer (products|recommendations)|select fewer|split the guide/i.test(errText + ' ' + warnText),
+    (errText + ' ' + warnText).slice(0, 120));
+  check('unrelated warnings still render alongside it',
+    /No related articles matched/i.test(warnText), warnText.slice(0, 90));
+  check('the confirmed products survive a truncated run',
+    (await page.textContent('.picker-count')).startsWith('3 products'));
+  check('the brief survives a truncated run', (await page.inputValue('[data-name="occasion"]')).length > 0);
 
   setMode('');
   await page.click('#genBtn');

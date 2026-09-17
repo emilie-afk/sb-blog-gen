@@ -15,11 +15,34 @@ const { CATALOG } = require('../../../data/catalog.js');
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
-// Output budget. These are the main lever on wall-clock time: the model streams
-// roughly linearly, so halving max_tokens roughly halves the worst case. A run
-// that hits the cap is reported as truncated, never returned as if complete.
-const ARTICLE_MAX_TOKENS = 3500;
+// Output budget, per format.
+//
+// A gift guide writes one section per confirmed product on top of the intro,
+// comparison table, selection guidance, presentation ideas, care primer, five
+// Q&As and the closing section. At 3500 tokens a normal five product guide ran
+// out of budget mid-article, so the gift formats get 6000. The fix is the
+// allowance, not a shorter article: no section, product detail or guardrail is
+// removed to make one fit.
+//
+// The model is claude-haiku-4-5, whose documented maximum output is 64K tokens,
+// so 6000 is well inside what it will serve. A run that still hits the cap is
+// reported as truncated, never returned as if complete.
+//
+// The care guide keeps 3500: its structure is fixed and it has never truncated.
+// Raising a limit that is not under pressure only buys worst-case latency.
+const ARTICLE_MAX_TOKENS = 3500;              // care guide, and the default
+const GIFT_ARTICLE_MAX_TOKENS = 6000;         // every gift-oriented format
 const METADATA_MAX_TOKENS = 600;
+
+const GIFT_FORMATS = ['single_plant_gift', 'general_gift_guide', 'occasion_gift_guide'];
+
+// The single truncation message. The browser matches on it to avoid showing the
+// same problem twice, so the wording is shared rather than duplicated.
+const TRUNCATION_WARNING = 'The article reached the output limit and is incomplete. Please generate it again. If this continues, the article generator needs a higher output allowance.';
+
+function articleMaxTokens(articleType) {
+  return GIFT_FORMATS.includes(articleType) ? GIFT_ARTICLE_MAX_TOKENS : ARTICLE_MAX_TOKENS;
+}
 
 const BUILDERS = {
   care_guide: buildCareGuidePrompt,
@@ -116,7 +139,7 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   const articleStart = timer ? timer.start() : 0;
   const articleCall = anthropic.messages.create({
     model: MODEL,
-    max_tokens: ARTICLE_MAX_TOKENS,
+    max_tokens: articleMaxTokens(articleType),
     messages: [{ role: 'user', content: articlePrompt }]
   }).then(r => { if (timer) timer.record('article_call', timer.since(articleStart)); return r; },
           e => { if (timer) timer.record('article_call', timer.since(articleStart)); throw e; });
@@ -161,7 +184,10 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   // off. This is surfaced loudly rather than returned as a finished article.
   const truncated = articleRes.value && articleRes.value.stop_reason === 'max_tokens';
   if (truncated) {
-    warnings.push('The article hit the output limit and stops mid-way. Do not publish it as it is. Generate again with fewer recommendations, or split the guide.');
+    // One message, and it never blames the number of products: five is a normal
+    // guide. The browser shows this once, as its own banner, and keeps it out of
+    // the general warning list so the same problem is not reported twice.
+    warnings.push(TRUNCATION_WARNING);
   }
 
   let excerpt = '';
@@ -226,7 +252,11 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
 
 module.exports = {
   runGeneration,
+  articleMaxTokens,
   ARTICLE_MAX_TOKENS,
+  GIFT_ARTICLE_MAX_TOKENS,
+  GIFT_FORMATS,
+  TRUNCATION_WARNING,
   METADATA_MAX_TOKENS,
   MODEL,
   _internals: { stripFences, stripDashes, stripDashesPlain, firstText, parseMetadata, reconcileArticles, reconcileCatalogProducts }

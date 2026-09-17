@@ -331,6 +331,16 @@ const ERROR_TITLES = {
   bad_job_id: 'That job reference is not valid'
 };
 
+// The single truncation message, shared with the server so the browser can
+// recognise it and show it exactly once. Five products is a normal guide, so the
+// copy never suggests choosing fewer.
+const TRUNCATION_TITLE = 'The article was cut off';
+const TRUNCATION_MESSAGE = 'The article reached the output limit and is incomplete. Please generate it again. If this continues, the article generator needs a higher output allowance.';
+
+function isTruncationWarning(warning) {
+  return /reached the output limit/i.test(String(warning || ''));
+}
+
 // List formats go through the background job: a long gift guide can outrun
 // Netlify's 60 second synchronous limit, which cannot be raised. The care guide
 // and single-plant formats are bounded and stay on the synchronous endpoint.
@@ -460,8 +470,9 @@ async function generate() {
     setProgress(5);
     document.getElementById('progressCard').classList.remove('visible');
     if (data.truncated) {
-      showError('The article was cut off',
-        'It hit the output limit and stops mid-way. Do not publish it as it is. Generate again with fewer recommendations, or split the guide.');
+      // One prominent banner. renderOutput keeps the same message out of the
+      // yellow warning list, so the problem is reported once rather than twice.
+      showError(TRUNCATION_TITLE, TRUNCATION_MESSAGE);
     }
   } catch (err) {
     ticker.forEach(clearTimeout);
@@ -502,7 +513,10 @@ function renderOutput(data, fmt) {
   document.getElementById('recsArticles').innerHTML = buildRelatedArticles(data.related_articles);
   document.getElementById('recsCard').classList.add('visible');
 
-  showWarnings(data.warnings);
+  // A truncated article already has its own banner. Filter only that message out
+  // of the general warning list: every other warning still renders normally.
+  const warnings = (data.warnings || []).filter(w => !isTruncationWarning(w));
+  showWarnings(warnings);
 }
 
 function setFinalTitle(title) {
