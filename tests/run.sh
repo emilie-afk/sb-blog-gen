@@ -14,6 +14,7 @@ echo "── correction pass ──";        node tests/corrections.test.js | ta
 echo "── storefront catalog ──";     node tests/catalog.test.js
 echo "── catalog pagination ──";     node tests/pagination.test.js
 echo "── packaged function ──";      node tests/packaged.test.js
+echo "── netlify blobs ──";           node tests/blobs-integration.test.js | tail -3
 echo "── timing + background jobs ──"; node tests/timing-and-jobs.test.js | tail -3
 echo "── generate handler ──";       node tests/generate.test.js    | tail -4
 echo "── browser ──"

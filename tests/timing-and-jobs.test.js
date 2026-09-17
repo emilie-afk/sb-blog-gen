@@ -54,6 +54,13 @@ require.cache[sdkPath] = { id: sdkPath, filename: sdkPath, loaded: true, exports
 process.env.SITE_PASSWORD = 'pw';
 process.env.ANTHROPIC_API_KEY = 'k';
 
+// The job store has no production fallback: off-platform it throws rather than
+// quietly using process memory. Tests that exercise the job lifecycle install
+// the memory store on purpose, so a passing run can never mean "Blobs failed and
+// something invisible took over". tests/blobs-integration.test.js covers the
+// real Netlify Blobs path.
+require(path.join(ROOT, 'netlify/functions/lib/job-store')).useMemoryStoreForTests();
+
 const { ARTICLE_MAX_TOKENS, METADATA_MAX_TOKENS } = require(path.join(ROOT, 'netlify/functions/lib/run-generation'));
 const generate = require(path.join(ROOT, 'netlify/functions/generate.js'));
 const background = require(path.join(ROOT, 'netlify/functions/generate-background.js'));

@@ -11,7 +11,7 @@
 
 const { validateRequest, ValidationError } = require('./lib/validate');
 const { runGeneration } = require('./lib/run-generation');
-const { createTimer, logTiming } = require('./lib/timing');
+const { createTimer, logTiming, logEvent } = require('./lib/timing');
 const jobs = require('./lib/job-store');
 
 function json(statusCode, payload) {
@@ -51,6 +51,22 @@ exports.handler = async (event) => {
   }
   timer.record('validation', timer.since(validationStart));
 
+  // Lambda compatibility: the Blobs context lives on the invocation, so it has
+  // to be connected before anything can reach the store. A failure here is fatal
+  // by design: without a durable store the job would be written to process
+  // memory that generate-status can never read.
+  try {
+    const { connected } = jobs.connectJobStore(event);
+    logEvent('blob_context_connected', { connected });
+  } catch (err) {
+    console.error('Blobs context unavailable:', err && err.message);
+    logEvent('generation_failed', { code: 'job_store_unavailable' });
+    return json(500, {
+      error: 'The job store is not available in this environment.',
+      code: 'job_store_unavailable'
+    });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return json(500, {
@@ -67,8 +83,26 @@ exports.handler = async (event) => {
   const parsedId = jobs.parseJobId(payload.jobId);
   const jobId = parsedId.valid ? parsedId.jobId : jobs.newJobId();
 
-  await jobs.createPending(jobId, {
-    articleType,
+  // The pending record is a new key, so eventual consistency makes it visible
+  // straight away. A write failure is fatal for the same reason as above.
+  try {
+    await jobs.createPending(jobId, {
+      articleType,
+      recommendationCount: fields.numberOfRecommendations
+    });
+    logEvent('pending_record_written', { jobId, articleType, recommendationCount: fields.numberOfRecommendations });
+  } catch (err) {
+    console.error('Pending record could not be written:', err && err.message);
+    logEvent('generation_failed', { jobId, code: 'job_store_unavailable' });
+    return json(500, {
+      error: 'The job store could not be written to.',
+      code: 'job_store_unavailable'
+    });
+  }
+
+  logEvent('generation_started', {
+    jobId, articleType,
+    productCount: (fields.selectedProducts || []).length,
     recommendationCount: fields.numberOfRecommendations
   });
 
@@ -86,12 +120,31 @@ exports.handler = async (event) => {
       jobId
     });
 
-    if (result.ok) await jobs.completeJob(jobId, result.payload, timing);
-    else await jobs.failJob(jobId, result.error, result.code, timing);
+    if (result.ok) {
+      await jobs.completeJob(jobId, result.payload, timing);
+      logEvent('generation_completed', {
+        jobId, articleType,
+        articleChars: result.payload.html.length,
+        truncated: result.payload.truncated,
+        elapsedMs: timing.totalMs
+      });
+    } else {
+      await jobs.failJob(jobId, result.error, result.code, timing);
+      logEvent('generation_failed', { jobId, articleType, code: result.code, elapsedMs: timing.totalMs });
+    }
   } catch (err) {
     console.error('Background generation crashed:', err && err.message);
-    await jobs.failJob(jobId, 'The generation job stopped unexpectedly. Please try again.', 'ai_failure',
-      timer.summary());
+    logEvent('generation_failed', { jobId, articleType, code: 'ai_failure', elapsedMs: timer.totalMs() });
+    // A terminal record is the only way the user hears about this. If even that
+    // write fails there is nothing further to do but log it: the poll will time
+    // out on the client side rather than hang forever.
+    try {
+      await jobs.failJob(jobId, 'The generation job stopped unexpectedly. Please try again.', 'ai_failure',
+        timer.summary());
+    } catch (storeErr) {
+      console.error('Failure record could not be written:', storeErr && storeErr.message);
+      logEvent('generation_failed', { jobId, code: 'job_store_unavailable' });
+    }
   }
 
   return json(202, { jobId, status: 'accepted' });
