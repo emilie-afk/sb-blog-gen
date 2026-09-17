@@ -168,6 +168,20 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
    screen reader announces it through role="status" at the same time. */
 .copy-status { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 90%; background: #1a2a1a; color: #eafaea; border: 1px solid #3a6b35; border-radius: 8px; padding: 9px 16px; font-size: 13px; z-index: 50; }
 .copy-status:empty { display: none; }
+/* Deliberately not styled as a primary action: Copy HTML stays the one thing the
+   eye lands on after a generation. */
+.new-article-btn { margin-left: auto; background: transparent; color: #cfe6cf; border: 1px solid #4a7a45; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.new-article-btn:hover { background: #24361f; color: #fff; }
+.progress-actions { margin-top: 14px; display: flex; justify-content: flex-end; }
+.clear-products-btn { background: transparent; color: #a12626; border: 1px solid #e0b4b4; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.clear-products-btn:hover { background: #fdf0f0; }
+
+.confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(20, 30, 20, 0.55); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.confirm-overlay.visible { display: flex; }
+.confirm-dialog { background: #fff; border-radius: 12px; padding: 22px 24px; max-width: 420px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+.confirm-title { margin: 0 0 8px; font-size: 17px; color: #2d5428; }
+.confirm-body { margin: 0 0 18px; font-size: 14px; color: #444; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .copy-note { font-size: 12px; color: #6a9a6a; }
 .title-bar .copy-note { color: #999; }
 .error-box { display: none; background: #fff5f5; border: 1px solid #f5c0c0; border-radius: 10px; padding: 13px 17px; margin-bottom: 16px; color: #c00; font-size: 13px; }
@@ -273,7 +287,7 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
 <div class="container">
   <div class="steps" id="steps"></div>
 
-  <div class="card">
+  <div class="card" id="formatCard">
     <div class="card-title">🗂 Article Format <span class="badge">Required</span></div>
     <div class="format-options" id="formatOptions"></div>
   </div>
@@ -290,6 +304,12 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
   <div class="progress-card" id="progressCard">
     <div id="progressRows"></div>
     <div class="pending-note" id="pendingNote" style="display:none;"></div>
+    <!-- The output card is hidden while a generation runs, so the new-article
+         action needs a home here too: abandoning a long background job is
+         exactly when someone reaches for it. Same handler, same confirmation. -->
+    <div class="progress-actions">
+      <button class="new-article-btn" id="newArticleBtnPending" onclick="createAnotherArticle()">Create Another Article</button>
+    </div>
   </div>
 
   <div class="error-box" id="errorBox"></div>
@@ -317,6 +337,7 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
     <div class="copy-bar">
       <button class="copy-btn" id="copyBtn" onclick="copyHTML()">📋 Copy HTML</button>
       <span class="copy-note">Paste into Shopify → Blog post → click &lt;&gt; HTML button</span>
+      <button class="new-article-btn" id="newArticleBtn" onclick="createAnotherArticle()">Create Another Article</button>
     </div>
   </div>
 
@@ -353,6 +374,21 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
 
 </div>
 </div><!-- #app -->
+
+<!-- One reusable confirmation dialog, shared by every destructive workflow
+     action. Lives outside #app so it is not hidden when the page behind it is
+     marked aria-hidden while the dialog is open. -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dialog" id="confirmDialog" role="dialog" aria-modal="true"
+       aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+    <h2 class="confirm-title" id="confirmTitle"></h2>
+    <p class="confirm-body" id="confirmBody"></p>
+    <div class="confirm-actions">
+      <button type="button" class="secondary-btn" id="confirmCancel">Cancel</button>
+      <button type="button" class="secondary-btn primary" id="confirmOk">Continue</button>
+    </div>
+  </div>
+</div>
 
 <script src="data/catalog.js"></script>
 <script src="data/gift-collections.js"></script>

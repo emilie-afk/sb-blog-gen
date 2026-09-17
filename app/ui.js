@@ -222,6 +222,14 @@ async function copyFrom(textareaId, buttonId, restoreLabel) {
     btn.classList.remove('copy-failed');
     btn.classList.add('ok');
     announceCopy('Copied to clipboard.');
+    // Announce WHICH field was copied. main.js listens for this to know whether
+    // the article HTML itself has reached the clipboard, which is what decides
+    // if starting a new article needs a warning. A failed copy dispatches
+    // nothing, and copying a title or the metadata carries its own field id, so
+    // neither can be mistaken for the article.
+    try {
+      document.dispatchEvent(new CustomEvent('sbcopy', { detail: { field: textareaId, ok: true } }));
+    } catch (e) { /* CustomEvent unavailable, nothing depends on it */ }
   } else {
     // Leave it selected and focused: the person can finish the copy themselves.
     selectField(el);
@@ -239,6 +247,116 @@ function copyHTML() { return copyFrom('html-code', 'copyBtn', '📋 Copy HTML');
 function copyExcerpt() { return copyFrom('excerpt-text', 'excerptCopyBtn', '📋 Copy Excerpt'); }
 function copyMeta() { return copyFrom('meta-text', 'metaCopyBtn', '📋 Copy Meta Description'); }
 function copyTitle() { return copyFrom('title-text', 'titleCopyBtn', '📋 Copy Title'); }
+
+// Cancels every pending copy timer and clears the shared status region. Called
+// when an article is reset: without it a timer from the previous article can
+// fire against the next one and wipe a message it did not write, or restore a
+// stale label onto a button the reset has already put back to idle.
+function clearCopyState() {
+  Object.keys(copyTimers).forEach(id => {
+    clearTimeout(copyTimers[id]);
+    delete copyTimers[id];
+  });
+  if (copyStatusTimer) { clearTimeout(copyStatusTimer); copyStatusTimer = null; }
+  // Bumping the token retires any callback that somehow survived its clearTimeout.
+  copyStatusToken += 1;
+  const region = document.getElementById('copy-status');
+  if (region) region.textContent = '';
+  // Put every copy button back to the label it idles at, dropping the success
+  // and failure classes with it.
+  ['copyBtn', 'titleCopyBtn', 'excerptCopyBtn', 'metaCopyBtn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const idle = btn.getAttribute('data-idle-label');
+    if (idle) btn.textContent = idle;
+    btn.classList.remove('ok');
+    btn.classList.remove('copy-failed');
+  });
+}
+
+// ── Confirmation dialog ──────────────────────────────────────────
+// One reusable accessible modal, used by every destructive workflow action, so
+// there is a single place where focus handling and Escape behaviour live rather
+// than one implementation per button. Resolves true for confirm, false for
+// cancel, Escape, or a click on the backdrop.
+//
+// Only one dialog is ever open at a time: a second request while one is open
+// resolves false rather than stacking, which keeps focus restoration unambiguous.
+let dialogOpen = false;
+
+function confirmAction(options) {
+  const opts = options || {};
+  const overlay = document.getElementById('confirmOverlay');
+  const box = document.getElementById('confirmDialog');
+  if (!overlay || !box) {
+    // No dialog markup on the page. Refusing is the safe answer for a
+    // destructive action: nothing is cleared without a confirmation.
+    return Promise.resolve(false);
+  }
+  if (dialogOpen) return Promise.resolve(false);
+  dialogOpen = true;
+
+  const trigger = document.activeElement;
+  document.getElementById('confirmTitle').textContent = opts.title || 'Are you sure?';
+  document.getElementById('confirmBody').textContent = opts.body || '';
+  const cancelBtn = document.getElementById('confirmCancel');
+  const okBtn = document.getElementById('confirmOk');
+  cancelBtn.textContent = opts.cancelLabel || 'Cancel';
+  okBtn.textContent = opts.confirmLabel || 'Continue';
+
+  overlay.classList.add('visible');
+  // aria-hidden on the page behind, plus the overlay itself covering it, so the
+  // content underneath is neither reachable by pointer nor announced.
+  const app = document.getElementById('app');
+  if (app) app.setAttribute('aria-hidden', 'true');
+
+  return new Promise(resolve => {
+    function focusables() {
+      return [cancelBtn, okBtn].filter(Boolean);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); return; }
+      if (e.key !== 'Tab') return;
+      // Focus stays inside the dialog: it is the only interactive region while
+      // the overlay is up.
+      const items = focusables();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    function onCancel() { finish(false); }
+    function onOk() { finish(true); }
+    function onBackdrop(e) { if (e.target === overlay) finish(false); }
+
+    function finish(result) {
+      // Every listener added here is removed here, so repeated dialogs never
+      // accumulate handlers on the shared buttons.
+      document.removeEventListener('keydown', onKey, true);
+      cancelBtn.removeEventListener('click', onCancel);
+      okBtn.removeEventListener('click', onOk);
+      overlay.removeEventListener('mousedown', onBackdrop);
+      overlay.classList.remove('visible');
+      if (app) app.removeAttribute('aria-hidden');
+      dialogOpen = false;
+      // Focus goes back where it came from, so a cancelled action leaves the
+      // keyboard exactly where the person left it.
+      if (trigger && typeof trigger.focus === 'function' && document.contains(trigger)) {
+        try { trigger.focus(); } catch (e) { /* element went away */ }
+      }
+      resolve(result);
+    }
+
+    document.addEventListener('keydown', onKey, true);
+    cancelBtn.addEventListener('click', onCancel);
+    okBtn.addEventListener('click', onOk);
+    overlay.addEventListener('mousedown', onBackdrop);
+    // Focus the cancel button: the safe option is the default for a
+    // destructive confirmation.
+    try { cancelBtn.focus(); } catch (e) { /* ignore */ }
+  });
+}
 
 function switchTab(t) {
   ['html', 'preview'].forEach(n => {
