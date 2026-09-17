@@ -10,6 +10,7 @@ echo "── syntax ──"
 for f in app/*.js data/*.js netlify/functions/*.js netlify/functions/lib/*.js tests/*.js; do node --check "$f"; done
 echo "ok"
 echo "── prompts + validation ──";   node tests/prompts.test.js     | tail -3
+echo "── gift prompt voice ──";       node tests/prompt-voice.test.js | tail -3
 echo "── correction pass ──";        node tests/corrections.test.js | tail -3
 echo "── storefront catalog ──";     node tests/catalog.test.js
 echo "── catalog pagination ──";     node tests/pagination.test.js
