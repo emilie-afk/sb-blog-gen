@@ -177,9 +177,35 @@ the list formats do not run synchronously any more.
   gives up first, that is reported as `client_wait_timeout`, which says this
   browser stopped waiting and the job may still finish, rather than claiming the
   server expired it.
-- `lib/job-store.js` keeps job records in Netlify Blobs, with an in-memory
-  fallback so the lifecycle can be tested off-platform. Records expire after an
-  hour.
+- `lib/job-store.js` keeps job records in Netlify Blobs. Records expire after an
+  hour. There is no production fallback: a store failure throws and the caller
+  reports `job_store_unavailable`. The in-memory store exists only when a test
+  installs it through `useMemoryStoreForTests()`.
+
+### Netlify Blobs in Lambda compatibility mode
+
+These functions export `exports.handler = async (event) => {}`, the Lambda style
+signature rather than Functions v2, so `@netlify/blobs` cannot pick the
+environment up on its own. Every handler that reaches the store calls
+`jobs.connectJobStore(event)` first, which runs `connectLambda(event)` to read
+the invocation's base64 Blobs context and set `siteID`, `token`, `edgeURL` and
+`deployID`. No `SITE_ID` or personal access token is configured by hand.
+
+Installed version: **@netlify/blobs 8.2.0**, and the store uses the **default,
+eventual consistency**. `connectLambda` sets four properties and never
+`uncachedEdgeURL`, while the client throws `BlobsConsistencyError` on a
+strong-consistency read without it. That is true in 8.2.0 and unchanged in
+11.1.0, the newest release, so no upgrade makes strong consistency available in
+Lambda mode and `uncachedEdgeURL` is never derived by hand.
+
+Eventual consistency shapes how records are written. A new blob is globally
+available immediately; an update to an existing key can take up to 60 seconds to
+propagate. The terminal record is therefore written under its own
+`<jobId>.result` key rather than overwriting the pending one, and a read checks
+that key first, so completion is visible as soon as it is written. If a future
+change were to overwrite the pending key instead, completion could appear up to
+60 seconds late; the 15 minute polling window and the 90 second startup grace
+both have room for that.
 
 Every generation logs one line per run:
 
