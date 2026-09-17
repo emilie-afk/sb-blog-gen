@@ -157,12 +157,26 @@ the list formats do not run synchronously any more.
   bounded, and remains available as a fallback for the list formats.
 - `generate-background.js` runs the general and occasion gift guides. Netlify
   executes any function whose name ends in `-background` asynchronously with a
-  15 minute budget, so a long guide is no longer racing the request timeout. It
-  answers 202 with a job id and writes the outcome to the job store.
+  15 minute budget, so a long guide is no longer racing the request timeout.
+  Netlify answers the browser with an **empty 202 and no body**, before the
+  handler has necessarily run, so the browser mints the job id and keeps using
+  its own. Every outcome reaches the user through the job record.
 - `generate-status.js` is what the browser polls, every 2.5 seconds. It reports
   `pending`, `complete`, `failed` or `expired`. The browser never clears the form
   or the confirmed products, so any of those states leaves the work ready to
   retry.
+- **Startup race.** Because the 202 can arrive before `createPending` has
+  written anything, a missing record is reported as `pending` while the job is
+  younger than a 90 second startup grace period, measured from the base-36
+  submit time in the job id. The id is parsed defensively: a malformed or
+  implausible id is rejected as `bad_job_id`, and a future-dated one is clamped
+  to now, so a forged id can only shorten its own grace, never extend it or
+  reach another job's record. Only past the grace period does a missing record
+  mean `job_expired`.
+- The browser polls for the full 15 minute platform limit plus 30 seconds. If it
+  gives up first, that is reported as `client_wait_timeout`, which says this
+  browser stopped waiting and the job may still finish, rather than claiming the
+  server expired it.
 - `lib/job-store.js` keeps job records in Netlify Blobs, with an in-memory
   fallback so the lifecycle can be tested off-platform. Records expire after an
   hour.

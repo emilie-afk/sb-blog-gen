@@ -3,6 +3,7 @@
 //             | 'jobfail'  background job reports failed
 //             | 'jobgone'  background job reports expired
 //             | 'jobtrunc' background job completes but flags truncation
+//             | 'jobrace'  the empty 202 lands before the job record exists
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -75,18 +76,31 @@ const server = http.createServer((req, res) => {
       if (req.url.endsWith('/generate-background')) {
         fs.writeFileSync('/tmp/last-request.json', JSON.stringify(payload, null, 2));
         fs.writeFileSync('/tmp/last-endpoint.txt', 'generate-background');
-        const jobId = payload.jobId || 'job_mock_00000000';
-        JOBS.set(jobId, { polls: 0, articleType: payload.articleType, fields: payload.fields });
-        res.setHeader('Content-Type', 'application/json');
+        const jobId = payload.jobId;
+        const register = () => JOBS.set(jobId, { polls: 0, articleType: payload.articleType, fields: payload.fields });
+        // 'jobrace' reproduces the production lifecycle: Netlify returns 202
+        // before the handler has written the pending record, so the first polls
+        // find nothing.
+        if (m === 'jobrace') setTimeout(register, 6000); else register();
+        // Netlify answers a background invocation with an empty 202: no body, no
+        // job id. The browser must rely on the id it minted.
         res.statusCode = 202;
-        return res.end(JSON.stringify({ jobId, status: 'accepted' }));
+        return res.end();
       }
 
       if (req.url.endsWith('/generate-status')) {
         res.setHeader('Content-Type', 'application/json');
         const job = JOBS.get(payload.jobId);
-        if (!job) return res.end(JSON.stringify({ jobId: payload.jobId, status: 'expired', code: 'job_expired',
-          error: 'That generation is no longer available. Your brief and confirmed products are still here, so you can generate again.' }));
+        if (!job) {
+          // Inside the startup grace period a missing record reads as pending,
+          // exactly as generate-status does.
+          const ts = parseInt(String(payload.jobId || '').split('_')[1], 36);
+          const fresh = Number.isFinite(ts) && (Date.now() - ts) <= 90000;
+          return res.end(JSON.stringify(fresh
+            ? { jobId: payload.jobId, status: 'pending', elapsedMs: Math.max(0, Date.now() - ts), starting: true }
+            : { jobId: payload.jobId, status: 'expired', code: 'job_expired',
+                error: 'That generation is no longer available. Your brief and confirmed products are still here, so you can generate again.' }));
+        }
         job.polls += 1;
         if (m === 'jobgone') return res.end(JSON.stringify({ jobId: payload.jobId, status: 'expired', code: 'job_expired',
           error: 'That generation did not finish in time. Your brief and confirmed products are still here, so you can generate again with fewer recommendations.' }));
