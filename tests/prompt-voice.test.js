@@ -45,7 +45,7 @@ const everyPrompt = allGiftPrompts.concat([['care guide', careGuide]]);
 // ── 1-3. First-party Succulents Box perspective ──────────────────
 for (const [name, prompt] of allGiftPrompts) {
   check(`${name}: writes as Succulents Box, not about it`,
-    /Succulents Box blog/.test(prompt) && /first person as the brand/.test(prompt));
+    /Succulents Box blog/.test(prompt) && /natural first-party voice/.test(prompt));
   check(`${name}: names the gifts as ours`, /our \[exact item name\]/.test(prompt));
   check(`${name}: forbids third-party and affiliate framing`,
     /NEVER WRITE LIKE A THIRD PARTY/.test(prompt)
@@ -132,7 +132,7 @@ for (const [name, prompt] of giftPrompts) {
     products(5).every(p => prompt.includes(p.url)));
   check(`${name}: comparison table still required`,
     /<th [^>]*>Gift<\/th>/.test(prompt)
-    && /Best suited for/.test(prompt)
+    && /A good choice for/.test(prompt)
     && /Every <th> must be its own element/.test(prompt)
     && /never collapse the header row/i.test(prompt));
   check(`${name}: table columns stay supported`,

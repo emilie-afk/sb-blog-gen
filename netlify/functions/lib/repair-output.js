@@ -19,6 +19,7 @@
 // The labels the comparison-table skeleton asks for, plus the optional columns it
 // permits. Longest first, so "Care level" is matched before "Care" could be.
 const KNOWN_HEADERS = [
+  'A good choice for',
   'Best suited for',
   'Style or format',
   'Care level',

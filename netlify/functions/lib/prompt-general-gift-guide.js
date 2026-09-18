@@ -34,7 +34,8 @@ STRUCTURE. Write natural headings that suit this guide and these gifts. Do not r
 
 1. Updated tag, then ONE short introductory paragraph:
 ${updatedTag()}
-<p>[Establish the topic in one natural paragraph and lead straight into the gifts.]</p>
+<p>[One natural paragraph. Name the kinds of gift the article covers, give the reader a useful sense of the range, and lead straight into the recommendations. Nothing abstract about why plants make good gifts.]</p>
+Do not open with, or anywhere use, these generic phrases: "the holiday season calls for", "gifts that keep on giving", "options at every price point", "something for everyone".
 The introduction makes no claim about the items as a group. Do not write that every item is low maintenance, that every item works on a desk, that every item suits modest light, that every item is appropriate for beginners, that none of the gifts demand attention, or that all the designs work in shared spaces. Do not add a second introductory section that says the same thing again.
 The introduction must NOT be followed by a section explaining why plants make good gifts. Do not write a section titled "Why plants make great gifts", "Why choose a plant gift", "Benefits of plant gifts", "The meaning of giving plants" or anything equivalent, and do not argue in the abstract that plants can be gifts.
 Do not open with lines like "Plants symbolize growth and love", "A plant is a gift that keeps on giving", "Plants bring life into any space", "Finding the perfect gift can be difficult", or "Whether you are shopping for friends or family, we have something for everyone". Respond to this actual audience and these actual gifts.
@@ -49,7 +50,7 @@ Some can be two short paragraphs, some a single one. Do not force the same bulle
 3. A quick comparison table:
 ${comparisonTableSkeleton(shown.some(p => p.price))}
 
-4. CONDITIONAL, not required: guidance that helps someone choose between these gifts. Write it only when the confirmed facts support a useful comparison, and give it a natural heading. Build the selection guidance ONLY from differences explicitly supported by the confirmed product data: the verified gift format, the plant type, a DIY activity, care requirements, an occasion named in the official item, and the supplied prices. Omit this section entirely if the confirmed facts do not support a useful comparison. Never infer size, placement, personality, relationship suitability, design intent, or visual impact. Do not restate every recommendation, and never write in the transactional register the style rules forbid.
+4. CONDITIONAL, not required: guidance that helps someone choose between these gifts. Write it only when the confirmed facts support a useful comparison, and give it a natural heading. Build the selection guidance ONLY from differences explicitly supported by the confirmed product data: the verified gift format, the plant type, a DIY activity, care requirements, an occasion named in the official item, and the supplied prices. Omit this section entirely if the confirmed facts do not support a useful comparison. Never infer size, placement, personality, relationship suitability, design intent, or visual impact. Its job is to help the reader tell the gifts apart. Do not restate every recommendation in shorter form, and never write in the transactional register the style rules forbid.
 
 That is the whole required article: introduction, one section per gift, and the comparison table. Add selection guidance only when confirmed facts support a useful comparison. Everything below is optional and is left out unless it genuinely earns its place.
 

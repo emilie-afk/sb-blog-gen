@@ -122,8 +122,11 @@ ok('no unsupported gift-ready or packaging claims', /boxed, gift ready, ready to
 ok('no unboxing narration', /Never describe an unboxing/.test(voice));
 ok('plant gift is not the default noun', /"Plant gift" is not the default noun/.test(voice));
 ok('exact item name preferred first', /1\. The exact item name as supplied\./.test(voice));
-ok('living gift used sparingly', /"Living gift", occasionally, and never more than once/.test(voice));
-ok('plant gift ranked last', /5\. "Plant gift", last/.test(voice));
+// "Living gift" moved from a sparingly-allowed option to an outright ban, so the
+// noun preference list is one shorter and "Plant gift" is now item 4.
+ok('living gift is banned outright', /Never write "living gift"\./.test(voice)
+  && !/"Living gift", occasionally/.test(voice));
+ok('plant gift ranked last', /4\. "Plant gift", last/.test(voice));
 ok('AI filler banned', /No sentences that would be equally true of any gift on any site/.test(voice));
 ok('accuracy beats equal length', /Accuracy beats symmetry/.test(voice));
 
@@ -155,7 +158,7 @@ ok('manufacturing and catalog language has its own rule', /NO MANUFACTURING OR C
 ok('concise plant care is still allowed inside a recommendation',
   /only to give concise, useful care guidance, and only in one or two natural sentences/.test(voice));
 ok('air plants grow without soil is available as a care distinction', /air plants grow without soil/.test(voice));
-ok('succulent soil should dry between waterings is available', /succulent soil should dry between waterings/.test(voice));
+ok('succulent care distinction is available', /succulents generally want bright light and the soil should dry between waterings/.test(voice));
 ok('windowless office caveat is available', /may not suit a windowless office/.test(voice));
 ok('pet safety still gated on verification', /Pet safety may be mentioned only when it was verified/.test(voice));
 ok('standalone care section still prohibited', /never write a standalone care section/.test(voice));

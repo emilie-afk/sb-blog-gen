@@ -29,7 +29,7 @@ ok('cap message mentions 8', (()=>{try{validateRequest('general_gift_guide',{num
 // ── prompts
 const ogp=buildOccasionGiftGuidePrompt(og.fields);
 ok('no tone in occasion prompt', !/Tone:/.test(ogp));
-ok('voice rules present', /VOICE AND STYLE/.test(ogp) && /gift that keeps on giving/.test(ogp) && /first person as the brand/.test(ogp));
+ok('voice rules present', /VOICE AND STYLE/.test(ogp) && /gift that keeps on giving/.test(ogp) && /natural first-party voice/.test(ogp));
 ok('evidence rules present', /EVIDENCE RULES/.test(ogp) && /thrives on neglect/.test(ogp));
 ok('table skeleton has separate th', (ogp.match(/<th /g)||[]).length>=4);
 // The standalone "Ordering and timing" section is gone; the ban now lives in the
@@ -71,9 +71,13 @@ const f2=validateRequest('general_gift_guide',{numberOfRecommendations:2,selecte
 // Headers match the skeleton the prompt actually asks for now. The old fixture
 // still used Light and Care level, which the skeleton stopped requiring once
 // light and care claims became evidence-gated.
-const goodTable=`<table><thead><tr><th>Gift</th><th>Best suited for</th><th>Style or format</th><th>Price</th></tr></thead><tbody><tr><td>Gift Box 1</td><td>a</td><td>b</td><td>c</td></tr><tr><td>Gift Box 2</td><td>a</td><td>b</td><td>c</td></tr></tbody></table>`;
+const goodTable=`<table><thead><tr><th>Gift</th><th>A good choice for</th><th>Style or format</th><th>Price</th></tr></thead><tbody><tr><td>Gift Box 1</td><td>a</td><td>b</td><td>c</td></tr><tr><td>Gift Box 2</td><td>a</td><td>b</td><td>c</td></tr></tbody></table>`;
+// The column was renamed from "Best suited for". Articles generated before the
+// rename must still validate cleanly rather than be reported as missing a header.
+const legacyTable=goodTable.replace('A good choice for','Best suited for');
 const links=`<a href="https://succulentsbox.com/products/g1">Gift Box 1</a><a href="https://succulentsbox.com/products/g2">Gift Box 2</a>`;
 ok('clean output has no warnings', validateArticleOutput('general_gift_guide',f2,goodTable+links).length===0, JSON.stringify(validateArticleOutput('general_gift_guide',f2,goodTable+links)));
+ok('the previous header spelling still validates', validateArticleOutput('general_gift_guide',f2,legacyTable+links).length===0, JSON.stringify(validateArticleOutput('general_gift_guide',f2,legacyTable+links)));
 const merged=`<table><tr><th>GiftBest forLightCare levelPrice</th></tr><tr><td>x</td></tr></table>`;
 ok('merged header flagged', validateArticleOutput('general_gift_guide',f2,merged+links).some(w=>/merged/.test(w)));
 ok('missing table flagged', validateArticleOutput('general_gift_guide',f2,links).some(w=>/comparison table is missing/.test(w)));

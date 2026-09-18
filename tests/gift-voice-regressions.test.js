@@ -283,17 +283,22 @@ ok('one introductory paragraph, not two or three',
 console.log('\n── Comparison table ──');
 ok('the four headers stay separate cells',
   listPrompts.every(([, p]) =>
-    /<th [^>]*>Gift<\/th>/.test(p) && /<th [^>]*>Best suited for<\/th>/.test(p)
+    /<th [^>]*>Gift<\/th>/.test(p) && /<th [^>]*>A good choice for<\/th>/.test(p)
     && /<th [^>]*>Style or format<\/th>/.test(p) && /<th [^>]*>Price<\/th>/.test(p)));
+ok('the renamed column replaced the old one everywhere',
+  listPrompts.every(([, p]) => !/<th [^>]*>Best suited for<\/th>/.test(p)));
 ok('style or format is a gift-level description',
   listPrompts.every(([, p]) => /"Style or format" names the KIND of gift in a few words. It is not a contents list/.test(p)));
 ok('good table entries are shown',
   listPrompts.every(([, p]) => /Good: "Air plant dish garden"\. "Succulent birthday gift box"/.test(p)));
 ok('component-inventory table entries are shown as wrong',
   listPrompts.every(([, p]) => /Bad: "Gift box with plant and candle"\. "Planted arrangement in a decorative dish"/.test(p)));
-ok('best suited for may not be invented',
+ok('a good choice for may not be invented',
   listPrompts.every(([, p]) =>
-    /Never invent light tolerance, a relationship boundary, a personality trait, a desk size or a recipient preference to fill that cell/.test(p)));
+    /Never invent a personality type to fill it: "someone who appreciates sculptural design" is not supported by a product record/.test(p)
+    && /Never invent light tolerance, a relationship boundary, a desk size or a recipient preference either/.test(p)));
+ok('a good choice for is shown with usable examples',
+  listPrompts.every(([, p]) => /Good: "Someone who enjoys a fuller arrangement with mixed shapes"/.test(p)));
 
 console.log('\n── Evidence: nothing inferred from the kind of thing an item is ──');
 ['dimensions', 'what a variant contains', 'what a variant costs', 'pot drainage',
@@ -420,14 +425,136 @@ const positiveExamples = (prompt) => (prompt.match(/Write instead: "[^"]*"/g) ||
 
 // The style examples model the whole article's register, so they get the same
 // treatment: every claim in them must be a verified format or a plant fact.
-ok('the style examples model only verified formats and plant facts',
+// The approved samples replace the hand-written examples. They are the strongest
+// instruction in the prompt, because a model copies what it is shown, so the
+// framing that stops them being read as facts is itself a guardrail.
+ok('the approved samples are present',
+  giftPrompts.every(([, p]) => /APPROVED STYLE SAMPLES/.test(p)
+    && /SAMPLE 1, a coworker guide:/.test(p) && /SAMPLE 2, an occasion guide:/.test(p)));
+ok('the samples are framed as style, never as facts',
+  giftPrompts.every(([, p]) => /THESE ARE STYLE REFERENCES, NOT FACTS/.test(p)
+    && /Never copy a product fact from a sample into another article/.test(p)
+    && /Never assume a sample's recipient or occasion applies to your brief/.test(p)
+    && /Never reuse a sample's sentence as a template with your item's name dropped in/.test(p)));
+ok('the samples are explicitly not a licence to emit markdown',
   giftPrompts.every(([, p]) =>
-    /Notice that every statement in them is either a verified gift format or a verified plant fact, and that neither example places a gift in a room or guesses at who would like it/.test(p)));
-ok('the style examples contain no room or surface placement',
-  giftPrompts.every(([, p]) => {
-    const examples = (p.match(/Opening: "[^"]*"|Choosing between gifts: "[^"]*"/g) || []).join(' ');
-    return !/\b(shelf|desk|table|office|room|surface)\b/i.test(examples);
-  }));
+    /The samples are shown as plain text for readability\. Your output is still raw HTML, never markdown/.test(p)));
+ok('what the samples demonstrate is spelled out',
+  giftPrompts.every(([, p]) => /WHAT THE SAMPLES DEMONSTRATE/.test(p)
+    && /Each recommendation is two to four sentences/.test(p)
+    && /No paragraph ends with a bare price/.test(p)
+    && /Neither sample explains why plants make good gifts, and neither has a care section of its own/.test(p)));
+
+console.log('\n── Approved samples: voice, structure and restraint ──');
+
+// The single rule the brief says should govern everything. A blacklist alone
+// cannot stop a phrase nobody has thought of yet; this is what generalises.
+inEveryGiftPrompt('the governing restraint rule is stated',
+  /State one useful, verified point in natural language, connect it briefly to the gift decision, and stop/);
+inEveryGiftPrompt('padding motives are named',
+  /Do not add a clever contrast, an emotional interpretation, a design critique, a shopping instruction or a generic benefit merely to lengthen the paragraph/);
+inEveryGiftPrompt('the rule outranks the blacklist',
+  /Obeying the rule matters more than memorising the list, and inventing a fresh phrase that breaks it is just as wrong/);
+
+// Natural first-party editorial voice.
+inEveryGiftPrompt('a natural first-party voice is required', /natural first-party voice/);
+inEveryGiftPrompt('the voice is editorial, not promotional',
+  /The voice is clear, relaxed and editorial/);
+inEveryGiftPrompt('"from our own collection" is banned even though the voice is first-party',
+  /Do not write the phrase "from our own collection"/);
+
+// The three questions a recommendation answers, and the guard that stops them
+// hardening into a template. The brief asks for both halves.
+inEveryGiftPrompt('a recommendation answers what makes the gift worth considering',
+  /What makes this particular gift worth considering\?/);
+inEveryGiftPrompt('a recommendation answers who or what occasion it suits',
+  /Who, or what occasion, might it suit\?/);
+inEveryGiftPrompt('a recommendation answers one simple care fact',
+  /What simple plant-care fact would help the reader decide\?/);
+inEveryGiftPrompt('the three questions are not a template',
+  /They are three questions, NOT a three-sentence template and NOT a fixed order/);
+inEveryGiftPrompt('an unanswerable question is left unanswered rather than invented',
+  /Where the supplied data cannot answer one, leave it unanswered rather than inventing an answer/);
+
+// Specifications support a recommendation; they do not become design criticism.
+inEveryGiftPrompt('verified specifications may be used', /USING A VERIFIED SPECIFICATION/);
+inEveryGiftPrompt('a specification is stated then dropped',
+  /State the fact, say briefly why it matters to the decision, and stop/);
+inEveryGiftPrompt('design analysis is banned', /Never turn a specification into design analysis/);
+inEveryGiftPrompt('the design-analysis vocabulary is named',
+  /No compositional reading, no critique of proportion, balance, silhouette or visual weight/);
+['densest arrangement', 'packed into one bowl', 'reads as more substantial', 'considered composition',
+ 'anchored by smaller fillers', 'quiet elegance', 'unfamiliar silhouette', 'visual outlier',
+ 'without much visual announcement', 'pairs well with a tablescape', 'built for'].forEach(p => bannedVerbatim(p, p));
+
+// The rest of the new banned list.
+['living gift', 'ready to enjoy', 'from our own collection', 'adds meaning',
+ 'expresses a little more affection', 'straightforward romantic statement', 'without being heavy-handed',
+ 'generous at the lower end of the price range', 'without much thought', 'choose this over',
+ 'this listing is for', 'check the selected option before ordering', 'fully assembled',
+ 'the gift box is the gift itself', 'soil-free does not mean care-free',
+ 'the care is straightforward, but good light still matters'].forEach(p => bannedVerbatim(p, p));
+inEveryGiftPrompt('the noun list no longer offers "living gift"',
+  /Never write "living gift"\./);
+
+// Care stays short, plant-specific and varied.
+inEveryGiftPrompt('succulent care distinction matches the samples',
+  /succulents generally want bright light and the soil should dry between waterings/);
+inEveryGiftPrompt('air plant care distinction matches the samples',
+  /air plants grow without soil but still need bright indirect light, good airflow and regular watering/);
+inEveryGiftPrompt('the care sentence is not repeated mechanically',
+  /Do not write the same care sentence mechanically under every item/);
+inEveryGiftPrompt('no standalone care section', /never write a standalone care section/);
+inEveryGiftPrompt('no invented watering schedule',
+  /Never give a frequency, a schedule or a count/);
+
+// Prices stay in the table.
+inEveryGiftPrompt('prices live in the table', /Verified prices belong in the comparison table/);
+inEveryGiftPrompt('no bare price ends a recommendation',
+  /Do not append a bare price to a recommendation, and do not end a recommendation with one/);
+inEveryGiftPrompt('price may be mentioned when the comparison needs it',
+  /Mention a price in prose ONLY where the comparison is genuinely useful and supported/);
+
+// The comparison section distinguishes rather than restates.
+ok('the selection section must distinguish, not restate',
+  listPrompts.every(([, p]) =>
+    /Its job is to help the reader tell the gifts apart\. Do not restate every recommendation in shorter form/.test(p)));
+
+// Internal consistency: these are factual errors, not style.
+inEveryGiftPrompt('the article is checked against itself', /CHECK THE ARTICLE AGAINST ITSELF BEFORE RETURNING IT/);
+inEveryGiftPrompt('counts must match the confirmed list',
+  /Count the items correctly\. If four of the confirmed items are succulent gifts, do not write that there are three/);
+inEveryGiftPrompt('a pot sold alone is not described as planted',
+  /A pot sold on its own is a pot\. Never describe it as including, arriving with or being planted with a plant unless the supplied data says so/);
+inEveryGiftPrompt('pairing an empty pot with a plant is still allowed',
+  /Saying it can be paired with a plant of the buyer's choosing is fine when the item is sold empty/);
+inEveryGiftPrompt('herbs are never mentioned unsupported',
+  /Never mention herbs, or any plant type, unless the supplied data for that item names it/);
+inEveryGiftPrompt('placement, hanging, shipping and personalization need support',
+  /Never claim an item can be placed somewhere, hung, shipped a particular way, personalized or used in a particular way unless the supplied facts support it/);
+
+// No component-by-component inventory, no generic plant-gift introduction.
+inEveryGiftPrompt('gift boxes are not inventoried', /Never dismantle it into its parts and discuss each part in turn/);
+ok('the introduction is one paragraph naming the range',
+  listPrompts.every(([, p]) =>
+    /Name the kinds? of gift the article covers|Name the occasion and the kinds of gift the article covers/.test(p)
+    && /give the reader a useful sense of the range/.test(p)
+    && /Nothing abstract about why plants make good gifts/.test(p)));
+['the holiday season calls for', 'gifts that keep on giving', 'options at every price point',
+ 'something for everyone'].forEach(phrase => {
+  ok(`generic intro phrase banned: ${phrase}`,
+    listPrompts.every(([, p]) => p.toLowerCase().includes(phrase)), phrase);
+});
+
+// HTML remains the output contract, samples notwithstanding.
+ok('raw HTML is still required',
+  giftPrompts.every(([, p]) => /Return ONLY raw HTML for the article body\. No markdown, no code fences/.test(p)));
+ok('headings still carry the inline brand color',
+  giftPrompts.every(([, p]) => /Every h2 and h3 must carry style="color:#34bfa2" inline/.test(p)));
+
+// The samples must not license what the rules forbid: they are read as
+// instructions, so the contradiction sweep covers them too.
+onlyEverProhibited('a bare price at the end of a sample paragraph', /\$\d[\d.,]*"$/m);
 
 console.log('\n── Scope: the care guide is untouched ──');
 ok('the care guide gets none of the gift voice rules',
