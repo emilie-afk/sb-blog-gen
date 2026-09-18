@@ -33,10 +33,10 @@ STRUCTURE. Write natural headings that suit this plant and this angle rather tha
 ${updatedTag()}
 <p>[Open on the gift angle and the person it is for${fields.productUrl ? `, hyperlinking ${plant} to ${fields.productUrl} once` : ''}. Do not argue in the abstract that plants make good gifts, and do not open with plant symbolism.]</p>
 
-2. What makes ${plant} distinctive as a gift. Its verified appearance, form, size or habit, and what that gives the person who receives it.
+2. What makes ${plant} distinctive. Its verified appearance, growth habit, form, size, or whatever its defining trait actually is. Stay on the plant itself: do not follow this with a sentence about what that gives the person who receives it.
    If ${plant} is an arrangement, a dish garden, a gift box or a gift set rather than a single plant, treat it as ONE complete gift throughout the article. Describe what it feels like as a whole. Do not take it apart into its plant, container, moss, dish, candle, card, packaging or accessories and discuss each in turn, and do not give each element its own benefit.
 
-3. Who might appreciate it, and the kind of space it suits. Be specific about the person and the room rather than listing every possible recipient.
+3. The setting it needs, built ONLY from confirmed light, size and care facts for this plant. State what those facts require and let a reader judge whether their setting matches. Do not invent a recipient personality, a relationship justification, or a reason this plant suits a particular kind of person. If the confirmed facts do not establish a setting requirement, leave this section out rather than guess at one.
 
 4. What to think about before giving it. Honest and useful: the light it needs, pets and small children, how much attention it wants. Candid, never salesy.
 
@@ -48,7 +48,7 @@ ${updatedTag()}
 
 8. OPTIONAL: a few real questions someone choosing this as a gift would ask, answered from what is actually known. No fixed number, and nothing about shipping, delivery, packaging, guarantees or gift messages unless it was supplied.
 
-9. A short closing from us that returns to the gift and invites the reader to it.
+9. OPTIONAL: a short closing from us, only when there is something left to say that no earlier section has said. It states a fact or a plain next step. It is never a ceremonial wrap-up, never an emotional summary, and never a restatement of the article. Leave it out rather than write one, and end after the questions or the care note instead.
 ${cta}
 
 Do not write a section arguing why plants make good gifts, a plant symbolism section, an ordering and timing section, or a general succulent care section beyond the short note in step 6.

@@ -138,11 +138,26 @@ for (const [name, prompt] of giftPrompts) {
   check(`${name}: table columns stay supported`,
     /ONLY when that detail was supplied/.test(prompt)
     && /do not invent an attribute just to have another column/i.test(prompt));
-  check(`${name}: selection guidance still required`,
-    /Guidance that helps someone choose between these gifts/.test(prompt)
-    && /Build it on real differences between the featured items/.test(prompt));
-  check(`${name}: Succulents Box closing still required`,
-    /A short closing from us/.test(prompt) && /invite the reader to choose among the featured gifts/.test(prompt));
+  // The selection section is CONDITIONAL, not required. Its old instruction
+  // listed comparisons the product data cannot support ("desk sized against
+  // statement piece", "the kind of person it is for"), and a required section
+  // gets written whether or not the facts support one. It is now bound to
+  // confirmed data and omitted when they do not.
+  check(`${name}: selection guidance is conditional and evidence-bound`,
+    /CONDITIONAL, not required: guidance that helps someone choose between these gifts/.test(prompt)
+    && /Write it only when the confirmed facts support a useful comparison/.test(prompt)
+    && /Build the selection guidance ONLY from differences explicitly supported by the confirmed product data/.test(prompt)
+    && /Omit this section entirely if the confirmed facts do not support a useful comparison/.test(prompt)
+    && !/Build it on real differences between the featured items/.test(prompt));
+  check(`${name}: the article may end after the table`,
+    /It may end after the comparison table when the confirmed facts support no useful comparison/.test(prompt));
+  // The ceremonial closing was REMOVED on purpose. The article may end after the
+  // selection guidance or a useful FAQ; a closing that restates the selection is
+  // one of the failures this pass exists to stop.
+  check(`${name}: no ceremonial closing is required`,
+    /THE ARTICLE ENDS THERE/.test(prompt)
+    && /It does NOT need a ceremonial conclusion, and you must not write one/.test(prompt)
+    && !/A short closing from us/.test(prompt));
   check(`${name}: shorter structure is not an excuse for thinner content`,
     /Removing those sections is not a reason to write less/.test(prompt));
 }

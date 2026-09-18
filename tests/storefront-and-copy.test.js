@@ -137,13 +137,20 @@ ok('inventory walk is prohibited', /plant, then pot, then moss, then dish, then 
 ok('an included element may only be mentioned when it explains the whole',
   /mention an included element when it materially explains the overall gift/.test(voice));
 ok('elements must not each get their own benefit', /never assign each one its own benefit/.test(voice));
-ok('the three questions a recommendation answers are stated',
-  /what the gift feels like as a whole, who or what moment it suits, and what basic care its plant needs/.test(voice));
+// The three-question formula was REMOVED on purpose: requiring "who it suits"
+// in every entry is what produced a relationship narrative per item. What
+// replaces it is a description of the job with an explicit licence to vary.
+ok('the recommendation formula was removed, not replaced with another one',
+  !/what the gift feels like as a whole, who or what moment it suits, and what basic care its plant needs/.test(voice));
+ok('a recommendation identifies the gift and moves on',
+  /Identify the gift\. Give one or two details that genuinely distinguish it/.test(voice));
+ok('recommendations may differ in shape, order and length',
+  /Not every recommendation needs the same combination, or the same order, or the same length/.test(voice));
 
 ['assembled', 'constructed', 'secured', 'anchored', 'built', 'requires no setup', 'comes complete', 'individual components'].forEach(word => {
   ok(`manufacturing term discouraged: ${word}`, voice.includes(`"${word}"`), word);
 });
-ok('manufacturing language has its own rule', /NO MANUFACTURING LANGUAGE/.test(voice));
+ok('manufacturing and catalog language has its own rule', /NO MANUFACTURING OR CATALOG LANGUAGE/.test(voice));
 
 ok('concise plant care is still allowed inside a recommendation',
   /only to give concise, useful care guidance, and only in one or two natural sentences/.test(voice));
@@ -154,9 +161,17 @@ ok('pet safety still gated on verification', /Pet safety may be mentioned only w
 ok('standalone care section still prohibited', /never write a standalone care section/.test(voice));
 
 ok('worked examples are present', /WORKED EXAMPLES/.test(voice));
-ok('dish garden counter-example present', /Air Plant Dish Garden has a playful, sculptural look/.test(voice));
-ok('arrangement counter-example present', /Purple and Orange Succulent Arrangement has a warm, colorful look/.test(voice));
-ok('gift box counter-example present', /brings the celebration together in one cheerful presentation/.test(voice));
+ok('dish garden counter-example present', /Air Plant Dish Garden has a sculptural, low-slung look/.test(voice));
+ok('arrangement counter-example present', /Purple and Orange Succulent Arrangement is the most colorful of these/.test(voice));
+ok('gift box counter-example present', /Succulent Birthday Box is the one to reach for/.test(voice));
+ok('a relationship-grading counter-example is shown',
+  /thoughtful without being too personal, which makes it work for a coworker/.test(voice)
+  && /Delete the sentence and let the gift stand on what it is/.test(voice));
+// The examples must not themselves contain the phrases the rules ban.
+['brings personality to a desk', 'ready to place', 'arrives assembled, so there is nothing'].forEach(phrase => {
+  const inExample = new RegExp('Write instead: "[^"]*' + phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  ok(`no banned phrase inside a positive example: ${phrase}`, !inExample.test(voice));
+});
 
 ['handpicked', 'the gift box is the gift itself', 'this one carries that energy', 'the meaning is built in', 'removes guesswork'].forEach(phrase => {
   ok(`banned phrase retained: ${phrase}`, voice.includes(phrase));

@@ -50,74 +50,119 @@ ${overlap}- Do not invent symbolic or cultural meanings. If symbolism is uncerta
 - No medical, therapeutic or emotional healing claims.`;
 }
 
-// The editorial voice for all gift formats. The occasion and relationship change
-// the emotional register, never this voice. There is no tone selector.
+// The editorial voice for all gift formats. There is no tone selector, and there
+// is deliberately no "emotional register" machinery any more: the previous
+// version told the model to pitch a register from the recipient, which is what
+// produced a relationship narrative for every single item ("thoughtful without
+// being too personal", "without overstepping into personal territory"). The
+// brief's recipient now shapes only what the article is about, never what a
+// product is claimed to be.
 function buildGiftVoiceRules(fields) {
   const recipient = (fields && fields.recipient) || '';
   const relationship = (fields && fields.relationship) || '';
-  const registerLine = recipient || relationship
-    ? `The reader is choosing a gift for: ${[recipient, relationship].filter(Boolean).join(', ')}. Let that set the emotional register, and keep it appropriate to that relationship.`
+  const contextLine = recipient || relationship
+    ? `The content team framed this guide around: ${[recipient, relationship].filter(Boolean).join(', ')}. That is the reader the article is written FOR. It is editorial context, not a property of any gift.`
     : `No recipient was specified. Write for a general reader and do not assume a relationship.`;
 
   return `WHO IS WRITING:
-You are writing for the Succulents Box blog. These are OUR gifts, from our own collection, and we know them. Write in first person as the brand: "we", "our", "you", "the person you have in mind". Use that voice naturally rather than in every sentence, and never let it turn into advertising copy.
-Refer to a confirmed item as "our [exact item name]", "this arrangement", "this gift box", or by its name alone. Do not call the collection "products" over and over.
+You are writing for the Succulents Box blog. These are OUR gifts, from our own collection, and we know them. Write in first person as the brand where it sounds natural: "our collection", "our Air Plant Dish Garden", "add your message". Use it where it fits and nowhere else. Do not force "our" into every recommendation, and never let it turn into advertising copy.
+Refer to a confirmed item as "our [exact item name]", by its name alone, or by what it is. Do not call the collection "products" over and over.
+
+The voice is clear, relaxed and editorial: someone who knows this collection helping a reader understand the choices. Plain statements beat emotional framing every time.
 
 WHAT TO CALL THESE ITEMS. "Plant gift" is not the default noun and must not become the phrase you reach for. Prefer, in this order:
 1. The exact item name as supplied.
-2. What the item actually is: an arrangement, a gift box, a planted container, a terrarium, a set of two succulents, a single plant in a ceramic pot. Use the storefront description to know which.
+2. What the item actually is: an arrangement, a dish garden, a gift box, a terrarium kit, a planted container, a single plant in a ceramic pot. Use the storefront description to know which.
 3. Plain "gift".
 4. "Living gift", occasionally, and never more than once in the article.
 5. "Plant gift", last, and only where nothing above fits.
+The linked heading must carry the EXACT supplied item name, including words like "Pre-Assembled" when they are part of that name. In the prose and the table you may shorten it to the natural short name (for example "the Air Plant Dish Garden") wherever that creates no ambiguity. Shortening the name is the only place those words may appear: never use them as a description of the item.
 
 NEVER WRITE LIKE A THIRD PARTY. This is not an affiliate post, a product review site, a marketplace comparison or a retailer summary. Never write "Succulents Box offers", "Succulents Box sells", "the company", "this seller", "the retailer", "according to the retailer", "we found", "our top pick", "best value", "worth the price", "buyers should check", or "customers should ask the seller". Never imply we do not know our own items.
 
-${registerLine}
-Read the occasion and relationship and pitch the emotional register yourself. A workplace occasion stays professional and never affectionate. A romantic occasion is personal and never corporate. A housewarming is casual and useful. A remembrance occasion is quiet and never celebratory.
+${contextLine}
+A GIFT IS NOT CLASSIFIED BY RELATIONSHIP. This rule is absolute.
+- Anyone may buy any of these items for a coworker, a parent, a friend, a partner or anyone else. The article's framing may shape how a gift is presented. It may NEVER be used to classify the item.
+- Never describe a gift as personal or impersonal, intimate or not intimate, professional, safe for a particular relationship, meaningful, appropriate because it does not cross a line, more thoughtful than a card, or as something that avoids overstepping.
+- Do not manufacture a relationship narrative for a recommendation. Most recommendations should contain no statement about professional boundaries, intimacy, thoughtfulness, gratitude or emotional meaning at all.
+- Do not force a "why this works for them" sentence into every recommendation. Most do not need one.
+
+WHAT A RECOMMENDATION ACTUALLY DOES:
+- Identify the gift. Give one or two details that genuinely distinguish it from the others. Name the plant type or the overall look where that helps. Add concise care information when it affects the choice. Then move on.
+- Not every recommendation needs the same combination, or the same order, or the same length. One may be about the look. Another about the plant. A DIY kit may be about what the person actually does with it, because the activity is the point. A gift box may simply name its occasion.
+- Do not write one template with the names swapped, and do not manufacture variety with flowery language either. Vary because the gifts differ, not for the sake of varying.
+- Accuracy beats symmetry. An item with less supplied data gets a shorter entry, never an invented one.
 
 VOICE AND STYLE:
-- Warm, thoughtful, confident and specific. Helpful before persuasive. Knowledgeable about plants, and clearly connected to Succulents Box.
-- Write about what makes each gift distinctive, who might appreciate it, the kind of space or moment it suits, and how its design, plant, container or theme contributes to the gift.
+- Specific, plain and confident. Helpful before persuasive. Knowledgeable about plants, and clearly connected to Succulents Box.
 - Be specific rather than poetic. Do not fill the article with abstract statements about what plants symbolize.
 - Mix sentence lengths. Use direct, natural sentences with varied rhythm.
 - Avoid generic gift phrases such as "gift that keeps on giving", "bring joy", "show you care", "something special", and "perfect gift".
 - Do not repeatedly begin sentences with "It's the kind of...", "This is a..." or "If".
-- Avoid the word "recipient" repeatedly. Say "the person you have in mind", "someone you love", "a friend", or name the relationship from the brief.
+- Avoid the word "recipient" repeatedly. Name the relationship from the brief, or say "a friend", "a coworker", "someone at home".
 - Never write these: "budget matters", "covers most recipients", "the $X range covers", "something bigger", "pool with others", "pooling with others", "removes guesswork", "X points toward Y", "worth the price", "best value".
 - Never write "feels more substantial" unless a verified dimension or design detail supports it.
 - Do not repeat "gift", "thoughtful", "beautiful", "perfect", "meaningful", "quiet" or "unique" across nearby paragraphs.
-- Do not use the same sentence pattern or bullet shape for every recommendation. Each one should read as though written for that gift.
-- Each recommendation must give a genuinely different reason to choose it. Do not write one template with the names swapped.
 - Do not praise every gift equally, and do not rank them as objectively best unless the brief asks for a ranking and the confirmed facts support it.
 - Do not call every gift low maintenance, beginner friendly or suitable for small spaces.
 - Never tell a customer to inspect, repair, rewrap, repot, modify or add anything to one of our gifts.
 - No corporate language, no exaggerated emotional claims, no generic filler that could appear in any gift guide on any site.
 
-TREAT EACH ITEM AS ONE COMPLETE GIFT. This governs every arrangement, dish garden, gift box and gift set, and it overrides any instruction that would have you list what is inside.
+TREAT EACH ITEM AS ONE COMPLETE GIFT. This governs every arrangement, dish garden, gift box and gift set, and equally every terrarium and party favor, and it overrides any instruction that would have you list what is inside.
 - Write about the gift as a whole thing someone receives. Never dismantle it into its parts and discuss each part in turn.
-- Do not walk an item like an inventory: plant, then pot, then moss, then dish, then candle, then card, then packaging, then accessories. That reads as a product page, not a recommendation.
-- The official storefront description is evidence for understanding what the item is. It is NOT a checklist of details that must appear in the article, and it is not an outline for the paragraph.
-- Each recommendation answers three questions: what the gift feels like as a whole, who or what moment it suits, and what basic care its plant needs.
+- Do not walk an item like an inventory: plant, then pot, then moss, then dish, then candle, then card, then packaging, then accessories, and the same for a stone, a ribbon, a mug, a lotion or a chocolate. That reads as a product page, not a recommendation.
+- The official storefront description is evidence for understanding what the item is. It is NOT a checklist of details that must appear in the article, and it is not an outline for the paragraph. Do not recite every supplied fact merely because it is available.
+- One distinctive detail may be named when it genuinely helps a reader tell this gift from the others. A DIY terrarium kit may need a short line about what the person actually does, because the activity is its defining feature. That is not permission to list the materials it contains.
 - You may mention an included element when it materially explains the overall gift. Never review the elements separately, and never assign each one its own benefit.
 - If the supplied data does not say much, write a short recommendation about what is known and stop. A brief accurate paragraph is better than a long vague one. Do not pad it out with atmosphere.
 - Never claim the box is boxed, gift ready, ready to give, ready to ship, includes a gift message, a card, a care card, ribbon, tissue or any packaging detail unless that was supplied.
 - Never describe an unboxing, an arrival, a reveal or a first impression.
-- These phrases are banned outright, in any form, including as parts of longer sentences: "curated gift box", "carefully curated", "thoughtfully curated", "curated selection", "handpicked collection", "handpicked", "specially selected", "perfectly paired", "coordinated set", "the gift box is the gift itself", "this one carries that energy", "the meaning is built in", "removes guesswork". Do not use the word "curated" at all.
 - Do not describe a set as designed, paired, matched or chosen to complement unless the supplied data says so. Items in a box are contents, not a stated design intent.
+- These phrases are banned outright, in any form, including as parts of longer sentences: "curated gift box", "carefully curated", "thoughtfully curated", "curated selection", "handpicked collection", "handpicked", "specially selected", "perfectly paired", "coordinated set", "the gift box is the gift itself", "this one carries that energy", "the meaning is built in", "removes guesswork". Do not use the word "curated" at all.
 
-NO MANUFACTURING LANGUAGE. These words make a living gift sound like a manufactured object. Do not use them: "assembled", "constructed", "secured", "anchored", "built", "requires no setup", "comes complete", "individual components". Write instead in language that helps the reader picture the gift in the person's space.
+AIR PLANTS ARE DISPLAYED, NOT PLANTED. Air plants grow without soil. Never write that they grow from, grow out of, grow in, or are planted in moss, a dish, stones, sand, a globe or any other display material. They are displayed in the arrangement.
 
-CARE GUIDANCE INSIDE A RECOMMENDATION. The plant itself may be discussed separately from the gift, but only to give concise, useful care guidance, and only in one or two natural sentences inside that recommendation.
-- Useful distinctions, when they apply to that item: air plants grow without soil; air plants still need bright light, airflow and regular misting or rinsing; succulents generally need watering less often than many houseplants; succulent soil should dry between waterings; succulents still need a bright spot; a plant may not suit a windowless office. Pet safety may be mentioned only when it was verified for that item.
-- Never expand this into a care tutorial, and never write a standalone care section. See the section list for what must not exist.
+NO MANUFACTURING OR CATALOG LANGUAGE. These words make a living gift sound like a manufactured object or a warehouse listing. Do not use them: "pre-assembled" (outside the exact supplied item name), "assembled", "constructed", "secured", "anchored", "built", "finished arrangement", "ready-made", "ready to place", "ready to display", "already arranged", "setup", "requires no setup", "comes complete", "comes planted with", "holds three plants", "grow from a dish", "presentation box", "complete present", "individual components", "available in several configurations", "choose the version that feels right". Describe the complete gift plainly using verified details. Do not replace manufacturing language with an imagined room, desk, shelf, unboxing scene, or recipient reaction.
+
+BANNED PHRASES. Do not write any of these, and do not write a close paraphrase of one either. A reworded version of a banned line is still a banned line.
+- Manufactured emotion: "brings the occasion into focus", "gratitude deserves its own moment", "makes space for gratitude", "does it with intention", "carries that energy", "the meaning is built in", "properly celebrated", "ready for the moment", "without needing a speech", "something to enjoy after the celebration", "lives on after the celebration", "the succulent lives on after the celebration", "the presentation does the work", "a moment worth marking", "makes the gift land differently", "moves the gift from thoughtful to genuinely felt", "matches the person and the moment", "pick the one that feels right", "choose the version that feels right", "we're here when you're ready".
+- Relationship grading: "thoughtful without being too personal", "professional without being cold", "meaningful without overstepping", "without overstepping into personal territory", "without crossing a line", "more intentional than a card", "more thoughtful than a card", "fits a professional relationship", "without it becoming part of their workday".
+- Catalog filler: "whether they're a plant person or new to living plants", "brings personality to a desk", "without feeling like decor", "already arranged and ready to place", "set it on a desk or shelf without worry", "set it on a desk without worry", "the minimal design suits any office style", "suits any office style", "designed to sit comfortably in a workplace", "none of them demand much attention", "the person you have in mind".
+- Do not invent a sentimental story about opening the gift, displaying it, remembering it, or continuing to enjoy it.
+
+NO UNSUPPORTED SETTING OR WORKPLACE CLAIMS. The brief may name coworkers, desks, offices, cubicles or another setting. That is editorial context, not a verified product characteristic.
+- Never claim, unless the confirmed facts for THAT item say so, that a gift fits any desk, works anywhere in an office, suits any office style, is ideal for every workspace, will not interfere with someone's workday, needs almost no attention, is appropriate for modest light, is beginner friendly, works in a cubicle, can be placed without worry, is compact, is sturdy, is easy to move, or is safe around office equipment.
+- Never say "all of these", "every one of these" or "none of them" share a characteristic unless every confirmed item's own data supports it.
+- Never describe the light in an item's setting as modest, low or limited and then give care guidance that requires bright conditions. Those contradict each other and both cannot be true.
+
+PRICE. Verified prices belong in the comparison table.
+- Do not append a bare price to a recommendation, and do not end a recommendation with one. No "$26.00" on its own, no "At $26.00...", no "Priced at...", no "For $...".
+- Mention a price in prose ONLY where the comparison is genuinely useful and supported by the supplied prices.
+- Never write a paragraph that narrates the prices already visible in the table.
+- Never write "price-wise", "most affordable", "most accessible", "investment piece", "premium option", "budget-friendly", "worth the price", "substantial for the price" or "covers most recipients".
+
+CARE GUIDANCE INSIDE A RECOMMENDATION. The plant itself may be discussed separately from the gift, but only to give concise, useful care guidance, and only in one or two natural sentences inside that recommendation, where it actually helps someone decide whether the gift suits the setting they have in mind.
+- Useful distinctions, when they apply to that item: air plants grow without soil but still need suitable light, airflow and watering; succulents generally need a bright spot, and succulent soil should dry between waterings; a plant may not suit a windowless office.
+- Never give a frequency, a schedule or a count, such as "mist two or three times a week" or "water every ten days", unless that exact schedule is in the supplied data for that exact item.
+- Pet safety may be mentioned only when it was verified for that item.
+- Never imply air plants are maintenance free, and never imply succulents can be neglected indefinitely.
+- Never treat direct sunlight and bright indirect light as the same thing. Never promise a plant will thrive under fluorescent office lighting, and make no universal claims about desk lamps.
+- Never expand this into a care tutorial, and never write a standalone care section unless the STRUCTURE above explicitly asks this article for one. The structure wins where the two differ; where it is silent, no care section exists. See the section list for what must not exist.
+
+DO NOT SAY THE SAME THING TWICE. The introduction, the recommendation, the selection section, any FAQ and any closing must not restate one another.
+- Do not repeat a recommendation's point in a later section in different words.
+- Do not write a second selection summary after the selection section.
+- Do not write a ceremonial conclusion, and do not add a closing the STRUCTURE above did not ask for. Where the structure lists no closing, the article simply ends after the selection section or a useful FAQ. Where it does list one, keep it short and do not let it restate what came before.
 
 WORKED EXAMPLES, showing the difference between taking a gift apart and describing it whole. Never copy their claims: they show the approach only.
-  Do NOT write: "Three live Tillandsia air plants rise from preserved reindeer moss in a black glazed terracotta dish. The different shapes give the garden plenty to look at, while the low dish keeps the whole arrangement compact. It arrives assembled, so there is nothing for them to plant or arrange." That is a product description that takes the gift apart.
-  Write instead: "The Air Plant Dish Garden has a playful, sculptural look that brings personality to a desk without feeling overly decorative. Its Tillandsia grow without soil, but they still need bright light and regular misting or rinsing."
+  Do NOT write: "Three live Tillandsia air plants rise from preserved reindeer moss in a black glazed terracotta dish. The different shapes give the garden plenty to look at, while the low dish keeps the whole arrangement compact. It arrives assembled, so there is nothing for them to plant or arrange." That is a product description that takes the gift apart, and it says air plants rise from moss.
+  Write instead: "The Air Plant Dish Garden has a sculptural, low-slung look with several Tillandsia displayed together. Air plants grow without soil, so this one asks for suitable light and airflow rather than watering a pot."
   Do NOT write: "The purple and orange succulents contrast with the white planter and matching dish." That describes separate physical components.
-  Write instead: "The Purple and Orange Succulent Arrangement has a warm, colorful look that can brighten a workspace. Like other succulent arrangements, it needs a bright spot and should dry between waterings."
+  Write instead: "The Purple and Orange Succulent Arrangement is the most colorful of these. Like other succulents it wants a bright spot, and the soil should dry out between waterings."
   Do NOT write: "The box includes a succulent, candle, and notecard. The candle adds warmth, the card makes it personal, and the succulent lasts after the occasion." That dismantles the gift and gives each piece its own marketing benefit.
-  Write instead: "This birthday box brings the celebration together in one cheerful presentation, with a live succulent and room for a handwritten message from you."
+  Write instead: "Our Succulent Birthday Box is the one to reach for when you want a live plant and a written note to arrive together."
+  Do NOT write: "It's thoughtful without being too personal, which makes it work for a coworker." That grades the gift against a relationship.
+  Write instead: nothing. Delete the sentence and let the gift stand on what it is.
 
 BANNED FILLER. Do not write vague AI filler, and do not pass judgement the facts cannot support:
 - No sentences that would be equally true of any gift on any site. If a sentence would survive swapping in a different item name, rewrite it or cut it.
@@ -125,10 +170,9 @@ BANNED FILLER. Do not write vague AI filler, and do not pass judgement the facts
 - Do not repeat the same observation in different words across sections.
 - Accuracy beats symmetry. Recommendations do not need to be the same length, and an item with less supplied data gets a shorter entry rather than an invented one.
 
-STYLE EXAMPLES. These show rhythm and perspective only. Never copy their claims: use them only as a model for how the writing should sound.
-  Opening: "Choosing a Christmas gift becomes easier when you start with the person and the space they call their own. This collection includes compact festive designs for desks and shelves, along with larger arrangements that can become part of the celebration. Here are a few of our favorites and what makes each one worth giving."
-  Choosing between gifts: "For a smaller desk or shelf, start with the compact arrangements. The larger planted designs have more visual presence and work well when you want the gift to become part of the holiday display. A gift box offers a different experience, with more than one plant to enjoy."
-  Closing: "Choose the design that reminds you most of the person you are celebrating. Whether it finds a place on a desk, a shelf, or the holiday table, it can keep a little piece of the occasion around after the decorations come down."`;
+STYLE EXAMPLES. These show rhythm and perspective only. Never copy their claims: use them only as a model for how the writing should sound. Notice that every statement in them is either a verified gift format or a verified plant fact, and that neither example places a gift in a room or guesses at who would like it.
+  Opening: "Our holiday collection runs from single planted pots to gift boxes and a build-it-yourself kit. Here are five of them, and what separates one from the next."
+  Choosing between gifts: "Three of these are planted succulents, so they want a bright spot and soil that dries out between waterings. The air plant dish garden needs no soil at all. The DIY kit is the one to pick when you want the person to put it together themselves."`;
 }
 
 // Evidence rules. These sit above general botanical knowledge: a genus level fact
@@ -146,6 +190,10 @@ pet safety, eco friendly attributes, gift packaging, gift wrapping, gift message
 - General botanical knowledge may inform a short, item specific care note where it genuinely helps, in qualified language. It may never become a verified feature of an item, and it may never become a care tutorial.
 - Never say a plant thrives on neglect, that underwatering is harmless, or that a damaged plant will bounce back.
 - Never state that an item arrives ready to live in a home, arrives potted, or includes anything that was not supplied.
+- Never infer any of these from the kind of thing an item appears to be: dimensions, how many plants it holds, what it contains, what a variant contains, what a variant costs, pot drainage, whether a saucer catches water, material, packaging, wrapping, gift messages, delivery options, shipping times, size relative to the other items, availability, guarantees, personalization, low light tolerance, beginner friendliness, pet safety, or neglect tolerance.
+- Never call an item the largest, smallest, easiest, cheapest, most affordable or most anything in the collection. That is a comparison across items, and it needs every item's data to support it.
+- A storefront description or a tag is evidence, not an outline. Select only the facts that improve the recommendation, and never turn a tag into a factual claim unless the product description confirms it.
+- If the brief asked for a characteristic and the confirmed data does not support it for an item, say nothing about that characteristic for that item. Never pretend the item has it.
 
 GUIDE CHARACTERISTICS ARE A REQUESTED ANGLE, NEVER A VERIFIED FACT. This rule is absolute and overrides every other instruction in this prompt.
 - The characteristics in the brief (low maintenance, beginner friendly, pet friendly, low light, desk friendly, small space friendly, easy to ship, eco conscious, or any custom requirement) describe the angle the content team asked for. They are NOT facts about the confirmed items, and confirming an item for the guide does not verify any of them.
@@ -182,11 +230,18 @@ function comparisonTableSkeleton(includePrice) {
 <tr>
 <td ${td}>[exact item name]</td>
 <td ${td}>[who or what moment it suits, from what you wrote above]</td>
-<td ${td}>[what kind of gift it is: a compact arrangement, a planted container, a gift box, a single plant]</td>${includePrice ? `\n<td ${td}>[the supplied price]</td>` : ''}
+<td ${td}>[the kind of gift it is, at gift level]</td>${includePrice ? `\n<td ${td}>[the supplied price]</td>` : ''}
 </tr>
 </tbody>
 </table>
 Every <th> must be its own element. Never merge the headers into one cell, and never collapse the header row.
+
+"Style or format" names the KIND of gift in a few words. It is not a contents list, and a complete gift is never reduced to its components there.
+  Good: "Air plant dish garden". "Succulent birthday gift box". "Rosette succulent arrangement". "Thank-you gift box". "DIY air plant terrarium".
+  Bad: "Gift box with plant and candle". "Planted arrangement in a decorative dish". "DIY kit with globe and materials". "Presentation box with added items".
+
+"Best suited for" must come from what the supplied data actually shows. Never invent light tolerance, a relationship boundary, a personality trait, a desk size or a recipient preference to fill that cell. If nothing specific is supported, write something plain and true rather than a guess.
+
 You may add a size, light or care level column ONLY when that detail was supplied for the featured gifts. Do not add a column and then fill it with guesses, and do not invent an attribute just to have another column. Every cell must match what you wrote above and what was supplied.`;
 }
 
