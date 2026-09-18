@@ -293,12 +293,19 @@ ok('good table entries are shown',
   listPrompts.every(([, p]) => /Good: "Air plant dish garden"\. "Succulent birthday gift box"/.test(p)));
 ok('component-inventory table entries are shown as wrong',
   listPrompts.every(([, p]) => /Bad: "Gift box with plant and candle"\. "Planted arrangement in a decorative dish"/.test(p)));
-ok('a good choice for may not be invented',
+ok('a good choice for names the giver\'s purpose, not a personality',
   listPrompts.every(([, p]) =>
-    /Never invent a personality type to fill it: "someone who appreciates sculptural design" is not supported by a product record/.test(p)
-    && /Never invent light tolerance, a relationship boundary, a desk size or a recipient preference either/.test(p)));
+    /"A good choice for" stays recipient-oriented, but it names the GIVER'S PURPOSE, never a personality/.test(p)));
+ok('a good choice for lists what may fill it',
+  listPrompts.every(([, p]) =>
+    /It may name a verified occasion, a verified printed message, a personalization option, a DIY activity, the gift format/.test(p)));
 ok('a good choice for is shown with usable examples',
-  listPrompts.every(([, p]) => /Good: "Someone who enjoys a fuller arrangement with mixed shapes"/.test(p)));
+  listPrompts.every(([, p]) => /Good: "Thanking a teacher in your own words"/.test(p)
+    && /"Marking a coworker's birthday"/.test(p)
+    && /"Choosing a larger Christmas gift for a household"/.test(p)));
+ok('a good choice for shows the personality entries as wrong',
+  listPrompts.every(([, p]) => /Bad: "A teacher who enjoys unusual plants"\. "Someone with modern taste"/.test(p)
+    && /"A recipient new to plant care"/.test(p) && /"Any occasion"/.test(p)));
 
 console.log('\n── Evidence: nothing inferred from the kind of thing an item is ──');
 ['dimensions', 'what a variant contains', 'what a variant costs', 'pot drainage',
@@ -428,9 +435,13 @@ const positiveExamples = (prompt) => (prompt.match(/Write instead: "[^"]*"/g) ||
 // The approved samples replace the hand-written examples. They are the strongest
 // instruction in the prompt, because a model copies what it is shown, so the
 // framing that stops them being read as facts is itself a guardrail.
-ok('the approved samples are present',
+ok('all three approved samples are present',
   giftPrompts.every(([, p]) => /APPROVED STYLE SAMPLES/.test(p)
-    && /SAMPLE 1, a coworker guide:/.test(p) && /SAMPLE 2, an occasion guide:/.test(p)));
+    && /SAMPLE 1, coworkers\./.test(p) && /SAMPLE 2, Christmas\./.test(p)
+    && /SAMPLE 3, teachers\./.test(p)));
+ok('the coworker and Christmas samples were kept, not deleted',
+  giftPrompts.every(([, p]) => /Looking for a gift for a coworker\?/.test(p)
+    && /Succulents bring color and life to Christmas gifting/.test(p)));
 ok('the samples are framed as style, never as facts',
   giftPrompts.every(([, p]) => /THESE ARE STYLE REFERENCES, NOT FACTS/.test(p)
     && /Never copy a product fact from a sample into another article/.test(p)
@@ -443,7 +454,11 @@ ok('what the samples demonstrate is spelled out',
   giftPrompts.every(([, p]) => /WHAT THE SAMPLES DEMONSTRATE/.test(p)
     && /Each recommendation is two to four sentences/.test(p)
     && /No paragraph ends with a bare price/.test(p)
-    && /Neither sample explains why plants make good gifts, and neither has a care section of its own/.test(p)));
+    && /No sample explains why plants make good gifts, and none has a care section of its own/.test(p)));
+ok('the samples model giving choices rather than descriptions of people',
+  giftPrompts.every(([, p]) =>
+    /Every recommendation explains a giving choice: an occasion, a message, a personalization, a format, a size, a plant type, a price/.test(p)
+    && /No item is matched to an invented taste/.test(p)));
 
 console.log('\n── Approved samples: voice, structure and restraint ──');
 
@@ -463,18 +478,24 @@ inEveryGiftPrompt('the voice is editorial, not promotional',
 inEveryGiftPrompt('"from our own collection" is banned even though the voice is first-party',
   /Do not write the phrase "from our own collection"/);
 
-// The three questions a recommendation answers, and the guard that stops them
-// hardening into a template. The brief asks for both halves.
-inEveryGiftPrompt('a recommendation answers what makes the gift worth considering',
-  /What makes this particular gift worth considering\?/);
-inEveryGiftPrompt('a recommendation answers who or what occasion it suits',
-  /Who, or what occasion, might it suit\?/);
-inEveryGiftPrompt('a recommendation answers one simple care fact',
-  /What simple plant-care fact would help the reader decide\?/);
-inEveryGiftPrompt('the three questions are not a template',
-  /They are three questions, NOT a three-sentence template and NOT a fixed order/);
-inEveryGiftPrompt('an unanswerable question is left unanswered rather than invented',
-  /Where the supplied data cannot answer one, leave it unanswered rather than inventing an answer/);
+// The old question (b), "Who, or what occasion, might it suit?", REQUIRED every
+// entry to say who a gift was for while the evidence rules forbade inventing
+// that. With a general arrangement and a brief naming teachers, the only way to
+// answer a required question with no supporting fact is to invent one. The fix
+// points the question at the giver instead of deleting the recipient, because a
+// gift guide is supposed to be recipient-oriented.
+inEveryGiftPrompt('the forced "who does it suit" question is gone',
+  /^(?!.*Who, or what occasion, might it suit)/s);
+inEveryGiftPrompt('the recommendation rule asks why the GIVER would choose it',
+  /Every recommendation should explain why the giver might choose this gift for this recipient or occasion, using the brief and verified product facts/);
+inEveryGiftPrompt('and forbids inventing the recipient in the same breath',
+  /It must not invent what the recipient likes, owns, needs or feels/);
+inEveryGiftPrompt('the guiding questions are about the giving, not the person',
+  /a\. Why might the giver choose this format for this recipient or occasion\?[\s\S]*?b\. Which verified detail distinguishes this gift from the other confirmed choices\?[\s\S]*?c\. What brief care fact is useful when considering it\?/);
+inEveryGiftPrompt('the questions are not a template or a quota',
+  /They are questions, not a three-sentence template, not a fixed order, and not a quota to fill/);
+inEveryGiftPrompt('no recommendation must state a personality or repeat the name',
+  /Nothing here requires a statement about the recipient's personality, and nothing requires the recipient's name in every paragraph/);
 
 // Specifications support a recommendation; they do not become design criticism.
 inEveryGiftPrompt('verified specifications may be used', /USING A VERIFIED SPECIFICATION/);
@@ -516,9 +537,16 @@ inEveryGiftPrompt('price may be mentioned when the comparison needs it',
   /Mention a price in prose ONLY where the comparison is genuinely useful and supported/);
 
 // The comparison section distinguishes rather than restates.
-ok('the selection section must distinguish, not restate',
+ok('the selection section compares choices, not recipients',
   listPrompts.every(([, p]) =>
-    /Its job is to help the reader tell the gifts apart\. Do not restate every recommendation in shorter form/.test(p)));
+    /Its job is to help the reader tell the GIFTING CHOICES apart, never to classify the recipients/.test(p)
+    && /Do not restate every recommendation in shorter form/.test(p)));
+ok('the selection section lists what it may compare',
+  listPrompts.every(([, p]) =>
+    /It may compare verified occasion wording, personalization, DIY against finished format, plant type, arrangement size, plant count, care differences, price, and whether a gift carries a printed message/.test(p)));
+ok('the selection section may not compare invented people',
+  listPrompts.every(([, p]) =>
+    /It may never compare invented personalities, rooms, tastes or reactions/.test(p)));
 
 // Internal consistency: these are factual errors, not style.
 inEveryGiftPrompt('the article is checked against itself', /CHECK THE ARTICLE AGAINST ITSELF BEFORE RETURNING IT/);
@@ -535,11 +563,16 @@ inEveryGiftPrompt('placement, hanging, shipping and personalization need support
 
 // No component-by-component inventory, no generic plant-gift introduction.
 inEveryGiftPrompt('gift boxes are not inventoried', /Never dismantle it into its parts and discuss each part in turn/);
-ok('the introduction is one paragraph naming the range',
+ok('the introduction names the recipient and the real range',
   listPrompts.every(([, p]) =>
-    /Name the kinds? of gift the article covers|Name the occasion and the kinds of gift the article covers/.test(p)
-    && /give the reader a useful sense of the range/.test(p)
+    /Name the recipient/.test(p)
+    && /establish the reason for giving, introduce the ACTUAL range of confirmed gifts/.test(p)
     && /Nothing abstract about why plants make good gifts/.test(p)));
+ok('the introduction may not open with a tribute to the role',
+  listPrompts.every(([, p]) =>
+    /Do not open with a tribute to the recipient's profession or role/.test(p)
+    && /Teachers shape how their students see the world, and a thoughtful gift acknowledges that work/.test(p)
+    && /No abstract claims about gratitude, love, growth or appreciation/.test(p)));
 ['the holiday season calls for', 'gifts that keep on giving', 'options at every price point',
  'something for everyone'].forEach(phrase => {
   ok(`generic intro phrase banned: ${phrase}`,
@@ -555,6 +588,131 @@ ok('headings still carry the inline brand color',
 // The samples must not license what the rules forbid: they are read as
 // instructions, so the contradiction sweep covers them too.
 onlyEverProhibited('a bare price at the end of a sample paragraph', /\$\d[\d.,]*"$/m);
+
+console.log('\n── Recipient-oriented, never recipient-invented ──');
+
+inEveryGiftPrompt('the governing principle is stated',
+  /RECIPIENT-ORIENTED DOES NOT MEAN RECIPIENT-INVENTED/);
+inEveryGiftPrompt('the recipient shapes the article, not the products',
+  /The named recipient shapes the introduction, the occasion, the REASON FOR CHOOSING each item, the kind of gesture the reader wants to make, the comparison between the gifts, and the selection guidance/);
+inEveryGiftPrompt('the recipient field supplies no facts about the person',
+  /gives you NO facts about that person's personality, decorating style, home or workspace, available display space, plant-care experience, behaviour, preferences or emotional reaction/);
+inEveryGiftPrompt('the instruction is to frame around the giver',
+  /frame every gift around why the GIVER might choose it, never around what the recipient is like/);
+
+console.log('\n── The recipient is NOT removed from the recommendations ──');
+// The failure mode on the other side: a prompt that bans recipient language
+// outright would stop the guide being a gift guide at all.
+inEveryGiftPrompt('a general item may still be connected to the recipient',
+  /A general item can be connected to the recipient through the GIVING, not the person/);
+inEveryGiftPrompt('the permitted connections are listed',
+  /a smaller gesture, a larger arrangement, a plant-focused gift, an occasion-specific message, space for the giver's own message, a personalized option, a DIY option, an individual or household gift, a verified difference in price, plant type or care/);
+ok('no instruction tells the model to avoid recipient framing entirely',
+  giftPrompts.every(([, p]) => !/never mention the recipient in a recommendation/i.test(p)
+    && !/Most recommendations in a five-item guide will not mention the recipient at all/i.test(p)));
+inEveryGiftPrompt('no emotional explanation is manufactured to mention the recipient',
+  /Do not manufacture an emotional explanation merely to mention the recipient/);
+
+console.log('\n── What may ground a recipient connection ──');
+inEveryGiftPrompt('the evidence list is stated', /WHAT MAY GROUND A RECIPIENT CONNECTION/);
+inEveryGiftPrompt('the evidence list names verified sources',
+  /the verified product name, a verified printed message, a verified personalization option, the verified gift format, a verified DIY activity, verified plant contents, verified dimensions, the verified price, and verified care differences/);
+inEveryGiftPrompt('recipient and occasion set context, not product claims',
+  /The recipient and the occasion establish the GIFTING CONTEXT\. Every product claim still comes from confirmed product data/);
+inEveryGiftPrompt('naming a recipient is not evidence of a desk or a taste',
+  /Naming a recipient is never evidence that the person has a desk, an office, a shelf, a windowsill, a garden, a particular taste, or any level of plant-care ability/);
+
+console.log('\n── Nothing about the person is invented ──');
+inEveryGiftPrompt('the recipient is never invented', /NEVER INVENT THE RECIPIENT/);
+[['personality', /A teacher who enjoys unusual plants/],
+ ['taste', /A coworker who prefers modern design/],
+ ['decor preference', /A mother who loves elegant decor/],
+ ['a wanted quality', /Someone who wants something sculptural/],
+ ['available space', /A teacher who has space on a desk/],
+ ['a promised reaction', /A recipient who will want to keep it/],
+ ['what they already own', /Someone who already owns traditional plants/],
+ ['plant experience', /Someone new to plants/],
+ ['behaviour', /Someone who tends to forget watering/],
+ ['an aesthetic', /Someone drawn to natural materials/]
+].forEach(([label, pattern]) => inEveryGiftPrompt(`named as invented: ${label}`, pattern));
+inEveryGiftPrompt('the repair is always the giver\'s reason',
+  /The repair is always the same: say why the giver might choose it instead/);
+
+console.log('\n── The three wrong/better pairs from the brief ──');
+inEveryGiftPrompt('reclaimed-wood pair',
+  /Wrong: "The reclaimed-wood arrangement is perfect for a teacher who loves natural materials\."[\s\S]*?Better: "The reclaimed-wood arrangement is a plant-focused teacher gift when you prefer to add your own appreciation message\."/);
+inEveryGiftPrompt('black planter pair',
+  /Wrong: "The black planter suits a coworker with a modern office\."[\s\S]*?Better: "The black planter gives you a simple succulent arrangement for a coworker's birthday, milestone, or thank-you\."/);
+inEveryGiftPrompt('terrarium pair',
+  /Wrong: "The terrarium is ideal for a teacher who enjoys hands-on projects\."[\s\S]*?Better: "The terrarium kit adds a small activity to the teacher gift because the person receiving it arranges the air plants and display materials\."/);
+
+console.log('\n── Relationship grading and promised reactions ──');
+['thoughtful without being too personal', 'professional without being cold',
+ 'meaningful without overstepping', 'without crossing a line',
+ 'someone who means a lot to you', 'made for someone close to you',
+ 'a safe choice for a coworker', 'more personal than a card',
+ 'something the teacher will want to keep', 'something they will remember',
+ 'something they will enjoy long after the occasion'].forEach(p => bannedVerbatim(p, p));
+inEveryGiftPrompt('warm is allowed, invented emotion is not',
+  /The guide may be warm\. It may not invent emotional meaning or promise a reaction/);
+
+console.log('\n── The recipient check ──');
+inEveryGiftPrompt('the recipient check is present', /THE RECIPIENT CHECK/);
+inEveryGiftPrompt('it asks whether the giver reason is explained',
+  /Does this explain why the giver might choose this gift for the named recipient\?/);
+inEveryGiftPrompt('it asks whether the brief or product facts support it',
+  /Is the explanation supported by the brief or by confirmed product facts\?/);
+inEveryGiftPrompt('it asks whether the person was invented',
+  /Does it avoid inventing the recipient's personality, taste, space, experience, behaviour or reaction\?/);
+inEveryGiftPrompt('failing 3 means reframing, not deleting',
+  /If 3 is no, reframe the sentence around the giver's intention/);
+inEveryGiftPrompt('the substitution check names what should change',
+  /The introduction, the recipient-specific products, the verified messages, the occasion framing and the selection guidance/);
+inEveryGiftPrompt('general product facts stay stable across recipients',
+  /its gifting context may change, but its appearance, use, placement and care must not be reinvented for each recipient/);
+
+console.log('\n── Gift boxes stay complete gifts ──');
+inEveryGiftPrompt('a gift box is not a variant tour', /A GIFT BOX IS NOT A VARIANT TOUR/);
+inEveryGiftPrompt('no walk through each version',
+  /Do not walk through each available version, and do not explain how extra items raise the gift's emotional value/);
+inEveryGiftPrompt('no per-item benefit', /never assign each one its own benefit/);
+inEveryGiftPrompt('a pricier version is never more generous',
+  /Never call a more expensive option more generous, thoughtful, complete or meaningful: price measures none of those/);
+inEveryGiftPrompt('the good and bad gift-box paragraphs are shown',
+  /Good: "The Thank You Gift Box combines a live succulent with a printed message of appreciation[\s\S]*?Bad: "The simplest version includes a succulent, candle, and matches/);
+
+console.log('\n── The prompt never both requires and forbids "who it suits" ──');
+ok('no surviving instruction requires a recipient personality',
+  giftPrompts.every(([, p]) =>
+    !/should answer three things/i.test(p)
+    && !/Who, or what occasion, might it suit/i.test(p)
+    && !/who might appreciate it/i.test(p)
+    && !/who or what moment it suits/i.test(p)));
+ok('the recipient rules agree with the recommendation rule',
+  giftPrompts.every(([, p]) =>
+    /Every recommendation should explain why the giver might choose this gift/.test(p)
+    && /It must not invent what the recipient likes, owns, needs or feels/.test(p)));
+
+console.log('\n── Samples carry no invented recipients ──');
+// The samples are instructions: a model copies what it is shown. These phrases
+// must appear only where they are being banned, never inside a sample line.
+['someone who would enjoy something different', 'someone who prefers a clean, modern look',
+ 'someone who enjoys decorating or hosting', 'a coworker with a crowded desk',
+ 'someone who already owns traditional potted plants'].forEach(phrase => {
+  onlyEverProhibited(`sample phrase removed: ${phrase}`,
+    new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+});
+onlyEverProhibited('a sample placing a gift on a table or mantel', /sit comfortably on a table/i);
+onlyEverProhibited('a sample calling a gift generous', /something generous/i);
+ok('the teacher sample explains why it is recipient-oriented',
+  giftPrompts.every(([, p]) =>
+    /This sample is recipient-oriented because it helps the reader choose a gift FOR A TEACHER\. It does not invent a teacher personality, workspace, decorating preference, plant experience or reaction/.test(p)));
+ok('the samples are still marked style-only',
+  giftPrompts.every(([, p]) => /THESE ARE STYLE REFERENCES, NOT FACTS/.test(p)
+    && /Never copy a product fact from a sample into another article/.test(p)));
+ok('raw HTML is still required despite plain-text samples',
+  giftPrompts.every(([, p]) => /Your output is still raw HTML, never markdown/.test(p)
+    && /Return ONLY raw HTML for the article body/.test(p)));
 
 console.log('\n── Scope: the care guide is untouched ──');
 ok('the care guide gets none of the gift voice rules',

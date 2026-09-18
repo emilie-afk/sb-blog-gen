@@ -145,8 +145,8 @@ ok('elements must not each get their own benefit', /never assign each one its ow
 // replaces it is a description of the job with an explicit licence to vary.
 ok('the recommendation formula was removed, not replaced with another one',
   !/what the gift feels like as a whole, who or what moment it suits, and what basic care its plant needs/.test(voice));
-ok('a recommendation identifies the gift and moves on',
-  /Identify the gift\. Give one or two details that genuinely distinguish it/.test(voice));
+ok('a recommendation explains the giver\'s reason for choosing it',
+  /Every recommendation should explain why the giver might choose this gift for this recipient or occasion/.test(voice));
 ok('recommendations may differ in shape, order and length',
   /Not every recommendation needs the same combination, or the same order, or the same length/.test(voice));
 
@@ -163,13 +163,22 @@ ok('windowless office caveat is available', /may not suit a windowless office/.t
 ok('pet safety still gated on verification', /Pet safety may be mentioned only when it was verified/.test(voice));
 ok('standalone care section still prohibited', /never write a standalone care section/.test(voice));
 
-ok('worked examples are present', /WORKED EXAMPLES/.test(voice));
-ok('dish garden counter-example present', /Air Plant Dish Garden has a sculptural, low-slung look/.test(voice));
-ok('arrangement counter-example present', /Purple and Orange Succulent Arrangement is the most colorful of these/.test(voice));
-ok('gift box counter-example present', /Succulent Birthday Box is the one to reach for/.test(voice));
-ok('a relationship-grading counter-example is shown',
-  /thoughtful without being too personal, which makes it work for a coworker/.test(voice)
-  && /Delete the sentence and let the gift stand on what it is/.test(voice));
+ok('the failure examples are present', /WHAT NOT TO WRITE\. Three real failures/.test(voice));
+ok('dish garden counter-example present',
+  /Three live Tillandsia air plants rise from preserved reindeer moss/.test(voice));
+ok('arrangement counter-example present',
+  /The purple and orange succulents contrast with the white planter and matching dish/.test(voice));
+ok('gift box counter-example present',
+  /The box includes a succulent, candle, and notecard/.test(voice));
+// The positive rewrites moved into the approved samples, which are real
+// approved copy rather than examples written for the prompt. Relationship
+// grading keeps its ban in the banned-phrase list.
+ok('the positive rewrites now come from the approved samples',
+  /APPROVED STYLE SAMPLES/.test(voice)
+  && !/Air Plant Dish Garden has a sculptural, low-slung look/.test(voice));
+ok('relationship grading is still banned by name',
+  /thoughtful without being too personal/.test(voice)
+  && /more personal than a card/.test(voice));
 // The examples must not themselves contain the phrases the rules ban.
 ['brings personality to a desk', 'ready to place', 'arrives assembled, so there is nothing'].forEach(phrase => {
   const inExample = new RegExp('Write instead: "[^"]*' + phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));

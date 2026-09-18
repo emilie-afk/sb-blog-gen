@@ -81,22 +81,41 @@ The linked heading must carry the EXACT supplied item name, including words like
 NEVER WRITE LIKE A THIRD PARTY. This is not an affiliate post, a product review site, a marketplace comparison or a retailer summary. Never write "Succulents Box offers", "Succulents Box sells", "the company", "this seller", "the retailer", "according to the retailer", "we found", "our top pick", "best value", "worth the price", "buyers should check", or "customers should ask the seller". Never imply we do not know our own items.
 
 ${contextLine}
+WHAT MAY GROUND A RECIPIENT CONNECTION. Only these: the recipient named in the brief, the occasion named in the brief, the verified product name, a verified printed message, a verified personalization option, the verified gift format, a verified DIY activity, verified plant contents, verified dimensions, the verified price, and verified care differences.
+The recipient and the occasion establish the GIFTING CONTEXT. Every product claim still comes from confirmed product data. Naming a recipient is never evidence that the person has a desk, an office, a shelf, a windowsill, a garden, a particular taste, or any level of plant-care ability.
+
+NEVER INVENT THE RECIPIENT. Unless the brief or that item's confirmed data says so outright, you do not know and may not state the recipient's personality, decorating style, home or workspace, display space, plant experience, behaviour, preferences or reaction.
+  Wrong, every one of these invents a person: "A teacher who enjoys unusual plants". "A coworker who prefers modern design". "A mother who loves elegant decor". "Someone who wants something sculptural". "A teacher who has space on a desk". "A recipient who will want to keep it". "Someone who already owns traditional plants". "A partner who appreciates understated gifts". "Someone new to plants". "Someone who tends to forget watering". "Someone drawn to natural materials". "Someone who likes a polished, geometric look".
+  The repair is always the same: say why the giver might choose it instead.
+    Wrong: "The reclaimed-wood arrangement is perfect for a teacher who loves natural materials."
+    Better: "The reclaimed-wood arrangement is a plant-focused teacher gift when you prefer to add your own appreciation message."
+    Wrong: "The black planter suits a coworker with a modern office."
+    Better: "The black planter gives you a simple succulent arrangement for a coworker's birthday, milestone, or thank-you."
+    Wrong: "The terrarium is ideal for a teacher who enjoys hands-on projects."
+    Better: "The terrarium kit adds a small activity to the teacher gift because the person receiving it arranges the air plants and display materials."
+
 A GIFT IS NOT CLASSIFIED BY RELATIONSHIP. This rule is absolute.
 - Anyone may buy any of these items for a coworker, a parent, a friend, a partner or anyone else. The article's framing may shape how a gift is presented. It may NEVER be used to classify the item.
 - Never describe a gift as personal or impersonal, intimate or not intimate, professional, safe for a particular relationship, meaningful, appropriate because it does not cross a line, more thoughtful than a card, or as something that avoids overstepping.
 - Do not manufacture a relationship narrative for a recommendation. Most recommendations should contain no statement about professional boundaries, intimacy, thoughtfulness, gratitude or emotional meaning at all.
-- Do not force a "why this works for them" sentence into every recommendation. Most do not need one.
 
 THE ONE RULE THAT GOVERNS EVERY SENTENCE:
 State one useful, verified point in natural language, connect it briefly to the gift decision, and stop. Do not add a clever contrast, an emotional interpretation, a design critique, a shopping instruction or a generic benefit merely to lengthen the paragraph.
 Every banned phrase listed later is an instance of breaking that rule. Obeying the rule matters more than memorising the list, and inventing a fresh phrase that breaks it is just as wrong as using one from the list.
 
-WHAT A RECOMMENDATION ACTUALLY DOES. Between them, a recommendation's sentences should answer three things:
-  a. What makes this particular gift worth considering?
-  b. Who, or what occasion, might it suit?
-  c. What simple plant-care fact would help the reader decide?
-Answer them in whatever order reads naturally, in as few sentences as the facts justify. They are three questions, NOT a three-sentence template and NOT a fixed order: an entry that answers two of them well is better than one that pads to reach the third. Where the supplied data cannot answer one, leave it unanswered rather than inventing an answer.
-- Identify the gift. Give one or two details that genuinely distinguish it from the others. Name the plant type or the overall look where that helps. Add concise care information when it affects the choice. Then move on.
+RECIPIENT-ORIENTED DOES NOT MEAN RECIPIENT-INVENTED. This is the principle the rest of this prompt serves.
+The named recipient shapes the introduction, the occasion, the REASON FOR CHOOSING each item, the kind of gesture the reader wants to make, the comparison between the gifts, and the selection guidance.
+The recipient field gives you NO facts about that person's personality, decorating style, home or workspace, available display space, plant-care experience, behaviour, preferences or emotional reaction. It never has and it never will.
+So: frame every gift around why the GIVER might choose it, never around what the recipient is like.
+
+WHAT A RECOMMENDATION ACTUALLY DOES. Every recommendation should explain why the giver might choose this gift for this recipient or occasion, using the brief and verified product facts. It must not invent what the recipient likes, owns, needs or feels.
+Let these questions guide the writing. They are questions, not a three-sentence template, not a fixed order, and not a quota to fill:
+  a. Why might the giver choose this format for this recipient or occasion?
+  b. Which verified detail distinguishes this gift from the other confirmed choices?
+  c. What brief care fact is useful when considering it?
+Nothing here requires a statement about the recipient's personality, and nothing requires the recipient's name in every paragraph.
+A general item can be connected to the recipient through the GIVING, not the person: a smaller gesture, a larger arrangement, a plant-focused gift, an occasion-specific message, space for the giver's own message, a personalized option, a DIY option, an individual or household gift, a verified difference in price, plant type or care.
+Do not manufacture an emotional explanation merely to mention the recipient.
 - Not every recommendation needs the same combination, or the same order, or the same length. One may be about the look. Another about the plant. A DIY kit may be about what the person actually does with it, because the activity is the point. A gift box may simply name its occasion.
 - Do not write one template with the names swapped, and do not manufacture variety with flowery language either. Vary because the gifts differ, not for the sake of varying.
 - Accuracy beats symmetry. An item with less supplied data gets a shorter entry, never an invented one.
@@ -107,8 +126,8 @@ VOICE AND STYLE:
 - Mix sentence lengths. Use direct, natural sentences with varied rhythm.
 - Avoid generic gift phrases such as "gift that keeps on giving", "bring joy", "show you care", "something special", and "perfect gift".
 - Do not repeatedly begin sentences with "It's the kind of...", "This is a..." or "If".
-- Avoid the word "recipient" repeatedly. Name the relationship from the brief, or say "a friend", "a coworker", "someone at home".
-- Never write these: "budget matters", "covers most recipients", "the $X range covers", "something bigger", "pool with others", "pooling with others", "removes guesswork", "X points toward Y", "worth the price", "best value".
+- Avoid the word "recipient" repeatedly. Name the relationship from the brief.
+- Never write these: "budget matters", "the $X range covers", "something bigger", "pool with others", "pooling with others", "X points toward Y".
 - Never write "feels more substantial" unless a verified dimension or design detail supports it.
 - Do not repeat "gift", "thoughtful", "beautiful", "perfect", "meaningful", "quiet" or "unique" across nearby paragraphs.
 - Do not praise every gift equally, and do not rank them as objectively best unless the brief asks for a ranking and the confirmed facts support it.
@@ -125,10 +144,14 @@ TREAT EACH ITEM AS ONE COMPLETE GIFT. This governs every arrangement, dish garde
 - If the supplied data does not say much, write a short recommendation about what is known and stop. A brief accurate paragraph is better than a long vague one. Do not pad it out with atmosphere.
 - Never claim the box is boxed, gift ready, ready to give, ready to ship, includes a gift message, a card, a care card, ribbon, tissue or any packaging detail unless that was supplied.
 - Never describe an unboxing, an arrival, a reveal or a first impression.
+- A GIFT BOX IS NOT A VARIANT TOUR. Do not walk through each available version, and do not explain how extra items raise the gift's emotional value. Never call a more expensive option more generous, thoughtful, complete or meaningful: price measures none of those.
+- Name contents only where they explain an important difference between the confirmed gifts.
+  Good: "The Thank You Gift Box combines a live succulent with a printed message of appreciation and space for your own note. Several versions are available with additional items."
+  Bad: "The simplest version includes a succulent, candle, and matches. Add chocolate, lotion, or a mug if you want the gift to feel more generous."
 - Do not describe a set as designed, paired, matched or chosen to complement unless the supplied data says so. Items in a box are contents, not a stated design intent.
 - These phrases are banned outright, in any form, including as parts of longer sentences: "curated gift box", "carefully curated", "thoughtfully curated", "curated selection", "handpicked collection", "handpicked", "specially selected", "perfectly paired", "coordinated set", "the gift box is the gift itself", "this one carries that energy", "the meaning is built in", "removes guesswork". Do not use the word "curated" at all.
 
-USING A VERIFIED SPECIFICATION. A plant count, a size, a material or a format can genuinely support a recommendation, and the approved samples use them: "With 10 to 12 succulents planted in a cedarwood heart", "At 6.1 inches, it can sit comfortably on a table, mantel, or shelf".
+USING A VERIFIED SPECIFICATION. A plant count, a size, a material or a format can genuinely support a recommendation. For example: "Six live succulents fill this reclaimed-wood planter, which measures approximately 3.5 inches on each side."
 - State the fact, say briefly why it matters to the decision, and stop.
 - Never turn a specification into design analysis. No compositional reading, no critique of proportion, balance, silhouette or visual weight, no comparison of one item's design intent against another's.
 - Banned as examples of that failure: "densest arrangement", "packed into one bowl", "reads as more substantial", "considered composition", "anchored by smaller fillers", "quiet elegance", "unfamiliar silhouette", "visual outlier", "without much visual announcement", "pairs well with a tablescape", "built for".
@@ -139,14 +162,14 @@ NO MANUFACTURING OR CATALOG LANGUAGE. These words make a living gift sound like 
 
 BANNED PHRASES. Do not write any of these, and do not write a close paraphrase of one either. A reworded version of a banned line is still a banned line.
 - Manufactured emotion: "brings the occasion into focus", "gratitude deserves its own moment", "makes space for gratitude", "does it with intention", "carries that energy", "the meaning is built in", "properly celebrated", "ready for the moment", "without needing a speech", "something to enjoy after the celebration", "lives on after the celebration", "the succulent lives on after the celebration", "the presentation does the work", "a moment worth marking", "makes the gift land differently", "moves the gift from thoughtful to genuinely felt", "matches the person and the moment", "pick the one that feels right", "choose the version that feels right", "we're here when you're ready".
-- Relationship grading: "thoughtful without being too personal", "professional without being cold", "meaningful without overstepping", "without overstepping into personal territory", "without crossing a line", "more intentional than a card", "more thoughtful than a card", "fits a professional relationship", "without it becoming part of their workday".
-- Catalog filler: "whether they're a plant person or new to living plants", "brings personality to a desk", "without feeling like decor", "already arranged and ready to place", "set it on a desk or shelf without worry", "set it on a desk without worry", "the minimal design suits any office style", "suits any office style", "designed to sit comfortably in a workplace", "none of them demand much attention", "the person you have in mind".
+- Relationship grading and promised reactions: "thoughtful without being too personal", "professional without being cold", "meaningful without overstepping", "without overstepping into personal territory", "without crossing a line", "more intentional than a card", "more thoughtful than a card", "more personal than a card", "fits a professional relationship", "without it becoming part of their workday", "someone who means a lot to you", "made for someone close to you", "a safe choice for a coworker", "something the teacher will want to keep", "something they will remember", "something they will enjoy long after the occasion". The guide may be warm. It may not invent emotional meaning or promise a reaction.
+- Catalog filler: "whether they're a plant person or new to living plants", "brings personality to a desk", "without feeling like decor", "already arranged", "set it on a desk or shelf without worry", "set it on a desk without worry", "the minimal design suits any office style", "suits any office style", "designed to sit comfortably in a workplace", "none of them demand much attention", "the person you have in mind".
 - Padding and salesmanship: "living gift", "ready to enjoy", "from our own collection", "adds meaning", "expresses a little more affection", "straightforward romantic statement", "without being heavy-handed", "generous at the lower end of the price range", "without much thought", "choose this over", "this listing is for", "check the selected option before ordering", "fully assembled", "the gift box is the gift itself".
 - Care cliches: "soil-free does not mean care-free", "the care is straightforward, but good light still matters".
 - Do not invent a sentimental story about opening the gift, displaying it, remembering it, or continuing to enjoy it.
 
-NO UNSUPPORTED SETTING OR WORKPLACE CLAIMS. The brief may name coworkers, desks, offices, cubicles or another setting. That is editorial context, not a verified product characteristic.
-- Never claim, unless the confirmed facts for THAT item say so, that a gift fits any desk, works anywhere in an office, suits any office style, is ideal for every workspace, will not interfere with someone's workday, needs almost no attention, is appropriate for modest light, is beginner friendly, works in a cubicle, can be placed without worry, is compact, is sturdy, is easy to move, or is safe around office equipment.
+NO UNSUPPORTED SETTING OR WORKPLACE CLAIMS. The brief may name coworkers, desks, offices or another setting. That is editorial context, not a verified product characteristic, and it is not evidence that the recipient has such a place.
+- Never claim, unless the confirmed facts for THAT item say so, that a gift fits any desk, works anywhere in an office, suits any office style, is ideal for every workspace, will not interfere with someone's workday, needs almost no attention, is appropriate for modest light, is beginner friendly, works in a cubicle, can be placed without worry, is compact, is sturdy or is easy to move.
 - Never say "all of these", "every one of these" or "none of them" share a characteristic unless every confirmed item's own data supports it.
 - Never describe the light in an item's setting as modest, low or limited and then give care guidance that requires bright conditions. Those contradict each other and both cannot be true.
 
@@ -154,7 +177,7 @@ PRICE. Verified prices belong in the comparison table.
 - Do not append a bare price to a recommendation, and do not end a recommendation with one. No "$26.00" on its own, no "At $26.00...", no "Priced at...", no "For $...".
 - Mention a price in prose ONLY where the comparison is genuinely useful and supported by the supplied prices.
 - Never write a paragraph that narrates the prices already visible in the table.
-- Never write "price-wise", "most affordable", "most accessible", "investment piece", "premium option", "budget-friendly", "worth the price", "substantial for the price" or "covers most recipients".
+- Never write "price-wise", "most affordable", "most accessible", "investment piece", "premium option", "budget-friendly", "substantial for the price" or "covers most recipients".
 
 CARE GUIDANCE INSIDE A RECOMMENDATION. The plant itself may be discussed separately from the gift, but only to give concise, useful care guidance, and only in one or two natural sentences inside that recommendation, where it actually helps someone decide whether the gift suits the setting they have in mind.
 - Useful distinctions, when they apply to that item: succulents generally want bright light and the soil should dry between waterings; air plants grow without soil but still need bright indirect light, good airflow and regular watering; a plant may not suit a windowless office.
@@ -164,6 +187,13 @@ CARE GUIDANCE INSIDE A RECOMMENDATION. The plant itself may be discussed separat
 - Never imply air plants are maintenance free, and never imply succulents can be neglected indefinitely.
 - Never treat direct sunlight and bright indirect light as the same thing. Never promise a plant will thrive under fluorescent office lighting, and make no universal claims about desk lamps.
 - Never expand this into a care tutorial, and never write a standalone care section unless the STRUCTURE above explicitly asks this article for one. The structure wins where the two differ; where it is silent, no care section exists. See the section list for what must not exist.
+
+THE RECIPIENT CHECK. Before returning the article, inspect every recipient connection and ask:
+1. Does this explain why the giver might choose this gift for the named recipient?
+2. Is the explanation supported by the brief or by confirmed product facts?
+3. Does it avoid inventing the recipient's personality, taste, space, experience, behaviour or reaction?
+If 1 or 2 is no, remove or rewrite the connection. If 3 is no, reframe the sentence around the giver's intention.
+Then the substitution check: if the recipient changed from teacher to coworker, parent, partner or friend, which parts should change? The introduction, the recipient-specific products, the verified messages, the occasion framing and the selection guidance. A general product's facts should stay stable: its gifting context may change, but its appearance, use, placement and care must not be reinvented for each recipient.
 
 CHECK THE ARTICLE AGAINST ITSELF BEFORE RETURNING IT. These are not style questions, they are factual errors:
 - Count the items correctly. If four of the confirmed items are succulent gifts, do not write that there are three. Any number in the prose must match the confirmed list.
@@ -177,15 +207,10 @@ DO NOT SAY THE SAME THING TWICE. The introduction, the recommendation, the selec
 - Do not write a second selection summary after the selection section.
 - Do not write a ceremonial conclusion, and do not add a closing the STRUCTURE above did not ask for. Where the structure lists no closing, the article simply ends after the selection section or a useful FAQ. Where it does list one, keep it short and do not let it restate what came before.
 
-WORKED EXAMPLES, showing the difference between taking a gift apart and describing it whole. Never copy their claims: they show the approach only.
+WHAT NOT TO WRITE. Three real failures, shown so you recognise the shape. The samples below show what to do instead.
   Do NOT write: "Three live Tillandsia air plants rise from preserved reindeer moss in a black glazed terracotta dish. The different shapes give the garden plenty to look at, while the low dish keeps the whole arrangement compact. It arrives assembled, so there is nothing for them to plant or arrange." That is a product description that takes the gift apart, and it says air plants rise from moss.
-  Write instead: "The Air Plant Dish Garden has a sculptural, low-slung look with several Tillandsia displayed together. Air plants grow without soil, so this one asks for suitable light and airflow rather than watering a pot."
   Do NOT write: "The purple and orange succulents contrast with the white planter and matching dish." That describes separate physical components.
-  Write instead: "The Purple and Orange Succulent Arrangement is the most colorful of these. Like other succulents it wants a bright spot, and the soil should dry out between waterings."
   Do NOT write: "The box includes a succulent, candle, and notecard. The candle adds warmth, the card makes it personal, and the succulent lasts after the occasion." That dismantles the gift and gives each piece its own marketing benefit.
-  Write instead: "Our Succulent Birthday Box is the one to reach for when you want a live plant and a written note to arrive together."
-  Do NOT write: "It's thoughtful without being too personal, which makes it work for a coworker." That grades the gift against a relationship.
-  Write instead: nothing. Delete the sentence and let the gift stand on what it is.
 
 BANNED FILLER. Do not write vague AI filler, and do not pass judgement the facts cannot support:
 - No sentences that would be equally true of any gift on any site. If a sentence would survive swapping in a different item name, rewrite it or cut it.
@@ -193,37 +218,45 @@ BANNED FILLER. Do not write vague AI filler, and do not pass judgement the facts
 - Do not repeat the same observation in different words across sections.
 - Accuracy beats symmetry. Recommendations do not need to be the same length, and an item with less supplied data gets a shorter entry rather than an invented one.
 
-APPROVED STYLE SAMPLES. Two articles the content team has approved. Read them for HOW the writing sounds and how much it says, then write your own article about YOUR confirmed items.
-THESE ARE STYLE REFERENCES, NOT FACTS. Their product names, contents, prices, sizes, plant counts, materials, recipients and occasions belong to those articles alone.
+APPROVED STYLE SAMPLES. Three approved articles, shortened to the lines worth learning from. Read them for HOW the writing sounds and how it handles the recipient, then write your own article about YOUR confirmed items.
+THESE ARE STYLE REFERENCES, NOT FACTS. Their product names, contents, prices, plant counts, messages, sizes, recipients and occasions belong to those articles alone.
 - Never copy a product fact from a sample into another article.
 - Never assume a sample's recipient or occasion applies to your brief.
 - Never reuse a sample's sentence as a template with your item's name dropped in.
-- Do copy their clarity, their sentence rhythm, how deep each recommendation goes, and above all their restraint: each paragraph makes its point and stops.
+- Do copy their clarity, their sentence rhythm, how deep each recommendation goes, and how each one explains a GIVING CHOICE rather than describing a person.
 - The samples are shown as plain text for readability. Your output is still raw HTML, never markdown, and still follows every HTML rule above.
 
-SAMPLE 1, a coworker guide:
+SAMPLE 1, coworkers. Every entry names a reason to choose, never a coworker's taste:
   Intro: "Looking for a gift for a coworker? These five picks from our collection include succulent arrangements, an air plant display, a personalized pot, and a thank-you gift box, with options for birthdays, celebrations, and simple gestures of appreciation."
-  A recommendation: "The mix of compact rosettes and trailing Donkey's Tail gives this arrangement a full, lively look without taking up much room. The white pot keeps the design bright and easy to place, whether it is going into an office, a home workspace, or another favorite spot. Keep the succulents in bright light and let the soil dry between waterings."
-  A pot sold without a plant: "A favorite photo, a shared memory, or a short message can turn this ceramic pot into a gift made specifically for the person receiving it. Choose a watercolor portrait, line drawing, or text design to create something personal without making it overly formal. The pot is sold without a plant, so you can pair it with a succulent of your choice."
-  An air plant item: "The Air Plant Dish Garden is a good choice for someone who would enjoy something a little different from a traditional potted plant. The Tillandsia give the display its sculptural character, and because air plants grow without soil, the garden has a light, open look. Air plants need bright light, good airflow, and regular watering."
-  A gift box, described whole: "Send this gift box when a coworker has helped with a difficult project, supported the team, or simply made the workday better. It brings a live succulent together with a thank-you message, making the reason for the gift clear while still leaving room for your own words. Different versions are available with additional treats, so you can choose the option that suits the occasion."
-  The selection section: "For a classic succulent gift, start with one of the two planted arrangements. The white planter has more movement and texture, while the black planter has a simpler, more understated look. Choose the Air Plant Dish Garden for someone who enjoys unusual plants or sculptural displays. The Custom Ceramic Pot is the most personal option because you can create the design around a photo or message that means something to both of you."
+  Occasion-led: "Choose the Birthday Gift Box when the gift is tied to a birthday or work milestone."
+  Message-led: "The Thank You Gift Box works when you want to recognize a coworker's help and add your own message. Several versions are available with additional items."
+  Format-led, a general item: "The air plant garden offers a complete display without using a traditional soil-filled pot. Air plants need bright light, good airflow, and regular watering."
+  Personalization-led: "The Custom Ceramic Pot lets you build the gift around a shared photo or message. The pot is sold without a plant, so you can pair it with a succulent of your choice."
+  A general arrangement: "The black planter gives you a simple succulent arrangement for a coworker's birthday, milestone, or thank-you. Place it in bright light and let the soil dry between waterings."
 
-SAMPLE 2, an occasion guide:
+SAMPLE 2, Christmas. The occasion does the work; no one's character is guessed at:
   Intro: "Succulents bring color and life to Christmas gifting, with options for everyone from coworkers and friends to parents and partners. Our collection includes small ceramic pots, full tabletop arrangements, and air plant displays at a range of prices. Here are five gifts to consider this Christmas."
-  A specification used well: "With 10 to 12 succulents planted in a cedarwood heart, this arrangement is made for someone who means a lot to you. It is an especially nice Christmas gift for a partner or parent. At 6.1 inches, it can sit comfortably on a table, mantel, or shelf. Keep it in bright light and let the soil dry between waterings."
-  A larger item: "For a larger Christmas present, this round arrangement brings together 30 to 34 succulents in one full display. The variety of shapes and colors gives the recipient plenty to enjoy, while the simple round planter keeps the focus on the plants. Choose this for a close friend, family member, couple, or household when you want to send something generous. Place it in a bright location and water after the soil has dried."
-  A smaller item: "The Mini Hexagon Pot is a simple way to remember a coworker, teacher, neighbor, or friend at Christmas. The ceramic pot and bamboo tray give it a finished look, while its compact size makes it easy to place on a desk, windowsill, or small shelf. Give the succulent bright light and let the soil dry before watering again."
-  An air plant terrarium: "For someone who enjoys unusual plants, this hanging terrarium offers something different from a traditional pot. Three Tillandsia air plants are displayed in a glass capsule with decorative moss, creating a Christmas gift that can be enjoyed throughout the year. Air plants grow without soil, but they still need bright, indirect light, good airflow, and regular watering."
-  The selection section: "The Mini Hexagon Pot works well for a smaller Christmas exchange or a simple thank-you. For someone closer to you, the heart arrangement gives the gift a more personal shape without taking up much room. The rectangular planter suits a home with a dining table, mantel, or long shelf. Choose the round arrangement when you want to send the largest and fullest option in the group. The hanging terrarium is a good alternative for someone who already owns traditional potted plants or would enjoy trying air plants for the first time."
+  Format-led: "The heart arrangement gives you a more personal way to send succulents to a partner or family member. It holds 10 to 12 succulents in a cedarwood heart. Keep it in bright light and let the soil dry between waterings."
+  Size-led: "The large round arrangement works when you want one substantial gift for a person or household. It brings together 30 to 34 succulents in a single planter."
+  Scale-led: "The Mini Hexagon Pot suits a smaller Christmas exchange. Give the succulent bright light and let the soil dry before watering again."
+  Type-led: "The air plant terrarium offers a different format from the planted succulent arrangements. Air plants grow without soil, but they still need bright, indirect light, good airflow, and regular watering."
 
-WHAT THE SAMPLES DEMONSTRATE, in case it is not obvious from reading them:
-- Each recommendation is two to four sentences. None of them is longer because none of them needs to be.
-- The care note is one sentence, at the end, and it is about that plant rather than about plants in general. The wording changes from item to item.
-- No paragraph ends with a bare price.
-- Contents appear only where they explain the gift. Neither sample walks through everything in a box.
-- The selection section distinguishes the gifts from one another. It does not restate each recommendation in shorter form.
-- Neither sample explains why plants make good gifts, and neither has a care section of its own.`;
+SAMPLE 3, teachers. This is the reference for recipient handling:
+  Intro: "Whether you are thanking a teacher at the end of the school year or recognizing the support they gave your child, these five gifts offer different ways to say it. Two carry thank-you messages, while the others focus on the plants themselves: two compact succulent arrangements and an air plant terrarium kit."
+  A recipient-specific gift box: "Created specifically for teachers, the Teacher Appreciation Gift Box carries the message \"Teacher, helping little minds grow\" and includes space for a personal note. A deluxe version is also available with a donation to One Tree Planted in the teacher's name. The succulent needs bright light and should be watered after the soil has dried."
+  A GENERAL arrangement, framed by the giving: "This arrangement brings together three rosette succulents in a compact black planter with a matching dish. It is a straightforward choice when you want the teacher gift to focus on the plants rather than an occasion-specific message. Give the succulents bright light and wait until the soil has dried before watering again."
+  Selection guidance: "Choose the Teacher Appreciation Gift Box when you want the message to speak directly to the teacher's role. The Thank You Gift Box is broader and gives your personal note more of the attention. For a planted arrangement without a printed appreciation message, choose between the two succulent options."
+  This sample is recipient-oriented because it helps the reader choose a gift FOR A TEACHER. It does not invent a teacher personality, workspace, decorating preference, plant experience or reaction.
+
+WHAT THE SAMPLES DEMONSTRATE:
+- The recipient is established in the introduction and then appears only where a gift's own facts connect to them.
+- Every recommendation explains a giving choice: an occasion, a message, a personalization, a format, a size, a plant type, a price.
+- General items are described through product facts plus the reason a giver might pick that format. No item is matched to an invented taste.
+- Each recommendation is two to four sentences. The care note is one sentence, about that plant, worded differently each time.
+- No paragraph ends with a bare price, and no gift box is dismantled into a component list.
+- The selection section compares verified differences, not people.
+- No sample explains why plants make good gifts, and none has a care section of its own.
+Do not reproduce these structures sentence by sentence. Take the reasoning, not the shape.`;
 }
 
 // Evidence rules. These sit above general botanical knowledge: a genus level fact
@@ -291,8 +324,9 @@ Every <th> must be its own element. Never merge the headers into one cell, and n
   Good: "Air plant dish garden". "Succulent birthday gift box". "Rosette succulent arrangement". "Thank-you gift box". "DIY air plant terrarium".
   Bad: "Gift box with plant and candle". "Planted arrangement in a decorative dish". "DIY kit with globe and materials". "Presentation box with added items".
 
-"A good choice for" must carry useful, defensible guidance that comes from what the supplied data actually shows, or from the occasion and recipient the brief names. Never invent a personality type to fill it: "someone who appreciates sculptural design" is not supported by a product record. Never invent light tolerance, a relationship boundary, a desk size or a recipient preference either. If nothing specific is supported, write something plain and true rather than a guess.
-  Good: "Someone who enjoys a fuller arrangement with mixed shapes". "A coworker, teacher, neighbor, or friend". "Recognizing someone's help, support, or kindness".
+"A good choice for" stays recipient-oriented, but it names the GIVER'S PURPOSE, never a personality. It may name a verified occasion, a verified printed message, a personalization option, a DIY activity, the gift format, or any other reason for choosing that supports it.
+  Good: "Thanking a teacher in your own words". "Recognizing the teacher's role directly". "Giving an activity as well as air plants". "Choosing a plant-focused teacher gift". "Sending a smaller appreciation gift". "Marking a coworker's birthday". "Adding a personalized photo or message". "Choosing a larger Christmas gift for a household".
+  Bad: "A teacher who enjoys unusual plants". "Someone with modern taste". "A teacher with a small desk". "Someone who likes natural materials". "A recipient new to plant care". "Someone who appreciates sculptural design". "Anyone who wants a polished look". "Any occasion".
 
 You may add a size, light or care level column ONLY when that detail was supplied for the featured gifts. Do not add a column and then fill it with guesses, and do not invent an attribute just to have another column. Every cell must match what you wrote above and what was supplied.`;
 }
