@@ -145,8 +145,9 @@ ok('elements must not each get their own benefit', /never assign each one its ow
 // replaces it is a description of the job with an explicit licence to vary.
 ok('the recommendation formula was removed, not replaced with another one',
   !/what the gift feels like as a whole, who or what moment it suits, and what basic care its plant needs/.test(voice));
-ok('a recommendation explains the giver\'s reason for choosing it',
-  /Every recommendation should explain why the giver might choose this gift for this recipient or occasion/.test(voice));
+ok('a recommendation describes the gift rather than the reasoning',
+  /WRITE THE RECOMMENDATION, NOT THE REASONING/.test(voice)
+  && /Then write the gift, not the working out/.test(voice));
 ok('recommendations may differ in shape, order and length',
   /Not every recommendation needs the same combination, or the same order, or the same length/.test(voice));
 

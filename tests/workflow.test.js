@@ -112,7 +112,7 @@ ok('the clear-products action only renders with products confirmed',
 const { execSync } = require('child_process');
 let changed = [];
 try {
-  changed = execSync('git diff --name-only e535845', { cwd: root }).toString().split('\n').filter(Boolean);
+  changed = execSync('git diff --name-only 8ac5d22', { cwd: root }).toString().split('\n').filter(Boolean);
 } catch (e) {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
