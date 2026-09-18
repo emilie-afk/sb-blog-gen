@@ -13,7 +13,7 @@ const LIST_FORMATS = ['general_gift_guide', 'occasion_gift_guide'];
 // was reported missing even when it was present.
 const REQUIRED_HEADERS = [
   { label: 'Gift', match: c => c === 'gift' || c.startsWith('gift') },
-  { label: 'Best suited for', match: c => c.includes('best suited for') || c.includes('best for') },
+  { label: 'A good choice for', match: c => c.includes('good choice for') || c.includes('best suited for') || c.includes('best for') },
   { label: 'Style or format', match: c => c.includes('style') || c.includes('format') }
 ];
 
@@ -49,7 +49,7 @@ function validateArticleOutput(articleType, fields, html) {
     // startsWith rather than equality on 'gift': when the header row collapses into
     // a single cell, that cell reads "gift best suited for style or format price",
     // and an equality test would fail to recognise the very table that is broken.
-    return cells.some(c => c.includes('best suited for') || c.includes('best for')) || cells.some(c => c.startsWith('gift'));
+    return cells.some(c => c.includes('good choice for') || c.includes('best suited for') || c.includes('best for')) || cells.some(c => c.startsWith('gift'));
   });
 
   if (!tables.length) {

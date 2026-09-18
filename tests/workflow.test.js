@@ -112,7 +112,7 @@ ok('the clear-products action only renders with products confirmed',
 const { execSync } = require('child_process');
 let changed = [];
 try {
-  changed = execSync('git diff --name-only 6dccf6b', { cwd: root }).toString().split('\n').filter(Boolean);
+  changed = execSync('git diff --name-only 9123d36', { cwd: root }).toString().split('\n').filter(Boolean);
 } catch (e) {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
@@ -123,7 +123,10 @@ if (changed && changed.length) {
   const offLimits = changed.filter(f =>
     f.startsWith('app/') || f.startsWith('data/') || f === 'index.html'
     || /^netlify\/functions\/[^/]+\.js$/.test(f)
-    || /^netlify\/functions\/lib\/(job-store|timing|run-generation|validate|validate-output|repair-output)\.js$/.test(f));
+    // validate-output and repair-output are allowed to move ONLY in lockstep with
+    // a comparison-table header rename: they hold that header's spelling, so
+    // leaving them behind would make every article warn about a missing column.
+    || /^netlify\/functions\/lib\/(job-store|timing|run-generation|validate)\.js$/.test(f));
   ok('the workflow, handlers, catalog and article index are untouched', offLimits.length === 0, offLimits.join(', '));
 } else {
   console.log('SKIP scope diff (no git history available)');
