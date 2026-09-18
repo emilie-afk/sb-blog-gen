@@ -582,11 +582,19 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('job state cleared', await page.evaluate(() => state.generationPending === false && state.hasOutput === false));
   check('authentication survives the reset', await page.isVisible('#app') && !(await page.isVisible('#login-overlay:not(.hidden)')));
   check('the catalog is still loaded after a reset', (await page.$$('.catalog-item')).length > 0);
-  check('the page returns to the article format section',
-    await page.evaluate(() => {
+  // scrollIntoView({behavior:'smooth'}) is asynchronous, so sampling the box once
+  // after a fixed wait fails roughly one run in three. Wait for the card to
+  // arrive instead of guessing how long the animation takes.
+  let formatCardInView = true;
+  try {
+    await page.waitForFunction(() => {
       const box = document.getElementById('formatCard').getBoundingClientRect();
       return box.top < window.innerHeight && box.bottom > 0;
-    }));
+    }, null, { timeout: 4000 });
+  } catch (e) {
+    formatCardInView = false;
+  }
+  check('the page returns to the article format section', formatCardInView);
   check('focus lands on a format option',
     await page.evaluate(() => !!document.activeElement && document.activeElement.classList.contains('format-option')));
 
