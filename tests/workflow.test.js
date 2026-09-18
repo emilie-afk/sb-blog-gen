@@ -112,13 +112,19 @@ ok('the clear-products action only renders with products confirmed',
 const { execSync } = require('child_process');
 let changed = [];
 try {
-  changed = execSync('git diff --name-only 6fd6920', { cwd: root }).toString().split('\n').filter(Boolean);
+  changed = execSync('git diff --name-only 6dccf6b', { cwd: root }).toString().split('\n').filter(Boolean);
 } catch (e) {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
 if (changed && changed.length) {
-  const serverTouched = changed.filter(f => f.startsWith('netlify/') || f.startsWith('data/'));
-  ok('no server, prompt or catalog file changed in this pass', serverTouched.length === 0, serverTouched.join(', '));
+  // The client workflow is what this file guards. A later pass may legitimately
+  // change prompts under netlify/functions/lib; what must not change is the
+  // workflow, the function handlers, the catalog data or the article index.
+  const offLimits = changed.filter(f =>
+    f.startsWith('app/') || f.startsWith('data/') || f === 'index.html'
+    || /^netlify\/functions\/[^/]+\.js$/.test(f)
+    || /^netlify\/functions\/lib\/(job-store|timing|run-generation|validate|validate-output|repair-output)\.js$/.test(f));
+  ok('the workflow, handlers, catalog and article index are untouched', offLimits.length === 0, offLimits.join(', '));
 } else {
   console.log('SKIP scope diff (no git history available)');
 }
