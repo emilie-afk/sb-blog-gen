@@ -70,7 +70,7 @@ function codeForStatus(status) {
 function describeNonJson(status, raw) {
   const looksLikeTimeout = /task timed out|timed out|timeout/i.test(String(raw || ''));
   if (status === 504 || status === 408 || looksLikeTimeout) {
-    return 'Generation took too long. Try again or use fewer products. (The server returned a ' + (status || 504) + ' timeout response.)';
+    return 'Generation took too long. Please try again. (The server returned a ' + (status || 504) + ' timeout response.)';
   }
   if (status === 502 || status === 503) {
     return `The generation service returned an unexpected response (HTTP ${status}). Try again in a moment.`;

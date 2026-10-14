@@ -6,6 +6,10 @@ const ARTICLE_TYPES = ['care_guide', 'single_plant_gift', 'general_gift_guide', 
 
 const GIFT_ANGLES = ['Low maintenance', 'Beginner friendly', 'Small-space friendly', 'Desk or office gift',
   'Long-lasting alternative to flowers', 'Symbolic or meaningful', 'Eco-conscious', 'Custom angle'];
+// The care guide's plant type. It routes the soil, potting and pruning sections,
+// so it is an allowlist rather than free text.
+const PLANT_TYPES = ['Succulent', 'Cactus', 'Air plant (Tillandsia)', 'Houseplant', 'Not sure'];
+
 const CHARACTERISTICS = ['Low maintenance', 'Beginner friendly', 'Pet friendly', 'Low light', 'Desk friendly',
   'Small-space friendly', 'Easy to ship', 'Eco-conscious', 'Custom requirement'];
 
@@ -110,6 +114,7 @@ function references(value) {
     const u = url(r && r.url, `${label} URL`);
     const t = str(r && r.text, LIMITS.short, `${label} link text`);
     if (t && !u) throw new ValidationError(`${label} has link text but no URL.`, 'missing_required');
+    if (u && !t) throw new ValidationError(`${label} has a URL but no link text. The link text is the wording woven into the article, so it cannot be left empty.`, 'missing_required');
     return u && t ? { url: u, text: t } : null;
   }).filter(Boolean);
 }
@@ -176,6 +181,9 @@ function validateRequest(articleType, rawFields) {
   if (articleType === 'care_guide') {
     f.plantName = required(str(raw.plantName, LIMITS.short, 'Plant name'), 'Plant name');
     f.sciName = str(raw.sciName, LIMITS.short, 'Scientific name');
+    // Defaults to "Not sure" rather than to a type: an older page that does not
+    // send the field must produce a general guide, never a guessed one.
+    f.plantType = oneOf(raw.plantType, PLANT_TYPES, 'Plant type', false) || 'Not sure';
     f.productUrl = url(raw.productUrl, 'Product URL');
     return { articleType, fields: f };
   }
@@ -234,6 +242,6 @@ function validateRequest(articleType, rawFields) {
 }
 
 module.exports = {
-  validateRequest, ValidationError, ARTICLE_TYPES, GIFT_ANGLES, CHARACTERISTICS,
+  validateRequest, ValidationError, ARTICLE_TYPES, GIFT_ANGLES, CHARACTERISTICS, PLANT_TYPES,
   MAX_RECOMMENDATIONS, DESCRIPTION_CAP, MAX_TAGS, TAG_CAP
 };
