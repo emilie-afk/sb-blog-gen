@@ -33,11 +33,11 @@ const state = {
   // stale id is dropped rather than rendered: see the note on waitForJob.
   generationId: 0,
   // True while ANY generation is in flight, synchronous or background. The
-  // transport is an implementation detail: a care guide on the synchronous
-  // endpoint is just as much work in progress as a gift guide on a background
-  // job, and abandoning either one deserves the same question. Whether polling
-  // is involved is decided by BACKGROUND_FORMATS at the point of use, never by
-  // this flag.
+  // transport is an implementation detail: a single-plant guide on the
+  // synchronous endpoint is just as much work in progress as a care guide or a
+  // gift guide on a background job, and abandoning either one deserves the same
+  // question. Whether polling is involved is decided by BACKGROUND_FORMATS at
+  // the point of use, never by this flag.
   generationPending: false
 };
 
@@ -159,6 +159,7 @@ function renderField(f) {
 
     case 'references':
       return `<div class="field"><label>Reference links (optional, up to 2)</label>
+        <div class="hint">Both halves are required for each link you add. The link text is woven into a sentence and pointed at the URL. The page itself is not opened, read or used to check the article, so anything that must appear in the writing belongs in Additional instructions.</div>
         ${[1, 2].map(n => `<div class="ref-box">
           <div class="ref-label">Reference ${n}</div>
           <div class="row2">
@@ -486,12 +487,16 @@ function validate() {
     }
   });
 
-  // Reference links
+  // Reference links. A reference needs BOTH halves: the URL is where the link
+  // points and the link text is the wording woven into the article. Either one
+  // alone cannot become a link, so a half-filled pair is an error rather than
+  // something to silently discard. The same rule runs on the server.
   [1, 2].forEach(n => {
     const u = (v['ref' + n + 'url'] || '').trim();
     const t = (v['ref' + n + 'text'] || '').trim();
     if (u && !isHttpUrl(u)) state.errors['ref' + n] = 'Reference URL must start with http:// or https://';
     else if (t && !u) state.errors['ref' + n] = 'Add the reference URL, or clear the link text.';
+    else if (u && !t) state.errors['ref' + n] = 'Add the link text for this reference, or clear the URL. The link text is the wording that appears in the article.';
   });
 
   // Confirmed products
@@ -524,10 +529,13 @@ function buildFields() {
     fields[f.name] = value;
   });
 
+  // Only a completely empty reference box is dropped here. A half-filled one
+  // never reaches this point: validate() refuses it and shows which half is
+  // missing, so nothing a person typed is discarded without being told.
   fields.references = [1, 2].map(n => ({
     url: (v['ref' + n + 'url'] || '').trim(),
     text: (v['ref' + n + 'text'] || '').trim()
-  })).filter(r => r.url && r.text);
+  })).filter(r => r.url || r.text);
 
   if (currentFormat().needsProducts) {
     fields.selectedProducts = ProductPicker.getSelected();
@@ -580,10 +588,18 @@ function isTruncationWarning(warning) {
   return /reached the output limit/i.test(String(warning || ''));
 }
 
-// List formats go through the background job: a long gift guide can outrun
-// Netlify's 60 second synchronous limit, which cannot be raised. The care guide
-// and single-plant formats are bounded and stay on the synchronous endpoint.
-const BACKGROUND_FORMATS = ['general_gift_guide', 'occasion_gift_guide'];
+// Which formats go through the background job. Netlify's synchronous limit is
+// 60 seconds and cannot be raised, and a format that outruns it returns a 504
+// with nothing to show for the work.
+//
+// The care guide was the last format on the synchronous endpoint and it was
+// timing out: ten sections, a twelve row table and five question-and-answer
+// pairs is a long generation, and it is not bounded the way the brief once
+// assumed. It is not shortened to fit the limit; it is moved off the limit.
+//
+// Only the single-plant gift guide remains synchronous. It is one product and a
+// short article, and it has not been observed to time out.
+const BACKGROUND_FORMATS = ['care_guide', 'general_gift_guide', 'occasion_gift_guide'];
 const POLL_INTERVAL_MS = 2500;
 // Netlify background functions may run for up to 15 minutes, so the browser
 // waits for the whole platform limit plus a buffer. Giving up earlier would mean
@@ -594,6 +610,17 @@ const POLL_TIMEOUT_MS = BACKGROUND_LIMIT_MS + 30 * 1000;
 function newJobId() {
   const rand = () => Math.random().toString(36).slice(2, 10);
   return 'job_' + Date.now().toString(36) + '_' + rand() + rand();
+}
+
+// The waiting copy has to match what is actually being written. The gift guides
+// scale with the number of recommendations; a care guide does not have any, so
+// telling someone it takes longer for eight of them is simply wrong.
+function startingMessage(articleType) {
+  if (articleType === 'care_guide') {
+    // No measured timing for this format, so the message does not claim one.
+    return 'Writing your care guide. Keep this tab open.';
+  }
+  return 'Starting the guide. This runs in the background, usually well under a minute, longer for eight recommendations. Keep this tab open.';
 }
 
 function setPending(message) {
@@ -691,7 +718,7 @@ async function generate() {
 
     if (useBackground) {
       const jobId = newJobId();
-      setPending('Starting the guide. This runs in the background, usually well under a minute, longer for eight recommendations. Keep this tab open.');
+      setPending(startingMessage(state.articleType));
       const started = await postJson('/.netlify/functions/generate-background', Object.assign({ jobId }, requestBody));
       // Netlify answers a background invocation with an empty 202 and no body,
       // so there is nothing to read here and no job id to receive. Only a real

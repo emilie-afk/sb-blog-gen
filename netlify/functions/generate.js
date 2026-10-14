@@ -1,7 +1,8 @@
-// Synchronous generation. Used for the care guide and single-plant formats, and
-// available as a fallback for the list formats. The list formats normally go
-// through generate-background, because a long gift guide can outrun Netlify's
-// 60 second synchronous limit, which cannot be configured.
+// Synchronous generation. Used for the single-plant gift format, and available
+// as a fallback for the others. The care guide and both gift guides normally go
+// through generate-background, because each can outrun Netlify's 60 second
+// synchronous limit, which cannot be configured. This handler is format
+// agnostic and still accepts any article type.
 
 const { validateRequest, ValidationError } = require('./lib/validate');
 const { runGeneration } = require('./lib/run-generation');
