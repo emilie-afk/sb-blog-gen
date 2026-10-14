@@ -100,7 +100,7 @@ exports.handler = async (event) => {
     return json(200, {
       jobId,
       status: 'expired',
-      error: 'That generation did not finish in time. Your brief and confirmed products are still here, so you can generate again with fewer recommendations.',
+      error: 'That generation did not finish in time. Everything you entered is still here, so you can generate again.',
       code: 'job_expired'
     });
   }

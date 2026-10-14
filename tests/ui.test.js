@@ -52,6 +52,13 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   // ── Care guide regression
   let names = await fieldNames();
   check('care fields intact', names.includes('plantName') && names.includes('sciName') && names.includes('productUrl') && names.includes('ref1url'));
+  // The plant type decides which care sections apply, so the form asks for it
+  // rather than guessing from the plant name.
+  check('care guide asks for the plant type', names.includes('plantType'));
+  check('"Not sure" is offered rather than forcing a guess',
+    (await page.locator('[data-name="plantType"] option').allTextContents()).includes('Not sure'));
+  await page.selectOption('[data-name="plantType"]', 'Succulent');
+  await page.waitForTimeout(150);
   check('no working title field anywhere', !names.includes('title'));
   check('title direction offered', names.includes('titleDirection'));
   await page.fill('[data-name="sciName"]', 'Haworthia fasciata');
@@ -71,9 +78,15 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('ref text without url blocked', (await page.textContent('#errorBox')).toLowerCase().includes('reference url'));
   await page.fill('[data-name="ref1url"]', 'https://aspca.org');
   await page.click('#genBtn');
-  await page.waitForSelector('#outputCard.visible');
+  await page.waitForSelector('#outputCard.visible', { timeout: 30000 });
   let req = lastReq();
   check('request shape', req.articleType === 'care_guide' && !!req.fields && !!req.token && !req.carePrompt);
+  check('the plant type reaches the server', req.fields.plantType === 'Succulent');
+  // The 504 this pass fixes: the care guide used to call /generate, which
+  // Netlify caps at 60 seconds.
+  check('the care guide uses the background endpoint',
+    /generate-background/.test(fs.readFileSync('/tmp/last-endpoint.txt', 'utf8')),
+    fs.readFileSync('/tmp/last-endpoint.txt', 'utf8'));
   check('no title field sent', !('title' in req.fields));
   check('no tone sent', !('tone' in req.fields));
   check('title from server shown', (await page.inputValue('#title-text')) === 'Plant Gifts Worth Sending');
@@ -304,11 +317,15 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForSelector('#outputCard.visible');
   check('background job completes after polling', (await page.inputValue('#html-code')).includes('<h2'));
 
-  // ── Synchronous endpoint error handling (care guide path)
-  await switchFormat('care_guide');
+  // ── Synchronous endpoint error handling (single-plant path)
+  // The care guide moved to the background endpoint, so the synchronous error
+  // paths are now exercised through the one format that still uses /generate.
+  // The same reader in ui.js handles both, so the coverage is unchanged.
+  await switchFormat('single_plant_gift');
   await page.waitForTimeout(300);
-  // The care guide's own brief: the format switch cleared the gift guide's.
-  await page.fill('[data-name="plantName"]', 'Haworthia');
+  await page.fill('[data-name="plantName"]', 'Echeveria');
+  await page.selectOption('[data-name="giftAngle"]', 'Low maintenance');
+  await page.waitForTimeout(150);
   setMode('timeout504');
   await page.click('#genBtn');
   await page.waitForTimeout(600);
@@ -807,11 +824,15 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
 
   // ── Fix 1: every active generation counts as pending ────────────────────
   // The flag used to be set only for the background formats, so a synchronous
-  // care guide could be abandoned mid-flight with no question asked.
+  // generation could be abandoned mid-flight with no question asked. The care
+  // guide has since moved to the background endpoint, so the synchronous half
+  // of this check now runs through the single-plant format.
   setMode('');
-  await switchFormat('care_guide');
+  await switchFormat('single_plant_gift');
   await page.waitForTimeout(300);
-  await page.fill('[data-name="plantName"]', 'Haworthia');
+  await page.fill('[data-name="plantName"]', 'Echeveria');
+  await page.selectOption('[data-name="giftAngle"]', 'Low maintenance');
+  await page.waitForTimeout(150);
 
   // The mock answers the synchronous endpoint slowly enough to click through.
   setMode('slowsync');
@@ -863,7 +884,9 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
 
   // A synchronous FAILURE must clear the flag too, or the next new-article
   // click would warn about a generation that is long over.
-  await page.fill('[data-name="plantName"]', 'Haworthia');
+  await page.fill('[data-name="plantName"]', 'Echeveria');
+  await page.selectOption('[data-name="giftAngle"]', 'Low maintenance');
+  await page.waitForTimeout(150);
   setMode('text502');
   await page.click('#genBtn');
   await page.waitForTimeout(800);
@@ -984,6 +1007,140 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('one edit raises exactly one input event', flips === 1);
   check('repeated generations leave the flag correct after an edit',
     await page.evaluate(() => state.articleHtmlCopied === false));
+
+
+  // ── Care guide on the background endpoint ───────────────────────────────
+  // The 504 this pass fixes. A care guide used to call /generate, which Netlify
+  // kills at 60 seconds, and a long guide reliably outran it.
+  setMode('');
+  await switchFormat('care_guide');
+  await page.waitForTimeout(300);
+  const fillCareGuide = async (name, type) => {
+    await page.fill('[data-name="plantName"]', name);
+    await page.selectOption('[data-name="plantType"]', type);
+    await page.waitForTimeout(150);
+  };
+  await fillCareGuide('Tillandsia Bulbosa Belize', 'Air plant (Tillandsia)');
+
+  // A generation that runs well past the synchronous limit. SIMULATED: the mock
+  // holds the job pending for 26 polls at 2.5s each, which is past the 60s
+  // Netlify allows a synchronous function. It proves the browser keeps waiting
+  // and the result still lands; it says nothing about real model latency.
+  setMode('longjob');
+  await page.click('#genBtn');
+  await page.waitForTimeout(1500);
+  check('a care guide starts a background job',
+    /generate-background/.test(fs.readFileSync('/tmp/last-endpoint.txt', 'utf8')),
+    fs.readFileSync('/tmp/last-endpoint.txt', 'utf8'));
+  check('the care guide counts as pending while it runs',
+    await page.evaluate(() => state.generationPending === true));
+  check('the waiting note does not promise eight recommendations',
+    !/eight recommendations/.test(await page.textContent('#pendingNote')),
+    await page.textContent('#pendingNote'));
+  check('the waiting note names the care guide',
+    /care guide/i.test(await page.textContent('#pendingNote')),
+    await page.textContent('#pendingNote'));
+
+  // Past the synchronous limit, still waiting, no error.
+  await page.waitForTimeout(62000);
+  check('still waiting past the 60s synchronous limit',
+    await page.evaluate(() => state.generationPending === true));
+  check('no timeout error is shown past the synchronous limit', !(await page.isVisible('#errorBox')));
+  check('no 504 reaches the user', !/504|took too long/i.test(await page.textContent('#errorBox').catch(() => '')));
+
+  await page.waitForSelector('#outputCard.visible', { timeout: 60000 });
+  check('a long care guide completes through the background flow',
+    (await page.inputValue('#html-code')).includes('<h2'));
+  check('the full payload survives: title',
+    (await page.inputValue('#title-text')).length > 0);
+  check('the full payload survives: excerpt and meta',
+    (await page.inputValue('#excerpt-text')).length > 0 && (await page.inputValue('#meta-text')).length > 0);
+  check('the full payload survives: products and related articles',
+    await page.isVisible('#recsCard')
+    && (await page.textContent('#recsProducts')).length > 0
+    && (await page.textContent('#recsArticles')).length > 0);
+  check('the brief survives a completed background care guide',
+    (await page.inputValue('[data-name="plantName"]')) === 'Tillandsia Bulbosa Belize');
+  setMode('');
+
+  // A failed care guide job reports the failure and keeps the brief.
+  setMode('jobfail');
+  await page.click('#genBtn');
+  await page.waitForTimeout(6000);
+  check('a failed care guide job surfaces the error', await page.isVisible('#errorBox'));
+  check('a failed care guide job clears the pending flag',
+    await page.evaluate(() => state.generationPending === false));
+  check('a failed care guide job keeps the brief',
+    (await page.inputValue('[data-name="plantName"]')) === 'Tillandsia Bulbosa Belize');
+
+  // An expired care guide job.
+  setMode('jobgone');
+  await page.click('#genBtn');
+  await page.waitForTimeout(6000);
+  const expiredText = await page.textContent('#errorBox');
+  check('an expired care guide job is reported', /no longer available|did not finish in time/i.test(expiredText), expiredText.slice(0, 90));
+  check('the expired message does not mention confirmed products',
+    !/confirmed products/i.test(expiredText) && !/fewer recommendations/i.test(expiredText), expiredText.slice(0, 120));
+  check('an expired care guide job keeps the brief',
+    (await page.inputValue('[data-name="plantName"]')) === 'Tillandsia Bulbosa Belize');
+  setMode('');
+
+  // Starting a new article mid-generation: the late result must not land.
+  setMode('slowjob');
+  await page.click('#genBtn');
+  await page.waitForTimeout(1200);
+  check('a pending care guide blocks a silent reset', await page.evaluate(() => state.generationPending === true));
+  await clickNewArticle();
+  await page.waitForTimeout(200);
+  check('abandoning a pending care guide asks first', await dialogOpen());
+  await page.click('#confirmOk');
+  await page.waitForTimeout(300);
+  setMode('');
+  await page.waitForTimeout(9000);
+  check('a late care guide result cannot populate the new article',
+    (await page.inputValue('#html-code')) === '');
+  check('a late care guide result shows no output card', !(await page.isVisible('#outputCard')));
+
+  // Switching format mid-generation does the same.
+  await switchFormat('care_guide');
+  await page.waitForTimeout(300);
+  await fillCareGuide('Haworthia', 'Succulent');
+  setMode('slowjob');
+  await page.click('#genBtn');
+  await page.waitForTimeout(1200);
+  await page.click('.format-option[data-type="general_gift_guide"]');
+  await page.waitForTimeout(200);
+  if (await dialogOpen()) { await page.click('#confirmOk'); await page.waitForTimeout(300); }
+  setMode('');
+  await page.waitForTimeout(9000);
+  check('switching format discards a pending care guide result',
+    (await page.inputValue('#html-code')) === '' && !(await page.isVisible('#outputCard')));
+  check('the new format is active', await page.evaluate(() => state.articleType === 'general_gift_guide'));
+
+  // ── Reference links: a URL with no link text ────────────────────────────
+  await switchFormat('care_guide');
+  await page.waitForTimeout(300);
+  await fillCareGuide('Haworthia', 'Succulent');
+  await page.fill('[data-name="ref1url"]', 'https://aspca.org');
+  await page.click('#genBtn');
+  await page.waitForTimeout(400);
+  check('a URL with no link text is refused, not dropped',
+    (await page.textContent('#errorBox')).toLowerCase().includes('link text'),
+    await page.textContent('#errorBox'));
+  check('the entered URL is preserved when validation fails',
+    (await page.inputValue('[data-name="ref1url"]')) === 'https://aspca.org');
+  check('the rest of the brief is preserved too',
+    (await page.inputValue('[data-name="plantName"]')) === 'Haworthia');
+  check('the inline message appears on the reference box',
+    (await page.textContent('#formFields')).includes('Add the link text for this reference'));
+  check('the hint does not claim the page is fetched or checked',
+    (await page.textContent('#formFields')).includes('The page itself is not opened, read or used to check the article'));
+  await page.fill('[data-name="ref1text"]', 'ASPCA');
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible', { timeout: 30000 });
+  check('a complete reference reaches the server',
+    JSON.stringify(lastReq().fields.references) === '[{"url":"https://aspca.org","text":"ASPCA"}]',
+    JSON.stringify(lastReq().fields.references));
 
   check('no script errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 

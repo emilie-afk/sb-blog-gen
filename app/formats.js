@@ -40,6 +40,10 @@ const FORMATS = {
     fields: [
       { name: 'plantName', type: 'text', label: 'Plant common name', required: true, placeholder: 'e.g. Haworthia, Aeonium Kiwi, String of Pearls', half: true },
       { name: 'sciName', type: 'text', label: 'Scientific name (optional)', placeholder: 'e.g. Haworthia fasciata', half: true },
+      { name: 'plantType', type: 'select', label: 'Plant type', required: true,
+        placeholder: 'Choose the plant type',
+        options: ['Succulent', 'Cactus', 'Air plant (Tillandsia)', 'Houseplant', 'Not sure'],
+        hint: 'This decides which care sections apply. An air plant guide must not be given potting soil and repotting advice. Choose "Not sure" rather than guessing: the guide then keeps the care guidance general instead of inventing a requirement.' },
       { name: 'productUrl', type: 'url', label: 'Product URL on succulentsbox.com (for buy buttons)', placeholder: 'https://succulentsbox.com/products/...' },
       ...SHARED_TAIL
     ]

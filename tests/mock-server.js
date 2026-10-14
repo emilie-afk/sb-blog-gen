@@ -5,6 +5,7 @@
 //             | 'jobtrunc' background job completes but flags truncation
 //             | 'jobrace'  the empty 202 lands before the job record exists
 //             | 'slowjob'  stays pending long enough to abandon mid-generation
+//             | 'longjob'  stays pending past the 60s synchronous limit
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -109,13 +110,16 @@ const server = http.createServer((req, res) => {
         }
         job.polls += 1;
         if (m === 'jobgone') return res.end(JSON.stringify({ jobId: payload.jobId, status: 'expired', code: 'job_expired',
-          error: 'That generation did not finish in time. Your brief and confirmed products are still here, so you can generate again with fewer recommendations.' }));
+          error: 'That generation did not finish in time. Everything you entered is still here, so you can generate again.' }));
         if (m === 'jobfail') return res.end(JSON.stringify({ jobId: payload.jobId, status: 'failed', code: 'ai_failure',
           error: 'The AI service could not generate the article.' }));
         // 'slowjob' stays pending for several polls, which is the window a test
         // needs in order to abandon a generation while it is genuinely in flight
         // and then watch the late result arrive with nowhere to go.
-        const pendingPolls = m === 'slowjob' ? 3 : 2;
+        // 'longjob' stays pending past the point a synchronous request would
+        // have been killed. Netlify's limit is 60s; at 2.5s per poll, 26 polls
+        // is comfortably beyond it. Simulated, not real: see the test notes.
+        const pendingPolls = m === 'slowjob' ? 3 : m === 'longjob' ? 26 : 2;
         // First poll is pending so the browser shows its waiting state.
         if (job.polls < pendingPolls) return res.end(JSON.stringify({ jobId: payload.jobId, status: 'pending', elapsedMs: 2500 }));
         return res.end(JSON.stringify(Object.assign(
