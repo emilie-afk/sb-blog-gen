@@ -106,28 +106,34 @@ ok('the clear-products confirmation uses the agreed copy',
 ok('the clear-products action only renders with products confirmed',
   /selected\.length \? '<button type="button" class="clear-products-btn"/.test(products));
 
-// ── Scope: nothing on the server moved ─────────────────────────────────────
-// This pass was client-side workflow only. If any of these change, the claim in
-// the delivery notes is no longer true.
+// ── Scope ──────────────────────────────────────────────────────────────────
+// Each pass declares what it is NOT allowed to touch, and this check reads the
+// real diff rather than trusting the delivery notes.
+//
+// This pass moves the care guide to the background endpoint, fixes reference
+// validation, and routes care instructions by plant type. That legitimately
+// changes app/main.js, app/ui.js, app/formats.js, the care-guide prompt, the
+// request validator, generate-status.js and generate.js. What it must NOT touch
+// is everything the brief listed as out of scope: the model and token budgets,
+// the background job machinery and job store, Blobs, catalog retrieval, title
+// and metadata generation, output repair and HTML validation, the article
+// index, the catalog data, and the gift editorial rules.
 const { execSync } = require('child_process');
 let changed = [];
 try {
-  changed = execSync('git diff --name-only 8ac5d22', { cwd: root }).toString().split('\n').filter(Boolean);
+  changed = execSync('git diff --name-only 9b0e65c', { cwd: root }).toString().split('\n').filter(Boolean);
 } catch (e) {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
 if (changed && changed.length) {
-  // The client workflow is what this file guards. A later pass may legitimately
-  // change prompts under netlify/functions/lib; what must not change is the
-  // workflow, the function handlers, the catalog data or the article index.
   const offLimits = changed.filter(f =>
-    f.startsWith('app/') || f.startsWith('data/') || f === 'index.html'
-    || /^netlify\/functions\/[^/]+\.js$/.test(f)
-    // validate-output and repair-output are allowed to move ONLY in lockstep with
-    // a comparison-table header rename: they hold that header's spelling, so
-    // leaving them behind would make every article warn about a missing column.
-    || /^netlify\/functions\/lib\/(job-store|timing|run-generation|validate)\.js$/.test(f));
-  ok('the workflow, handlers, catalog and article index are untouched', offLimits.length === 0, offLimits.join(', '));
+    f.startsWith('data/')                                   // article index, catalogs
+    || f === 'index.html'                                   // application shell
+    || /^netlify\/functions\/(generate-background|gift-catalog|auth)\.js$/.test(f)
+    || /^netlify\/functions\/lib\/(job-store|timing|run-generation|repair-output|validate-output|title|rank-articles)\.js$/.test(f)
+    || /^netlify\/functions\/lib\/(shared-rules|prompt-metadata-related|prompt-general-gift-guide|prompt-occasion-gift-guide|prompt-single-plant-gift)\.js$/.test(f));
+  ok('model, jobs, catalog, titles, metadata, output repair and gift rules are untouched',
+    offLimits.length === 0, offLimits.join(', '));
 } else {
   console.log('SKIP scope diff (no git history available)');
 }
