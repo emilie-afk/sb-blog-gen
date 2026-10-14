@@ -151,11 +151,15 @@ also remains available.
 ## Generation timing and the 60 second limit
 
 Netlify's synchronous function limit is 60 seconds and cannot be configured, so
-the list formats do not run synchronously any more.
+most formats do not run synchronously any more.
 
-- `generate.js` still serves the care guide and single-plant formats, which are
-  bounded, and remains available as a fallback for the list formats.
-- `generate-background.js` runs the general and occasion gift guides. Netlify
+- `generate.js` serves the single-plant gift format, and remains available as a
+  fallback for the others.
+- `generate-background.js` runs the care guide and both gift guides. The care
+  guide moved here after it began returning 504s: ten sections, a twelve row
+  table and five question-and-answer pairs is a long generation, and it was
+  never as bounded as the original design assumed. It is not shortened to fit
+  the limit, it is taken off the limit. Netlify
   executes any function whose name ends in `-background` asynchronously with a
   15 minute budget, so a long guide is no longer racing the request timeout.
   Netlify answers the browser with an **empty 202 and no body**, before the
