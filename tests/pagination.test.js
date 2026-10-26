@@ -1,4 +1,7 @@
-process.env.SITE_PASSWORD = 'pw';
+const H = require('./support/harness');
+const WHO = H.newSession();
+// Sessions are checked against the revocation store on every request.
+H.useMemoryStores();
 const requested = [];
 function product(id, handle) {
   return { id, title: 'Product ' + id, handle: handle || 'product-' + id,
@@ -16,7 +19,7 @@ global.fetch = async url => {
 };
 const { handler } = require('../netlify/functions/gift-catalog');
 (async () => {
-  const response = await handler({ httpMethod: 'POST', body: JSON.stringify({ token: 'pw', catalogType: 'gift', collection: 'all' }) });
+  const response = await handler(H.event({ catalogType: 'gift', collection: 'all' }, { as: WHO }));
   const body = JSON.parse(response.body);
   if (response.statusCode !== 200) throw new Error('all-products request failed');
   if (!requested.includes(2)) throw new Error('pagination did not continue after a full page');

@@ -110,33 +110,35 @@ ok('the clear-products action only renders with products confirmed',
 // Each pass declares what it is NOT allowed to touch, and this check reads the
 // real diff rather than trusting the delivery notes.
 //
-// This pass moves the care guide to the background endpoint, fixes reference
-// validation, and routes care instructions by plant type. That legitimately
-// changes app/main.js, app/ui.js, app/formats.js, the care-guide prompt, the
-// request validator, generate-status.js and generate.js. What it must NOT touch
-// is everything the brief listed as out of scope: the model and token budgets,
-// the background job machinery and job store, Blobs, catalog retrieval, title
-// and metadata generation, output repair and HTML validation, the article
-// index, the catalog data, and the gift editorial rules.
+// This pass is the security and confidential-prompt work. It legitimately
+// changes the auth and generation handlers, the job store, the prompt modules
+// (their wording moved to the private pack), run-generation, the browser's
+// request code, index.html (the sign-out control) and netlify.toml. What it
+// must NOT touch: the article index and catalog data, the request validator,
+// title resolution, the table repair, the structural output checks, the article
+// ranking, and the form definitions and preview code. The model and the token
+// budgets are asserted directly below.
 const { execSync } = require('child_process');
 let changed = [];
 try {
-  changed = execSync('git diff --name-only 9b0e65c', { cwd: root }).toString().split('\n').filter(Boolean);
+  changed = execSync('git diff --name-only 20043bc', { cwd: root }).toString().split('\n').filter(Boolean);
 } catch (e) {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
 if (changed && changed.length) {
   const offLimits = changed.filter(f =>
-    f.startsWith('data/')                                   // article index, catalogs
-    || f === 'index.html'                                   // application shell
-    || /^netlify\/functions\/(generate-background|gift-catalog|auth)\.js$/.test(f)
-    || /^netlify\/functions\/lib\/(job-store|timing|run-generation|repair-output|validate-output|title|rank-articles)\.js$/.test(f)
-    || /^netlify\/functions\/lib\/(shared-rules|prompt-metadata-related|prompt-general-gift-guide|prompt-occasion-gift-guide|prompt-single-plant-gift)\.js$/.test(f));
-  ok('model, jobs, catalog, titles, metadata, output repair and gift rules are untouched',
+    f.startsWith('data/')
+    || /^netlify\/functions\/lib\/(validate|title|repair-output|validate-output|rank-articles)\.js$/.test(f)
+    || /^app\/(formats|ui)\.js$/.test(f));
+  ok('data, validation, titles, repair, output checks, ranking, forms and preview are untouched',
     offLimits.length === 0, offLimits.join(', '));
 } else {
   console.log('SKIP scope diff (no git history available)');
 }
+const gen = require(path.join(root, 'netlify/functions/lib/run-generation'));
+ok('the model is unchanged', gen.MODEL === 'claude-haiku-4-5-20251001', gen.MODEL);
+ok('token budgets are unchanged',
+  gen.ARTICLE_MAX_TOKENS === 3500 && gen.GIFT_ARTICLE_MAX_TOKENS === 6000 && gen.METADATA_MAX_TOKENS === 600);
 
 console.log(`\n${failures} failures`);
 if (failures) process.exitCode = 1;
