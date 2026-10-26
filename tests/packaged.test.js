@@ -18,13 +18,19 @@ for (const rel of files) {
 fs.writeFileSync(path.join(STAGE, 'generate.js'), "module.exports = require('./netlify/functions/generate.js')");
 (async () => {
   try {
-    process.env.SITE_PASSWORD = 'smoke-test-password';
+    process.env.SITE_PASSWORD = 'synthetic-smoke-test-password';
+    process.env.SESSION_SECRET = 'synthetic-smoke-test-session-secret-0123456789';
     const handler = require(path.join(STAGE, 'generate.js')).handler;
     if (typeof handler !== 'function') throw new Error('handler was not exported');
-    const response = await handler({ httpMethod: 'POST', body: JSON.stringify({ token: 'wrong' }) });
+    // The old shared-password "token" is no longer accepted in any form.
+    const response = await handler({ httpMethod: 'POST', headers: {}, body: JSON.stringify({ token: process.env.SITE_PASSWORD }) });
     if (response.statusCode !== 401) throw new Error('expected 401, got ' + response.statusCode);
     if (/node_modules|\.js:\d+:\d+/.test(response.body)) throw new Error('response leaked a stack trace');
-    console.log('PASS packaged generate function initializes and rejects a bad token safely');
+    // Missing security configuration denies access rather than letting anyone in.
+    delete process.env.SESSION_SECRET;
+    const unconfigured = await handler({ httpMethod: 'POST', headers: {}, body: '{}' });
+    if (unconfigured.statusCode !== 503) throw new Error('expected 503 without SESSION_SECRET, got ' + unconfigured.statusCode);
+    console.log('PASS packaged generate function initializes, refuses the old password token, and fails closed without configuration');
   } finally {
     fs.rmSync(STAGE, { recursive: true, force: true });
   }

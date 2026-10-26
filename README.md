@@ -13,7 +13,15 @@ Titles are generated, not typed. The content user can give an optional *title
 direction*, then picks the recommended title or one of two alternatives after
 generation.
 
-No build step. Plain HTML, CSS, JavaScript and Netlify Functions.
+Plain HTML, CSS, JavaScript and Netlify Functions. The only build step copies an
+explicit allowlist of browser files into `public/`, which is all Netlify
+publishes (`tools/build-site.js`).
+
+The editorial instructions the generator sends to the model (brand voice,
+article templates, style samples, product and metadata rules) are **not in this
+repository**. They live in a private, versioned prompt pack in Netlify Blobs,
+read only by the server functions. See `docs/PROMPT-PACK.md`. Sign-in uses
+signed, expiring HttpOnly session cookies; see `docs/SECURITY.md`.
 
 ## Layout
 
@@ -26,12 +34,22 @@ app/formats.js                per-format fields, labels, progress copy, panel na
 app/ui.js                     preview sanitizer, copy helpers, panel rendering
 app/products.js               confirmed-product picker (catalog search + manual entry)
 app/main.js                   form state, validation, request creation, output rendering
-netlify/functions/auth.js         password check, returns the session token
+netlify/functions/auth.js         sign in (password -> signed session cookie) and sign out
 netlify/functions/gift-catalog.js live gift and plant products from public storefront JSON
-netlify/functions/generate.js     request validation, prompt selection, Anthropic calls
-netlify/functions/lib/            prompt builders, shared rules, validation, titles,
-                                  article ranking, post-generation output checks
-tests/                            server, handler and browser suites (tests/run.sh)
+netlify/functions/generate.js     synchronous generation (single-plant gift guide)
+netlify/functions/generate-background.js  background generation (the other formats)
+netlify/functions/generate-status.js      job status, scoped to the session that started it
+netlify/functions/lib/session.js          signed sessions, cookies, CSRF, authorisation
+netlify/functions/lib/prompt-pack.js      loads, validates and renders the private prompt pack
+netlify/functions/lib/limits.js           login throttling and usage limits
+netlify/functions/lib/sanitize-output.js  allowlist sanitiser for the article HTML
+netlify/functions/lib/                    prompt assembly (no editorial wording), validation,
+                                          titles, ranking, table repair, output checks, jobs
+tools/                            site build (stamps the deploy context), private prompt-pack
+                                  tooling and signing, parity check, ownership race check,
+                                  read-only listing of obsolete Netlify deploys
+docs/                             security, prompt pack, rollout and history cleanup
+tests/                            server, handler, security and browser suites (tests/run.sh)
 ```
 
 ## Live storefront catalogs
@@ -60,7 +78,8 @@ reaches its time budget, the picker labels the result as potentially incomplete.
 
 The Netlify runtime is pinned to Node 22. The generate handler avoids optional
 chaining in its initialization path, and `tests/packaged.test.js` recreates the
-packaged file layout and verifies that a bad token reaches the handler as a 401.
+packaged file layout and verifies that the handler initializes, refuses a
+request without a session, and fails closed without its security configuration.
 
 `data/*.js` are dual-mode: a classic script in the browser (globals) and a CommonJS
 module in the functions. `netlify.toml` bundles them into the functions explicitly.
@@ -70,10 +89,12 @@ module in the functions. `netlify.toml` bundles them into the functions explicit
 Request:
 
 ```json
-{ "articleType": "occasion_gift_guide", "fields": { }, "token": "..." }
+{ "articleType": "occasion_gift_guide", "fields": { } }
 ```
 
-`articleType` is checked against an allowlist server side, and every field is type
+The request carries no credential in its body. The session is an HttpOnly cookie
+the page cannot read, and every protected call also sends the `X-CSRF-Token`
+header issued at sign-in. `articleType` is checked against an allowlist server side, and every field is type
 checked, length capped and rebuilt before it reaches a prompt builder. The browser
 never sends prompt text.
 
@@ -117,8 +138,24 @@ Shopify's own title field without being duplicated in the body.
 
 ## Environment variables
 
-- `SITE_PASSWORD` — team password, also used as the session token.
-- `ANTHROPIC_API_KEY` — used only inside the function, never sent to the browser.
+Set in Netlify (Site configuration > Environment variables). Full list, with
+optional limits, in `docs/SECURITY.md`.
+
+- `SITE_PASSWORD` — the team password. Compared on the server only; never sent
+  back to the browser.
+- `SESSION_SECRET` — at least 32 random characters, used to sign sessions.
+- `SESSION_EPOCH` — optional; raise it to sign everyone out at once.
+- `PROMPT_PACK_PUBLIC_KEY` — public half of the prompt-pack signing key
+  (`node tools/pack.js keygen`). Only signed pack pointers are accepted.
+- `PROMPT_PACK_CHANNEL` — leave unset in production; **required** in deploy
+  previews and branch deploys (for example `preview`), which refuse to generate
+  without it and can never use `production`.
+- `GENERATION_PAUSED` — `true` pauses generation for maintenance without
+  touching sign-in or the site.
+- `ANTHROPIC_API_KEY` — used only inside the functions, never sent to the browser.
+
+Missing `SITE_PASSWORD` or `SESSION_SECRET` denies all access. Sign-out revokes
+the session on the server. Login throttling and usage limits fail closed.
 
 ## Local testing
 
@@ -126,11 +163,15 @@ Shopify's own title field without being duplicated in the body.
 bash tests/run.sh
 ```
 
-Runs a syntax pass, the validation and prompt-builder suite, the correction-pass
-suite, the generate handler against a stubbed Anthropic SDK, and a headless browser
-suite against `tests/mock-server.js` (which mocks all three functions). The browser
-suite needs playwright and a chromium binary. For manual work, `netlify dev` serves
-the real functions.
+Runs the site build, the application-logic, prompt-pack and security suites, the
+handler suites against a stubbed Anthropic SDK, and a headless browser suite
+against `tests/mock-server.js`. The mock server runs the real sign-in and
+authorisation code and serves only `public/`; it simulates the work behind them.
+The browser suite needs playwright and a chromium binary.
+
+Every committed suite uses synthetic fixtures and a synthetic prompt pack. The
+editorial regression suites, which check the real instructions, are private:
+`docs/PROMPT-PACK.md` explains how to run them.
 
 ## Adding fallback metadata later
 
@@ -195,12 +236,15 @@ environment up on its own. Every handler that reaches the store calls
 the invocation's base64 Blobs context and set `siteID`, `token`, `edgeURL` and
 `deployID`. No `SITE_ID` or personal access token is configured by hand.
 
-Installed version: **@netlify/blobs 8.2.0**, and the store uses the **default,
+Installed version: **@netlify/blobs 10.7.13** (pinned exactly; it supports the
+`onlyIfNew` conditional write used for job ownership and still supports Node
+from 16, while 11.x requires Node 22.12 or later). The store uses the **default,
 eventual consistency**. `connectLambda` sets four properties and never
 `uncachedEdgeURL`, while the client throws `BlobsConsistencyError` on a
-strong-consistency read without it. That is true in 8.2.0 and unchanged in
-11.1.0, the newest release, so no upgrade makes strong consistency available in
-Lambda mode and `uncachedEdgeURL` is never derived by hand.
+strong-consistency read without it. That is true in 8.2.0, 10.7.13 and 11.1.x,
+so no version makes strong consistency available in Lambda mode and
+`uncachedEdgeURL` is never derived by hand. Store names are unchanged on the
+wire (`site:<name>`) between 8.2.0 and 10.7.13, so existing data stays readable.
 
 Eventual consistency shapes how records are written. A new blob is globally
 available immediately; an update to an existing key can take up to 60 seconds to

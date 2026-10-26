@@ -1,0 +1,730 @@
+{
+  "note": "SHA-256 digests of 40-character windows of the private prompt pack. They detect a copy of the editorial content in this repository without containing it. Regenerate privately when the pack changes substantially; see docs/PROMPT-PACK.md.",
+  "prints": [
+    {
+      "label": "shared.styleRules.body",
+      "length": 40,
+      "sha256": "df655c4ba9452f9ac2201dec49b6e82e91d3e1936ab01cec0f6956c5d3be10e0"
+    },
+    {
+      "label": "shared.styleRules.body",
+      "length": 40,
+      "sha256": "04041f74dc8b4daefd2812c75f50e82a1ef8ae16a41b3b21f49a7287e5f11ebb"
+    },
+    {
+      "label": "shared.styleRules.body",
+      "length": 40,
+      "sha256": "6d86d1dfb7b916de8a7d017661ab159d78f37002b5fb126b07b59e4b863a466f"
+    },
+    {
+      "label": "shared.styleRules.body",
+      "length": 40,
+      "sha256": "0087218ac392785175875376caee7f1751f968c2dc443e8d9ef13ac76eabf5e9"
+    },
+    {
+      "label": "shared.styleRules.voiceLines",
+      "length": 40,
+      "sha256": "2e2e2cc8fd883b4fb67e3762187529deb705ac7f683dc61638b72c217e3b7ba7"
+    },
+    {
+      "label": "shared.styleRules.voiceLines",
+      "length": 40,
+      "sha256": "e67a4e62976ad67febd8c944b29d42b8d45a232162712809711189badbf5f2cf"
+    },
+    {
+      "label": "shared.plantAccuracy.body",
+      "length": 40,
+      "sha256": "59a50581c4c5dba80aeac314d84e5fc684cbb60112eecce63c9eb79220dd2ad4"
+    },
+    {
+      "label": "shared.plantAccuracy.body",
+      "length": 40,
+      "sha256": "af310fe4cc281dcdf5899a28d09561e3124742a1755773e98d272cdd949e0585"
+    },
+    {
+      "label": "shared.plantAccuracy.body",
+      "length": 40,
+      "sha256": "113a3cdf8f914a69cda7996cf9fa51ac7b8205602a56bd7eb864b1d4fe8659bd"
+    },
+    {
+      "label": "shared.plantAccuracy.body",
+      "length": 40,
+      "sha256": "5f388604f62449b59d2db8783863e078aaea9be301314277cb01ca9e41119938"
+    },
+    {
+      "label": "shared.plantAccuracy.overlap",
+      "length": 40,
+      "sha256": "ddf7c3eacf885d0fa9c21e2f0f782af77e86030029bf23a188b89a0b1532727f"
+    },
+    {
+      "label": "shared.plantAccuracy.overlap",
+      "length": 40,
+      "sha256": "deafa366b80139f0b065524ebecee34a88a2c1b9dbd524227432b9548cf77a18"
+    },
+    {
+      "label": "shared.plantAccuracy.overlap",
+      "length": 40,
+      "sha256": "c73ae473967199d708914ed06bb000f56893f8e833f8929b0d741f43d6c583a0"
+    },
+    {
+      "label": "shared.plantAccuracy.overlap",
+      "length": 40,
+      "sha256": "511cd963a44e34be8d66e14a787b44bdef9db2cf64ac65067ba11a753a4c1386"
+    },
+    {
+      "label": "shared.giftVoice.body",
+      "length": 40,
+      "sha256": "4163089c7aa123913e4fd87e8307e65307b57a528ff2fe33aee3c7033dad52f5"
+    },
+    {
+      "label": "shared.giftVoice.body",
+      "length": 40,
+      "sha256": "623a6934fd52a6471996f346689f35712ab4a9f9039d351077c7c348721e1275"
+    },
+    {
+      "label": "shared.giftVoice.body",
+      "length": 40,
+      "sha256": "603da11d6bec527b331ad8466af0e5321135003db7ab0f3af47a53186b434d3f"
+    },
+    {
+      "label": "shared.giftVoice.body",
+      "length": 40,
+      "sha256": "0fc9a0f261c334dc9e5af9f36af07aba39a4b4d37384953220d2a48c601f60cb"
+    },
+    {
+      "label": "shared.giftVoice.contextWithBrief",
+      "length": 40,
+      "sha256": "38a5eead13ce9e3a27a209a5656bf154da365d255a12cad000da14113143373a"
+    },
+    {
+      "label": "shared.giftVoice.contextWithBrief",
+      "length": 40,
+      "sha256": "9e713ba440afaa1917fd737578473c99aee6dda6a550043ba589f850ae5b7c82"
+    },
+    {
+      "label": "shared.giftVoice.contextWithBrief",
+      "length": 40,
+      "sha256": "b15c011a445e96ce91d5cfd4350346a32e1a74f4bce8786c4e810da4f0e94810"
+    },
+    {
+      "label": "shared.evidenceRules",
+      "length": 40,
+      "sha256": "5eb9e8a1c473544eddbe67788ce9b56d64bbde52b92fb75da13cf4c88e188bcb"
+    },
+    {
+      "label": "shared.evidenceRules",
+      "length": 40,
+      "sha256": "c0130cc7aef2d3848ddcdc8842b78eeecc4bccf6dd746d8f2fe25a3a4b57bbc6"
+    },
+    {
+      "label": "shared.evidenceRules",
+      "length": 40,
+      "sha256": "783979d6ae27059d8482265b413d1b2a347b6e64c0d851031cf05aa3762de56f"
+    },
+    {
+      "label": "shared.evidenceRules",
+      "length": 40,
+      "sha256": "fe8849204f239e4cfe9333a29ad024501f8a713b975c1f9625d44aec4079cdc2"
+    },
+    {
+      "label": "shared.storefrontDescriptionRules",
+      "length": 40,
+      "sha256": "fe5e23f7378c8bf71228e70cc664eebbb4e88665b515ef0b916b45ab888ba0d1"
+    },
+    {
+      "label": "shared.storefrontDescriptionRules",
+      "length": 40,
+      "sha256": "7b15ae2833a41b7444d072a211c623d3de1e1e952ba4e9cb850dc4414b7a9c54"
+    },
+    {
+      "label": "shared.storefrontDescriptionRules",
+      "length": 40,
+      "sha256": "f8c7f3da69709738d9259ace3266afa81eb34aaec2f3f28b4b1e44888bd8adf1"
+    },
+    {
+      "label": "shared.storefrontDescriptionRules",
+      "length": 40,
+      "sha256": "29e2ddf7951d3432e8c8fa63696aae3555db9b2e0e3e0e425b21e8431e7776d1"
+    },
+    {
+      "label": "shared.comparisonTable.body",
+      "length": 40,
+      "sha256": "452aec0f2512e84626fb19b85fb947c29cdf319da59f95a963f4c7d7c481fe1c"
+    },
+    {
+      "label": "shared.comparisonTable.body",
+      "length": 40,
+      "sha256": "7148109dd7e91652d0437f9dfda07b9a40eda280f6f7db96673465804000ed80"
+    },
+    {
+      "label": "shared.comparisonTable.body",
+      "length": 40,
+      "sha256": "3104ef7645fa49095dd3b6c575fd390ddb6153ecc6b32f400af136e762168d72"
+    },
+    {
+      "label": "shared.comparisonTable.body",
+      "length": 40,
+      "sha256": "a77238c81f100a971abdc1d5c3eaf8d2aeee8d2a60670f406b58ac19bf893cba"
+    },
+    {
+      "label": "shared.productEntry.noNotes",
+      "length": 40,
+      "sha256": "a3c8e04cefad894e276d32a4ec68fe0a2e97cf130e664bda53c70276a27a901e"
+    },
+    {
+      "label": "shared.productEntry.noNotes",
+      "length": 40,
+      "sha256": "5769e1bca2c4283373149393bfb35bc2019d2b6183c887fefd09d4cc4e0acc8f"
+    },
+    {
+      "label": "shared.productEntry.noNotes",
+      "length": 40,
+      "sha256": "080ecf95ae21ddf2718d1cf55a14195a74768208173b7fed3db1652062d64832"
+    },
+    {
+      "label": "shared.additionalInstructions",
+      "length": 40,
+      "sha256": "aa92aedd7305c160b5c307445a748d8aa5c963908339c45053f7cdb289bd5ac2"
+    },
+    {
+      "label": "shared.additionalInstructions",
+      "length": 40,
+      "sha256": "62aa7531d080acbd31e041e06d4b61caa53cd0d1c9db605101e4ddfdf04e9150"
+    },
+    {
+      "label": "shared.keywordLine",
+      "length": 40,
+      "sha256": "f6af413f21b3fae08579993f6a4f1889b2a2ae8f7755de1719b85eadcc4dab55"
+    },
+    {
+      "label": "shared.keywordLine",
+      "length": 40,
+      "sha256": "d5a2a0100a2f3839360b6268202d215ba90b7f1fbef05a5e2e7cd07273fce9b7"
+    },
+    {
+      "label": "shared.keywordLine",
+      "length": 40,
+      "sha256": "0b7863355104589304fba5bc468f0946708d4ede55fbf326b220e53d8b4055cb"
+    },
+    {
+      "label": "careGuide.sections.unlinked.watering",
+      "length": 40,
+      "sha256": "a2ab8d16a7eaf77cedd906a6d365db697c6f7fc679c0dd311c9a2e3b2d41e06c"
+    },
+    {
+      "label": "careGuide.sections.unlinked.watering",
+      "length": 40,
+      "sha256": "f753524f1336ee2e9b457a21aa530f7a93cbd9e400166cc826f563a69d82b29e"
+    },
+    {
+      "label": "careGuide.sections.unlinked.watering",
+      "length": 40,
+      "sha256": "72eaf7e9dea127dceeba6f150ec139adca24e2fc446aab3469af27218a8eb3de"
+    },
+    {
+      "label": "careGuide.sections.unlinked.watering",
+      "length": 40,
+      "sha256": "b40144c2c65406a7bd70b30d72eca4f22240ff1d5c82169e987883c514d76287"
+    },
+    {
+      "label": "careGuide.sections.unlinked.toxicity",
+      "length": 40,
+      "sha256": "fabe09ff9beb41aae72b0ae9433a49b278ab244f228455af3dc6c02407748892"
+    },
+    {
+      "label": "careGuide.sections.unlinked.toxicity",
+      "length": 40,
+      "sha256": "87b953e5fd7bd713241ee0c83d212c85ff84fe57c85df6a2d2d5ece2a7220950"
+    },
+    {
+      "label": "careGuide.sections.unlinked.toxicity",
+      "length": 40,
+      "sha256": "6c20e1e777ad267c0a83651aabfe4d2ebdb2982f717ca6b06aa4c4b46a36f4ea"
+    },
+    {
+      "label": "careGuide.sections.unlinked.toxicity",
+      "length": 40,
+      "sha256": "f0c5d6e5fc09537712c67efade48125f6591163465ae8f48dcd1096b7e828f01"
+    },
+    {
+      "label": "careGuide.sections.unlinked.seasonal",
+      "length": 40,
+      "sha256": "6295ba6b981b2e891bbfd06ef2bf43c9bd61818efdfa21eb9c7001f0545168c0"
+    },
+    {
+      "label": "careGuide.sections.unlinked.seasonal",
+      "length": 40,
+      "sha256": "92dd14f7012dc071bc689f48b607a9f860d7b733b05d0edaa455b97970aefcb2"
+    },
+    {
+      "label": "careGuide.sections.unlinked.seasonal",
+      "length": 40,
+      "sha256": "b1ace42f4a90ca656f0e9187497cee62064ecd08eea88ad088393ce67c1ee4db"
+    },
+    {
+      "label": "careGuide.sections.airPlant.soil",
+      "length": 40,
+      "sha256": "309aa1a1232d04256d4f8d0325f2281e8bf58c65c19be4bd93d82161ce1c8d9d"
+    },
+    {
+      "label": "careGuide.sections.airPlant.soil",
+      "length": 40,
+      "sha256": "2ee8d9f72af76e74e7a9c9042a31ccc9b92f7a2bf720d30cb3873c55a4c7aed3"
+    },
+    {
+      "label": "careGuide.sections.airPlant.soil",
+      "length": 40,
+      "sha256": "1b8bd6d74b6b8dce2b41aa5ca9c4ca50e86832b9585c21e5ba75ae8658f157a4"
+    },
+    {
+      "label": "careGuide.sections.airPlant.soil",
+      "length": 40,
+      "sha256": "85056410581d12576d01ba1ee9f532e2e1a77612961e4cd7cc3868dcf55a54f2"
+    },
+    {
+      "label": "careGuide.sections.airPlant.potting",
+      "length": 40,
+      "sha256": "c24e549e7177e069c0c902fb5262009d5a643744d3e6d4d05d08716dc59d869a"
+    },
+    {
+      "label": "careGuide.sections.airPlant.potting",
+      "length": 40,
+      "sha256": "dc36a83d0c2ac16135dbafb9c36cd12b10d049c29d55f44ee06de495372d2821"
+    },
+    {
+      "label": "careGuide.sections.airPlant.potting",
+      "length": 40,
+      "sha256": "970b0d3e8c5ed97ab862e4f346558245834581bfa83d61a3cb6c5cebeedef3eb"
+    },
+    {
+      "label": "careGuide.sections.airPlant.potting",
+      "length": 40,
+      "sha256": "584ef91465909430b25184de4e996f0be46742ac4bed15293db6578579a52ed6"
+    },
+    {
+      "label": "careGuide.sections.airPlant.pruning",
+      "length": 40,
+      "sha256": "df91b43bb2444ab54edc50e6486e7a2276fc53c64ef4375733822b2c65aab428"
+    },
+    {
+      "label": "careGuide.sections.airPlant.pruning",
+      "length": 40,
+      "sha256": "f4ad4e24c14af267013531e2ce050f6754212b48306fd3e421dcfdcb47048650"
+    },
+    {
+      "label": "careGuide.sections.airPlant.pruning",
+      "length": 40,
+      "sha256": "d062f9782a6f78132bd3934ad8fb6c26d551783dfa200813fd5c21c68a3d057a"
+    },
+    {
+      "label": "careGuide.sections.airPlant.pruning",
+      "length": 40,
+      "sha256": "7ab56c6ed70abf0a2ea5e2360f7460648c9dfaa3ccdfa3921e26134b34d82221"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.soil",
+      "length": 40,
+      "sha256": "5145fda3c30843ed4c308cca5726da689ec2364f9cdad9aea89169d1391012f8"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.soil",
+      "length": 40,
+      "sha256": "ec41174d3f6d3b106cc8a494dd44420b45c6e5d10b5b7f5157aeebc4d8f9bb65"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.soil",
+      "length": 40,
+      "sha256": "499f490d438bd2cef7c961473a47b17d2483672574a8368d02b578a034cf4cba"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.soil",
+      "length": 40,
+      "sha256": "ecc65551aa79efed9969233c7581bcb45bae25d2add98700687ab253c9c59827"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.potting",
+      "length": 40,
+      "sha256": "b928f7445a328dd8f645ffd1ca5f9b722b7bf4e0a4f62acb5bfd3069d4b1abae"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.potting",
+      "length": 40,
+      "sha256": "67c5f4ebb7a305b94c964708b4fbe6ac8b859fe2b53d697b14b3675b5b0fdc29"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.potting",
+      "length": 40,
+      "sha256": "ee651deefc359d16305ca0fca1273b5d2040934ccb4ee8da6b1abaabcc51182f"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.potting",
+      "length": 40,
+      "sha256": "9ad4da1e4dc6633163d78693b805eaf69c3f46b63abb537ef787bfc71dca38aa"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.pruning",
+      "length": 40,
+      "sha256": "9d2b0db2688421e086026a3141b6ac408101527f9eff86e8f121550169dfd265"
+    },
+    {
+      "label": "careGuide.sections.unconfirmed.pruning",
+      "length": 40,
+      "sha256": "faa6efd24914472419f499bf66045ea305d737233ab630710d1d95e2db095b76"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.soil",
+      "length": 40,
+      "sha256": "1a6659d683b4e96ba68dd542d739ebabe49756e786345f6f976f8eb8c8e4a903"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.soil",
+      "length": 40,
+      "sha256": "8655ce686229d11d46f1491e2c9724a1ad55b4c79d66d09ba7d9ce59d8b3a4bd"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.potting",
+      "length": 40,
+      "sha256": "98e570f9d1af47ac49011b1bdf5a11aefe2225b2d49153d31f6e07468a311bbf"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.potting",
+      "length": 40,
+      "sha256": "9dc64740220750f9638324719b558f061614f0a801136cebec3aafc212145c80"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.pruning",
+      "length": 40,
+      "sha256": "bb6b595b016dc7f25829d09a84e9e2b913ebc8a20c0e6658fef9feac21c629ad"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.pruning",
+      "length": 40,
+      "sha256": "e435f217dba9c1908c771f3f4239832cbd91703481368b102fb565eed276bd56"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.pruning",
+      "length": 40,
+      "sha256": "101cbc3e11c4da789a90267d7e88075f71d921c8492a4779c55c7dcf075a5836"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.pruning",
+      "length": 40,
+      "sha256": "6e7dbe427295ddc4a44eb42887216c123ca3660e8038d2a8a173484e41f424db"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.soilLinkHouseplant",
+      "length": 40,
+      "sha256": "10c2178e5d9cd21ea9f5142786077b84e056bdec95dc4e05139e9cf9501e06c2"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.soilLinkHouseplant",
+      "length": 40,
+      "sha256": "9ecd715b17356043d5a006257158c148ee00efb0f881198b8a8113d3b47a74e5"
+    },
+    {
+      "label": "careGuide.sections.soilGrown.soilLinkHouseplant",
+      "length": 40,
+      "sha256": "9fbcbc39f9709c00e419284be4afc518ae5f21325a662ef6e9d14beaa488e72f"
+    },
+    {
+      "label": "careGuide.plantTypeConfirmed",
+      "length": 40,
+      "sha256": "7b8c8a21d408671c394551775fac07e52bdfcd3b89ae3f42cfd60413c8ee5860"
+    },
+    {
+      "label": "careGuide.plantTypeConfirmed",
+      "length": 40,
+      "sha256": "03f6d460ee87d9662137a575587a1c823c9b3a8482378c1e57f8ca812b5c2ae1"
+    },
+    {
+      "label": "careGuide.plantTypeUnconfirmed",
+      "length": 40,
+      "sha256": "1531e228ef2e4d4853a96f109fa81fc2d3ffcc4573999a2e502416540349f323"
+    },
+    {
+      "label": "careGuide.plantTypeUnconfirmed",
+      "length": 40,
+      "sha256": "44530e5a191598f737221d89ed4ac12a133b52896729643f628901312d200c41"
+    },
+    {
+      "label": "careGuide.plantTypeUnconfirmed",
+      "length": 40,
+      "sha256": "29583a657d0172346a783d273bba4f6ecf9e63300eaf54403a5fad447c6b4c5e"
+    },
+    {
+      "label": "careGuide.plantTypeUnconfirmed",
+      "length": 40,
+      "sha256": "22a23b25ee8f4c1cb6140fcc45c55dbe95cd54fd555a0c2a1be831f2fe7fa0b4"
+    },
+    {
+      "label": "careGuide.document",
+      "length": 40,
+      "sha256": "052133ef56fc23b9d6634ecfaf4e103be4753cddbf251ac15aabbaca143a34df"
+    },
+    {
+      "label": "careGuide.document",
+      "length": 40,
+      "sha256": "63226d0b10f793565c5ff6569e011821f864655ec4bdf78fe650ef640d316581"
+    },
+    {
+      "label": "singlePlantGift.document",
+      "length": 40,
+      "sha256": "be32bc0a1d21080c735a46238e248d85b843d9698989b7cda353990f088c6f0d"
+    },
+    {
+      "label": "singlePlantGift.document",
+      "length": 40,
+      "sha256": "44e745d25f1d8285e7feeedb1cc90a98aa43fb8c995fed11238eb0dbde65cc92"
+    },
+    {
+      "label": "singlePlantGift.document",
+      "length": 40,
+      "sha256": "a4231f43786063cd6dcfaf79853a94655b52ed38f70d78e8d5a92f349be070cb"
+    },
+    {
+      "label": "singlePlantGift.document",
+      "length": 40,
+      "sha256": "317e133c27d395f16b727b993a2354f62b6e52cdb5688866e1fa46c25063497e"
+    },
+    {
+      "label": "generalGiftGuide.document",
+      "length": 40,
+      "sha256": "0ec508e573065515b02a48868d3946603e8f7282210f1d6c8d5e75452de90323"
+    },
+    {
+      "label": "generalGiftGuide.document",
+      "length": 40,
+      "sha256": "fc64114da17fc5224e4cbb0ce0cae968c039ca2f950d26707dff43a47dd0e3a4"
+    },
+    {
+      "label": "generalGiftGuide.document",
+      "length": 40,
+      "sha256": "fb15a10004b9ef022c81972de2dcec6181872a3b8829c0b6e6b303506e90478f"
+    },
+    {
+      "label": "generalGiftGuide.document",
+      "length": 40,
+      "sha256": "2be8a26212f4bed5cf0b5602633d929cf22eaa048e5bdfd2dbd98ddd997fd0ff"
+    },
+    {
+      "label": "occasionGiftGuide.dateSupplied",
+      "length": 40,
+      "sha256": "2511af96f7ce27b25a905f9232dbc60ace4dceff08f165089c8dc45d11a9c854"
+    },
+    {
+      "label": "occasionGiftGuide.dateSupplied",
+      "length": 40,
+      "sha256": "f545b0ff549bdcff893ac8f44e4001698072ca46e1cb8eb862dbf7e339921bc2"
+    },
+    {
+      "label": "occasionGiftGuide.dateSupplied",
+      "length": 40,
+      "sha256": "b99a062592024f83bfb337e3e5831ffb4ef79d8e1535f87b5610a7a8b5619442"
+    },
+    {
+      "label": "occasionGiftGuide.dateSupplied",
+      "length": 40,
+      "sha256": "58305f56c8c5f6b9da2e2ff629f2c9d98c0f97e382387a7a97b67e8fb11ce500"
+    },
+    {
+      "label": "occasionGiftGuide.dateMissing",
+      "length": 40,
+      "sha256": "dbb3de19d6e4d2c08207915c2ec631e3d721b7caeb3ca01329bd99b322782496"
+    },
+    {
+      "label": "occasionGiftGuide.dateMissing",
+      "length": 40,
+      "sha256": "49bb32b0e9dcd4cd20ac5ecf493f65d74eeff26d9c485b8c54b067e76853e6cb"
+    },
+    {
+      "label": "occasionGiftGuide.dateMissing",
+      "length": 40,
+      "sha256": "7939a3bffe5b83c3bf848bc79e1638dedbe34dfa46820235422e02463675056b"
+    },
+    {
+      "label": "occasionGiftGuide.sensitiveBlock",
+      "length": 40,
+      "sha256": "76d7e9f5f7c15fd7c341d77dbf38f53d75679d797c649f11b6b95a03a85e474f"
+    },
+    {
+      "label": "occasionGiftGuide.sensitiveBlock",
+      "length": 40,
+      "sha256": "30ceeca634df1a16156c18fb538d489e1f347ed5ba5ede4f24aee46eefb381da"
+    },
+    {
+      "label": "occasionGiftGuide.sensitiveBlock",
+      "length": 40,
+      "sha256": "12410235fd9ff07bd4562ef3ee2c41dff8ea7ed8bfde6bdd878bbc03c5c7f957"
+    },
+    {
+      "label": "occasionGiftGuide.sensitiveBlock",
+      "length": 40,
+      "sha256": "913536e4ebc3adaf709133208365895696224ab2506c3fe4ae8c5e307f443ad9"
+    },
+    {
+      "label": "occasionGiftGuide.document",
+      "length": 40,
+      "sha256": "cda5442160b634dbbc9435b7a402c7ba5632518e0fc085064d37e5636900dd3d"
+    },
+    {
+      "label": "occasionGiftGuide.document",
+      "length": 40,
+      "sha256": "c553ad625caf13ce5d3519dc1ec840a4aa15f5e39bf037903d4fe0565293eac5"
+    },
+    {
+      "label": "occasionGiftGuide.document",
+      "length": 40,
+      "sha256": "8b80532bcc9961a5fa0d2a41778f0542eb963d5ed577acc92223cc167adf5557"
+    },
+    {
+      "label": "metadata.productRule.wrapper",
+      "length": 40,
+      "sha256": "4f9151a95ebf4beab49c8888322bd9a5971af78e5fa71f3d3164ce9d4b9914b7"
+    },
+    {
+      "label": "metadata.productRule.wrapper",
+      "length": 40,
+      "sha256": "e44a35a5e9dddc73b911989c1ad5881379067b71232f12c8c3c8730032d32b04"
+    },
+    {
+      "label": "metadata.productRule.wrapper",
+      "length": 40,
+      "sha256": "01f1d416189d2a4a106f645d213699e8bc4fb3de4373d92197e96a488692f352"
+    },
+    {
+      "label": "metadata.productRule.careGuide",
+      "length": 40,
+      "sha256": "fcf85ee6bd539359c7294c37fe120b198cba02fab80352971d24e87124819e6b"
+    },
+    {
+      "label": "metadata.productRule.careGuide",
+      "length": 40,
+      "sha256": "06f8805331fe9552204a011d9219a0df1142609d64985214831072d07751c9f7"
+    },
+    {
+      "label": "metadata.relatedRule.careGuide",
+      "length": 40,
+      "sha256": "8e08a82f9824de241ea36fca5ce571fad68c0c8766e7b729f601c1c20630207f"
+    },
+    {
+      "label": "metadata.relatedRule.careGuide",
+      "length": 40,
+      "sha256": "b666f87677f72bc1e0246e7ab8c134d222f6ff0b0fcd6b9948e986323eb40206"
+    },
+    {
+      "label": "metadata.relatedRule.careGuide",
+      "length": 40,
+      "sha256": "6917af8957d84f8659a245122e64d56c3e953262a91c6c4a16bf0f40765cb485"
+    },
+    {
+      "label": "metadata.relatedRule.gift",
+      "length": 40,
+      "sha256": "92a7cd318a806a1f435f45a9377bbb20709b3220fdc0962f5eb7ac9b38e59b91"
+    },
+    {
+      "label": "metadata.relatedRule.gift",
+      "length": 40,
+      "sha256": "2e59aede9f4c32888fcc58a6558d5a23682b1c648e65f8e6a3f5d6413149c38f"
+    },
+    {
+      "label": "metadata.relatedRule.gift",
+      "length": 40,
+      "sha256": "4707f6a5b8a905af48404000f961d71115f49c3ce68097e4d0b638db94e76a64"
+    },
+    {
+      "label": "metadata.relatedRule.gift",
+      "length": 40,
+      "sha256": "246663f5df823e1ad97b9fab72a72fe196e30e0a3889c5717d3d783c675285e1"
+    },
+    {
+      "label": "metadata.document",
+      "length": 40,
+      "sha256": "30e17e761ced90837fa5f3ddae231bd47f799269edfc67221b7c2e3d0502c327"
+    },
+    {
+      "label": "metadata.document",
+      "length": 40,
+      "sha256": "9019dc3863398d61a0945554c151ed5667beca043755f4b410f0a2057aa34927"
+    },
+    {
+      "label": "metadata.document",
+      "length": 40,
+      "sha256": "fb6ed92a23dd762ea4f3af478cb67fc35576d005b4ac1cd0ba89aadcc5914b0f"
+    },
+    {
+      "label": "metadata.document",
+      "length": 40,
+      "sha256": "d9be238821f8ca485746d22fdf8c402f33589f464d6ad6896460fca0c5cf92a0"
+    },
+    {
+      "label": "metadata.titleDirectionRule",
+      "length": 40,
+      "sha256": "567fb35c95c63fc86d98ac37118c69e2ae6ef1a44b24d0bc50be976c2c329a30"
+    },
+    {
+      "label": "metadata.titleDirectionRule",
+      "length": 40,
+      "sha256": "7a82dab4fe56f64f9be33819c896c4d588b4ec34087881cdd15bb98ae931277e"
+    },
+    {
+      "label": "metadata.titleDirectionRule",
+      "length": 40,
+      "sha256": "5a8c29bbb8756eb972079e4c71202063e385df97f030d36fa85fb756ef8aa736"
+    },
+    {
+      "label": "metadata.titleRules",
+      "length": 40,
+      "sha256": "97be42f676b0be85cfd4588fdeab73c91f78ed3c7b79e1a836dc37f6db79b245"
+    },
+    {
+      "label": "metadata.titleRules",
+      "length": 40,
+      "sha256": "cedcd6cc09c50f1bd9909faff7daa3a1434d60d0af4d636eeac9de05d916385d"
+    },
+    {
+      "label": "metadata.titleRules",
+      "length": 40,
+      "sha256": "7a69fbcc358359908d20ed84da805390ad77da4820dcac9039219d63acc1be66"
+    },
+    {
+      "label": "metadata.titleRules",
+      "length": 40,
+      "sha256": "6c6baaabef0e79242a32714c0c2e5b8fba898f56680e287f51873def25dbf3cb"
+    },
+    {
+      "label": "metadata.sensitiveRule",
+      "length": 40,
+      "sha256": "0d56456b05868ff99432df2bfa1d3707aa9def5f3fbeed6940e190c48f761b73"
+    },
+    {
+      "label": "metadata.sensitiveRule",
+      "length": 40,
+      "sha256": "d67ca7a39b45b06c3ca20b8e4b981604153c3f288df78a76f14edd7bbe7c8dd3"
+    },
+    {
+      "label": "metadata.sensitiveRule",
+      "length": 40,
+      "sha256": "675b8f45ae678e333030e9854aabbad9d14d36b4f35837869c3936a71f78d2c8"
+    },
+    {
+      "label": "archive.productAccuracy",
+      "length": 40,
+      "sha256": "1f6b8a785d6fa6a14399f977f6030cd400d9a7df9639c7fe3714d0cab4ac14a0"
+    },
+    {
+      "label": "archive.productAccuracy",
+      "length": 40,
+      "sha256": "918de05f6b2c2ef97c5b94100b3de7ee816a82baff868e90c41afe35dc7fb45e"
+    },
+    {
+      "label": "archive.productAccuracy",
+      "length": 40,
+      "sha256": "6aa718fc183fbc7adee67dbdf918d91401d791f16c5469134e89b4061dd35e1c"
+    },
+    {
+      "label": "archive.productAccuracy",
+      "length": 40,
+      "sha256": "b52a64502fad7f67b249cef33db56ef4939da533034cf420ff16e77a4438e035"
+    }
+  ]
+}
