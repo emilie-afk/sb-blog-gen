@@ -1,3 +1,11 @@
 node_modules/
 .netlify/
 .tmp-packaged/
+# Built by tools/build-site.js; never committed.
+public/
+# Private prompt packs and editorial QA. Never committed: see docs/PROMPT-PACK.md.
+private/
+*.prompt-pack.json
+prompt-pack*.json
+# Written by tools/build-site.js from Netlify's CONTEXT at build time; never committed.
+netlify/functions/lib/deploy-context.json

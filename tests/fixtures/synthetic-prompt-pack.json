@@ -1,0 +1,160 @@
+{
+  "meta": {
+    "format": "sb-prompt-pack",
+    "schema": 1,
+    "synthetic": true
+  },
+  "careGuide": {
+    "document": "⟨careGuide.document⟩ {{additional}} {{brandGreen}} {{buyBtn}} {{headingColor}} {{keywordLine}} {{plantAccuracy}} {{plantName}} {{plantType}} {{plantTypeRule}} {{potting}} {{productUrlOrNone}} {{pruning}} {{refsNote}} {{sciSuffix}} {{seasonal}} {{soil}} {{styleRules}} {{toxicity}} {{updatedTag}} {{watering}}",
+    "plantTypeConfirmed": "⟨careGuide.plantTypeConfirmed⟩ {{plantTypeLower}}",
+    "plantTypeUnconfirmed": "⟨careGuide.plantTypeUnconfirmed⟩ {{plantName}}",
+    "sections": {
+      "airPlant": {
+        "potting": "⟨careGuide.sections.airPlant.potting⟩ {{h3}} {{plantName}}",
+        "pruning": "⟨careGuide.sections.airPlant.pruning⟩ {{h3}} {{plantName}}",
+        "soil": "⟨careGuide.sections.airPlant.soil⟩ {{h3}} {{plantName}}"
+      },
+      "linked": {
+        "seasonal": "⟨careGuide.sections.linked.seasonal⟩ {{h3}} {{plantName}} {{winterLink}}",
+        "toxicity": "⟨careGuide.sections.linked.toxicity⟩ {{h3}} {{plantName}} {{toxicityLink}}",
+        "watering": "⟨careGuide.sections.linked.watering⟩ {{h3}} {{overwateringLink}} {{plantName}}"
+      },
+      "soilGrown": {
+        "potting": "⟨careGuide.sections.soilGrown.potting⟩ {{h3}} {{plantName}} {{terracottaLink}}",
+        "pruning": "⟨careGuide.sections.soilGrown.pruning⟩ {{h3}} {{plantName}} {{pruningLink}}",
+        "soil": "⟨careGuide.sections.soilGrown.soil⟩ {{h3}} {{plantName}} {{soilLink}}",
+        "soilLinkHouseplant": "⟨careGuide.sections.soilGrown.soilLinkHouseplant⟩ {{plantName}} {{succulentSoilLink}}",
+        "soilLinkStandard": "⟨careGuide.sections.soilGrown.soilLinkStandard⟩ {{succulentSoilLink}}"
+      },
+      "unconfirmed": {
+        "potting": "⟨careGuide.sections.unconfirmed.potting⟩ {{h3}} {{plantName}}",
+        "pruning": "⟨careGuide.sections.unconfirmed.pruning⟩ {{h3}} {{plantName}}",
+        "soil": "⟨careGuide.sections.unconfirmed.soil⟩ {{h3}} {{plantName}}"
+      },
+      "unlinked": {
+        "seasonal": "⟨careGuide.sections.unlinked.seasonal⟩ {{h3}} {{plantName}}",
+        "toxicity": "⟨careGuide.sections.unlinked.toxicity⟩ {{h3}} {{plantName}}",
+        "watering": "⟨careGuide.sections.unlinked.watering⟩ {{h3}} {{plantName}}"
+      }
+    }
+  },
+  "generalGiftGuide": {
+    "brief": {
+      "budget": "⟨generalGiftGuide.brief.budget⟩ {{budget}}",
+      "characteristics": "⟨generalGiftGuide.brief.characteristics⟩ {{characteristics}}",
+      "count": "⟨generalGiftGuide.brief.count⟩ {{count}}",
+      "noRecipient": "⟨generalGiftGuide.brief.noRecipient⟩",
+      "recipient": "⟨generalGiftGuide.brief.recipient⟩ {{recipient}}"
+    },
+    "document": "⟨generalGiftGuide.document⟩ {{additional}} {{brief}} {{comparisonTable}} {{count}} {{cta}} {{evidenceRules}} {{giftVoice}} {{headingColor}} {{keywordLine}} {{plantAccuracy}} {{products}} {{refsNote}} {{storefrontRules}} {{styleRules}} {{updatedTag}}"
+  },
+  "metadata": {
+    "catalogBlock": "⟨metadata.catalogBlock⟩ {{catalog}}",
+    "document": "⟨metadata.document⟩ {{articles}} {{catalogBlock}} {{productLines}} {{productRule}} {{relatedRule}} {{sensitiveRule}} {{shape}} {{subject}} {{titleRules}}",
+    "productLines": "⟨metadata.productLines⟩ {{count}} {{list}}",
+    "productRule": {
+      "careGuide": "⟨metadata.productRule.careGuide⟩ {{plantName}}",
+      "singlePlant": "⟨metadata.productRule.singlePlant⟩ {{plantName}}",
+      "wrapper": "⟨metadata.productRule.wrapper⟩ {{rule}}"
+    },
+    "relatedRule": {
+      "careGuide": "⟨metadata.relatedRule.careGuide⟩ {{plantName}}",
+      "gift": "⟨metadata.relatedRule.gift⟩"
+    },
+    "sensitiveRule": "⟨metadata.sensitiveRule⟩",
+    "shape": {
+      "withCatalog": "⟨metadata.shape.withCatalog⟩",
+      "withoutCatalog": "⟨metadata.shape.withoutCatalog⟩"
+    },
+    "subject": {
+      "careGuide": "⟨metadata.subject.careGuide⟩ {{plantName}} {{sciSuffix}}",
+      "fallback": "⟨metadata.subject.fallback⟩",
+      "generalGiftGuide": "⟨metadata.subject.generalGiftGuide⟩ {{budgetPart}} {{characteristicsPart}} {{count}} {{recipientPart}}",
+      "occasionGiftGuide": "⟨metadata.subject.occasionGiftGuide⟩ {{count}} {{occasion}} {{recipientPart}} {{relationshipPart}} {{sensitivePart}}",
+      "part": {
+        "budget": "⟨metadata.subject.part.budget⟩ {{budget}}",
+        "characteristics": "⟨metadata.subject.part.characteristics⟩ {{characteristics}}",
+        "noRecipient": "⟨metadata.subject.part.noRecipient⟩",
+        "occasion": "⟨metadata.subject.part.occasion⟩ {{occasion}}",
+        "recipient": "⟨metadata.subject.part.recipient⟩ {{recipient}}",
+        "relationship": "⟨metadata.subject.part.relationship⟩ {{relationship}}",
+        "sensitive": "⟨metadata.subject.part.sensitive⟩"
+      },
+      "singlePlantGift": "⟨metadata.subject.singlePlantGift⟩ {{angle}} {{occasionPart}} {{plantName}} {{recipientPart}}"
+    },
+    "titleCountRule": "⟨metadata.titleCountRule⟩ {{count}}",
+    "titleDirectionRule": "⟨metadata.titleDirectionRule⟩ {{direction}}",
+    "titleKeywordRule": "⟨metadata.titleKeywordRule⟩ {{keyword}}",
+    "titleNoCountRule": "⟨metadata.titleNoCountRule⟩",
+    "titleNoYearRule": "⟨metadata.titleNoYearRule⟩",
+    "titleRules": "⟨metadata.titleRules⟩ {{countRule}} {{directionRule}} {{keywordRule}} {{yearRule}}",
+    "titleYearRule": "⟨metadata.titleYearRule⟩ {{year}}"
+  },
+  "occasionGiftGuide": {
+    "brief": {
+      "budget": "⟨occasionGiftGuide.brief.budget⟩ {{budget}}",
+      "characteristics": "⟨occasionGiftGuide.brief.characteristics⟩ {{characteristics}}",
+      "count": "⟨occasionGiftGuide.brief.count⟩ {{count}}",
+      "occasion": "⟨occasionGiftGuide.brief.occasion⟩ {{occasion}}",
+      "recipient": "⟨occasionGiftGuide.brief.recipient⟩ {{recipient}}",
+      "relationship": "⟨occasionGiftGuide.brief.relationship⟩ {{relationship}}",
+      "year": "⟨occasionGiftGuide.brief.year⟩ {{year}}"
+    },
+    "dateMissing": "⟨occasionGiftGuide.dateMissing⟩",
+    "dateSupplied": "⟨occasionGiftGuide.dateSupplied⟩ {{date}}",
+    "document": "⟨occasionGiftGuide.document⟩ {{additional}} {{brief}} {{closing}} {{comparisonTable}} {{count}} {{dateRule}} {{evidenceRules}} {{giftVoice}} {{headingColor}} {{keywordLine}} {{plantAccuracy}} {{products}} {{refsNote}} {{sensitiveBlock}} {{storefrontRules}} {{styleRules}} {{updatedTag}}",
+    "sensitiveBlock": "⟨occasionGiftGuide.sensitiveBlock⟩",
+    "sensitiveSoftLink": "⟨occasionGiftGuide.sensitiveSoftLink⟩ {{url}}"
+  },
+  "shared": {
+    "additionalInstructions": "⟨shared.additionalInstructions⟩ {{instructions}}",
+    "comparisonTable": {
+      "body": "⟨shared.comparisonTable.body⟩ {{priceCell}} {{priceHeader}} {{td}} {{th}}",
+      "priceCell": "⟨shared.comparisonTable.priceCell⟩ {{td}}",
+      "priceHeader": "⟨shared.comparisonTable.priceHeader⟩ {{th}}"
+    },
+    "evidenceRules": "⟨shared.evidenceRules⟩",
+    "giftVoice": {
+      "body": "⟨shared.giftVoice.body⟩ {{contextLine}}",
+      "contextWithBrief": "⟨shared.giftVoice.contextWithBrief⟩ {{framing}}",
+      "contextWithoutBrief": "⟨shared.giftVoice.contextWithoutBrief⟩"
+    },
+    "keywordLine": "⟨shared.keywordLine⟩ {{keyword}}",
+    "plantAccuracy": {
+      "body": "⟨shared.plantAccuracy.body⟩ {{overlap}}",
+      "overlap": "⟨shared.plantAccuracy.overlap⟩"
+    },
+    "productEntry": {
+      "description": "⟨shared.productEntry.description⟩ {{description}}",
+      "noNotes": "⟨shared.productEntry.noNotes⟩",
+      "notes": "⟨shared.productEntry.notes⟩ {{notes}}",
+      "price": "⟨shared.productEntry.price⟩ {{price}}",
+      "productType": "⟨shared.productEntry.productType⟩ {{productType}}",
+      "tags": "⟨shared.productEntry.tags⟩ {{tags}}",
+      "title": "⟨shared.productEntry.title⟩ {{index}} {{title}}",
+      "url": "⟨shared.productEntry.url⟩ {{url}}"
+    },
+    "references": {
+      "block": "⟨shared.references.block⟩ {{lines}}",
+      "line": "⟨shared.references.line⟩ {{index}} {{text}} {{url}}"
+    },
+    "storefrontDescriptionRules": "⟨shared.storefrontDescriptionRules⟩",
+    "styleRules": {
+      "body": "⟨shared.styleRules.body⟩ {{headingColor}} {{voiceLines}}",
+      "voiceLines": "⟨shared.styleRules.voiceLines⟩"
+    }
+  },
+  "singlePlantGift": {
+    "brief": {
+      "angle": "⟨singlePlantGift.brief.angle⟩ {{angle}}",
+      "care": "⟨singlePlantGift.brief.care⟩ {{care}}",
+      "occasion": "⟨singlePlantGift.brief.occasion⟩ {{occasion}}",
+      "plant": "⟨singlePlantGift.brief.plant⟩ {{plant}} {{sci}}",
+      "productNotes": "⟨singlePlantGift.brief.productNotes⟩ {{notes}}",
+      "productUrl": "⟨singlePlantGift.brief.productUrl⟩ {{url}}",
+      "recipient": "⟨singlePlantGift.brief.recipient⟩ {{recipient}}"
+    },
+    "document": "⟨singlePlantGift.document⟩ {{additional}} {{brief}} {{cta}} {{evidenceRules}} {{giftVoice}} {{introLink}} {{keywordLine}} {{plant}} {{plantAccuracy}} {{refsNote}} {{sci}} {{storefrontRules}} {{styleRules}} {{updatedTag}}",
+    "introLink": "⟨singlePlantGift.introLink⟩ {{plant}} {{url}}"
+  }
+}

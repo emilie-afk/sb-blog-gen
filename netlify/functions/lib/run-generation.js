@@ -1,6 +1,11 @@
 // The generation core, shared by the synchronous function and the background job.
 // It takes already-validated fields and returns either a finished payload or a
 // structured failure. It never touches HTTP, auth or storage.
+//
+// The prompt pack is passed in, never loaded here. The caller loads it once, at
+// the start of the request, and that same handle is used for every prompt this
+// run builds. That is what pins a job to one prompt version: activating a new
+// pack while a background job is running cannot reach the handle it holds.
 
 const Anthropic = require('@anthropic-ai/sdk');
 const { buildCareGuidePrompt } = require('./prompt-care-guide');
@@ -11,6 +16,7 @@ const { buildMetadataAndRelatedPrompt, CATALOG_FORMATS } = require('./prompt-met
 const { resolveTitles } = require('./title');
 const { validateArticleOutput } = require('./validate-output');
 const { repairArticleHtml } = require('./repair-output');
+const { sanitizeArticleHtml } = require('./sanitize-output');
 const { ARTICLES } = require('../../../data/articles.js');
 const { CATALOG } = require('../../../data/catalog.js');
 
@@ -125,13 +131,79 @@ function reconcileCatalogProducts(picked) {
   return out.slice(0, 4);
 }
 
+// Bounded retries. The SDK retries connection errors, 408, 409, 429 and 5xx
+// with exponential backoff; this states the bound explicitly rather than leaning
+// on a default that could change with an upgrade. Each retry is a full model
+// call, so the number stays small, and a job that still fails is reported as
+// failed. Nothing retries a whole generation automatically.
+const MODEL_MAX_RETRIES = 2;
+
+// instanceof against an SDK error class, tolerating a build of the SDK (or a
+// test double) that does not export it.
+function isSdkError(err, className) {
+  const Ctor = Anthropic && Anthropic[className];
+  return typeof Ctor === 'function' && err instanceof Ctor;
+}
+
+// The browser is never shown a provider error verbatim. An API error message
+// can carry the provider's own diagnostic text, request identifiers and, for
+// some validation failures, a fragment of what was sent, which here is prompt
+// content. The status alone is enough to tell the user what to do next.
+function safeProviderError(err) {
+  const status = err && Number(err.status);
+  if (status === 429) {
+    return { code: 'ai_rate_limited', error: 'The AI service is busy right now. Please wait a minute and generate again.' };
+  }
+  if (status === 529 || status === 503 || status === 502 || status === 500) {
+    return { code: 'ai_unavailable', error: 'The AI service is temporarily unavailable. Please try again in a few minutes.' };
+  }
+  if (status === 401 || status === 403) {
+    return { code: 'server_config', error: 'The AI service rejected the server credentials. The API key needs to be checked in Netlify.' };
+  }
+  if (status === 400 || status === 413 || status === 422) {
+    return { code: 'ai_rejected', error: 'The AI service could not accept this request. Try shortening the additional instructions or the product notes.' };
+  }
+  // The SDK's error classes all report name "Error", so the class is tested
+  // directly rather than by name.
+  if (isSdkError(err, 'APIConnectionTimeoutError') || (err && (err.name === 'AbortError' || err.name === 'TimeoutError'))) {
+    return { code: 'ai_timeout', error: 'The AI service did not respond in time. Please try again.' };
+  }
+  return { code: 'ai_failure', error: 'The AI service could not generate the article. Please try again.' };
+}
+
+// What reaches the server log about a provider failure: the class of error and
+// its status, never its message, for the same reason as above.
+function describeProviderError(err) {
+  if (!err) return 'unknown';
+  const kind = isSdkError(err, 'APIConnectionTimeoutError') ? 'connection_timeout'
+    : isSdkError(err, 'APIConnectionError') ? 'connection_error'
+    : isSdkError(err, 'APIError') ? 'api_error'
+    : 'error';
+  const type = err.error && err.error.error && err.error.error.type;
+  return [kind, err.status ? `status ${err.status}` : '', type || ''].filter(Boolean).join(' ');
+}
+
 // Returns { ok: true, payload } or { ok: false, status, error, code }.
-async function runGeneration({ articleType, fields, apiKey, timer, client }) {
-  const anthropic = client || new Anthropic({ apiKey });
+async function runGeneration({ articleType, fields, apiKey, timer, client, pack }) {
+  if (!pack || typeof pack.render !== 'function') {
+    // A programming error, not a configuration one: every caller loads the pack
+    // before it gets here. Reported without any detail of what is missing.
+    return { ok: false, status: 500, error: 'The article instructions were not loaded.', code: 'prompt_config' };
+  }
+  const anthropic = client || new Anthropic({ apiKey, maxRetries: MODEL_MAX_RETRIES });
 
   const promptStart = timer ? timer.start() : 0;
-  const articlePrompt = BUILDERS[articleType](fields);
-  const metadataPrompt = buildMetadataAndRelatedPrompt(articleType, fields);
+  let articlePrompt, metadataPrompt;
+  try {
+    articlePrompt = BUILDERS[articleType](fields, pack);
+    metadataPrompt = buildMetadataAndRelatedPrompt(articleType, fields, pack);
+  } catch (err) {
+    // A template the pack lacks, or a placeholder it cannot fill. The template
+    // name is structural and safe to log; the content never is.
+    console.error('Prompt build failed for pack', pack.version, ':', err && err.message);
+    if (timer) timer.record('prompt_build', timer.since(promptStart));
+    return { ok: false, status: 503, error: 'The article instructions are not configured correctly on the server. No article was generated.', code: 'prompt_config' };
+  }
   if (timer) timer.record('prompt_build', timer.since(promptStart));
 
   // The article and the metadata call run in parallel: both already receive the
@@ -158,13 +230,9 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
 
   if (articleRes.status === 'rejected') {
     const err = articleRes.reason || {};
-    console.error('Anthropic article call failed:', err.message || err);
-    return {
-      ok: false,
-      status: 502,
-      error: 'The AI service could not generate the article: ' + (err.message || 'unknown error'),
-      code: 'ai_failure'
-    };
+    console.error('Anthropic article call failed:', describeProviderError(err));
+    const safe = safeProviderError(err);
+    return { ok: false, status: 502, error: safe.error, code: safe.code };
   }
 
   const processingStart = timer ? timer.start() : 0;
@@ -175,7 +243,11 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   // The repair refuses to act unless it is certain; validateArticleOutput still
   // warns about anything it left alone.
   const repair = repairArticleHtml(rawHtml);
-  const html = repair.html;
+  // Allowlist sanitisation, independent of anything the model was told. A normal
+  // article passes through byte for byte; one carrying a script, an event
+  // handler or an unsafe URL is rebuilt without it, and a warning says so.
+  const cleaned = sanitizeArticleHtml(repair.html);
+  const html = cleaned.html;
   if (!html || html.length < 200) {
     if (timer) timer.record('response_processing', timer.since(processingStart));
     return {
@@ -187,6 +259,10 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   }
 
   const warnings = [];
+
+  if (cleaned.changed) {
+    warnings.push('Some HTML in the generated article was not safe to publish (for example a script, an event handler or an unsafe link) and was removed. Read the article through before publishing.');
+  }
 
   if (repair.repaired) {
     warnings.push(`The comparison table header row came back merged into one cell and was rebuilt into separate header cells. Check the table before publishing.`);
@@ -209,7 +285,7 @@ async function runGeneration({ articleType, fields, apiKey, timer, client }) {
   let meta = null;
 
   if (metadataRes.status === 'rejected') {
-    console.error('Anthropic metadata call failed:', (metadataRes.reason && metadataRes.reason.message) || metadataRes.reason);
+    console.error('Anthropic metadata call failed:', describeProviderError(metadataRes.reason));
     warnings.push('The excerpt, meta description and related recommendations could not be generated. The article itself is fine.');
   } else {
     try {
@@ -271,5 +347,6 @@ module.exports = {
   TRUNCATION_WARNING,
   METADATA_MAX_TOKENS,
   MODEL,
-  _internals: { stripFences, stripDashes, stripDashesPlain, firstText, parseMetadata, reconcileArticles, reconcileCatalogProducts }
+  MODEL_MAX_RETRIES,
+  _internals: { safeProviderError, describeProviderError, stripFences, stripDashes, stripDashesPlain, firstText, parseMetadata, reconcileArticles, reconcileCatalogProducts }
 };

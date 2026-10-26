@@ -11,8 +11,8 @@
 //
 // CONSISTENCY. The store uses the default, eventual consistency. connectLambda
 // does not provide uncachedEdgeURL, and @netlify/blobs throws BlobsConsistencyError
-// on a strong-consistency read without it. That is true in the installed 8.2.0 and
-// still true in 11.1.0, so no upgrade buys strong consistency in Lambda mode, and
+// on a strong-consistency read without it. That was true in 8.2.0 and is still
+// true in the installed 10.7.13 and in 11.1.x, so no upgrade buys strong consistency in Lambda mode, and
 // uncachedEdgeURL is never invented here.
 //
 // Eventual consistency shapes how records are written. A NEW blob is available
@@ -28,6 +28,20 @@
 //
 // A record holds no prompts and no credentials: status, timestamps, the finished
 // payload, and an error message already made safe for the browser.
+//
+// ACCESS SCOPE. Every record carries the session id that created it. A job id is
+// a reference, not a capability: generate-status will only return a record to a
+// caller whose signed session matches the scope stored on it. The session id is
+// a random opaque value, not a credential, so storing it grants nothing to
+// anyone who reads the store; the signed cookie is what proves a caller holds
+// that session, and no cookie, token or password is ever written to a record.
+//
+// PROMPT VERSION. The pack version a job started with is stamped on the record
+// so a later prompt edit cannot change a job that is already running, and so an
+// article can be traced back to the instructions that produced it. The version
+// identifier is recorded; the prompt content never is.
+
+const { createIfAbsent, getConditionalStore, markConditionalStoreForTests } = require('./atomic-create');
 
 const STORE_NAME = 'article-jobs';
 const TTL_MS = 60 * 60 * 1000;   // an hour: long enough to come back to a tab
@@ -64,19 +78,32 @@ function getStore() {
   if (injectedStore) return injectedStore;
   const blobs = loadBlobs();
   // Default consistency: see the CONSISTENCY note above. getStore throws
-  // MissingBlobsEnvironmentError when connectJobStore has not run.
-  return blobs.getStore({ name: STORE_NAME });
+  // MissingBlobsEnvironmentError when connectJobStore has not run. The store is
+  // created through atomic-create so its conditional creates are guarded.
+  return getConditionalStore(blobs, STORE_NAME);
 }
 
 // Test seam. Nothing in production may call these.
+// Every operation yields to the event loop before touching the map, so
+// concurrent callers really do interleave the way separate function instances
+// would. A read-then-write claim races under this store; createIfAbsent, which
+// checks and writes in one step, does not.
 function useMemoryStoreForTests() {
   const map = new Map();
-  injectedStore = {
-    async set(key, value) { map.set(key, value); },
-    async get(key) { return map.has(key) ? map.get(key) : null; },
+  const tick = () => new Promise(r => setImmediate(r));
+  // set() follows the @netlify/blobs 10 contract: with { onlyIfNew: true } the
+  // check and the write happen in one step and the answer is { modified }.
+  injectedStore = markConditionalStoreForTests({
+    async set(key, value, options) {
+      await tick();
+      if (options && options.onlyIfNew && map.has(key)) return { modified: false };
+      map.set(key, value);
+      return { modified: true, etag: 'memory' };
+    },
+    async get(key) { await tick(); return map.has(key) ? map.get(key) : null; },
     _map: map,
     _isMemoryTestStore: true
-  };
+  });
   return injectedStore;
 }
 function setStoreForTests(store) { injectedStore = store; return injectedStore; }
@@ -141,42 +168,93 @@ async function get(jobId) {
   return readKey(jobId);
 }
 
-async function createPending(jobId, meta) {
-  return put(jobId, {
+function pendingRecord(jobId, meta) {
+  const now = new Date().toISOString();
+  return {
     jobId,
     status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
     // Non-identifying context only, so a status poll can show something useful.
     articleType: meta && meta.articleType,
-    recommendationCount: meta && meta.recommendationCount
-  });
+    recommendationCount: meta && meta.recommendationCount,
+    // Who may read this job, and which prompt version it is pinned to.
+    scope: (meta && meta.scope) || null,
+    promptVersion: (meta && meta.promptVersion) || null
+  };
 }
 
-async function completeJob(jobId, payload, timing) {
-  const existing = (await readKey(jobId)) || { jobId, createdAt: new Date().toISOString() };
-  return put(jobId + RESULT_SUFFIX, Object.assign({}, existing, {
-    status: 'complete',
-    updatedAt: new Date().toISOString(),
-    timing: timing || null,
-    result: payload
-  }));
+// OWNERSHIP. The pending record is created with a conditional create, so exactly
+// one caller can create it, whichever instance it runs in and whichever session
+// it carries. That caller owns the job: only it starts a generation, and only
+// its scope is ever written into the job's records.
+//
+// Returns { created: true, record } to the single winner, and
+// { created: false, existing } to everyone else. `existing` may be null when
+// the winner's record is not yet visible to this reader; a loser never needs
+// it, because losing means "do not run".
+async function claim(jobId, meta) {
+  const record = pendingRecord(jobId, meta);
+  const { created } = await createIfAbsent(getStore(), jobId, JSON.stringify(record));
+  if (created) return { created: true, record };
+  let existing = null;
+  try { existing = await get(jobId); } catch { existing = null; }
+  return { created: false, existing };
 }
 
-async function failJob(jobId, error, code, timing) {
-  const existing = (await readKey(jobId)) || { jobId, createdAt: new Date().toISOString() };
-  return put(jobId + RESULT_SUFFIX, Object.assign({}, existing, {
-    status: 'failed',
-    updatedAt: new Date().toISOString(),
-    timing: timing || null,
-    error: error,
-    code: code || 'ai_failure'
-  }));
+// Kept for callers that only need the pending record; it goes through the same
+// conditional create, so it cannot overwrite a job either.
+async function createPending(jobId, meta) {
+  const claimed = await claim(jobId, meta);
+  if (!claimed.created) {
+    throw Object.assign(new Error('That job id is already in use.'), { code: 'job_exists' });
+  }
+  return claimed.record;
+}
+
+// A record belongs to a scope when it was stamped with that scope.
+//
+// A record with no scope predates this change. It stays readable to a signed-in
+// session only inside TTL_MS of its creation, which covers a job that was
+// running at deploy time, and then retires on its own: no later deploy is
+// needed to close the allowance, and an old unscoped result never becomes
+// readable by id alone.
+function isReadableBy(record, sid, now) {
+  if (!record) return false;
+  if (!record.scope) {
+    const at = typeof now === 'number' ? now : Date.now();
+    const created = new Date(record.createdAt).getTime();
+    return Number.isFinite(created) && (at - created) <= TTL_MS;
+  }
+  return record.scope === sid;
+}
+
+// TERMINAL RECORDS. Written by the owner only, with the owner's record passed
+// in rather than re-read from storage, so the scope on the result is the scope
+// that won the claim, not whatever a later read happens to return. The terminal
+// key is itself created conditionally: the first terminal outcome stands, and
+// nothing, including a second writer, can replace it.
+//
+// `owner` is the record returned by claim(). Without it (older call sites and
+// tests) the pending record is read back as before.
+async function terminal(jobId, owner, fields) {
+  const base = owner || (await readKey(jobId)) || { jobId, createdAt: new Date().toISOString() };
+  const record = Object.assign({}, base, fields, { updatedAt: new Date().toISOString() });
+  const { created } = await createIfAbsent(getStore(), jobId + RESULT_SUFFIX, JSON.stringify(record));
+  return Object.assign(record, { written: created });
+}
+
+async function completeJob(jobId, payload, timing, owner) {
+  return terminal(jobId, owner, { status: 'complete', timing: timing || null, result: payload });
+}
+
+async function failJob(jobId, error, code, timing, owner) {
+  return terminal(jobId, owner, { status: 'failed', timing: timing || null, error, code: code || 'ai_failure' });
 }
 
 module.exports = {
   connectJobStore, getStore, isConnected,
-  newJobId, parseJobId, createPending, completeJob, failJob, get, put, isExpired,
+  newJobId, parseJobId, createPending, claim, isReadableBy, completeJob, failJob, get, put, isExpired,
   TTL_MS, STORE_NAME, RESULT_SUFFIX, JOB_ID_PATTERN,
   useMemoryStoreForTests, setStoreForTests, resetStoreForTests
 };

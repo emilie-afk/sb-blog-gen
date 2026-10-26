@@ -1,11 +1,17 @@
 // Form state, format-aware field rendering, validation, request creation
 // and output rendering.
 
-let _sessionToken = null;
+// The CSRF value issued with this sign-in. The session itself is an HttpOnly
+// cookie this script cannot read, and the password is never kept anywhere: it
+// is sent once, to the auth function, and the field is cleared. This value is
+// held in memory only, never in localStorage, sessionStorage or a cookie, so a
+// reload signs the person out of this page and they sign in again, exactly as
+// before.
+let _csrfToken = null;
 
 // Article-specific state. Everything in here belongs to ONE article and is
 // cleared together by resetArticleState(). Application-level state that must
-// outlive an article lives outside it: _sessionToken above, and the picker's
+// outlive an article lives outside it: _csrfToken above, and the picker's
 // loaded catalog caches.
 //
 // The defaults are defined once, as a factory, so the initial state and every
@@ -80,15 +86,20 @@ async function login() {
   try {
     const res = await fetch('/.netlify/functions/auth', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pwd })
     });
     const data = await res.json();
-    if (res.ok && data.ok) {
-      _sessionToken = data.token; // held in memory only, never stored
+    // The password field is cleared whatever the outcome, so it is not left in
+    // the page after a failed attempt either.
+    document.getElementById('pwd').value = '';
+    if (res.ok && data.ok && data.csrfToken) {
+      _csrfToken = data.csrfToken;
       document.getElementById('login-overlay').classList.add('hidden');
       document.getElementById('app').style.display = 'block';
-      document.getElementById('pwd').value = '';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
       initApp();
     } else {
       err.textContent = data.error || 'Incorrect password.';
@@ -100,6 +111,39 @@ async function login() {
     btn.disabled = false;
     btn.textContent = 'Sign In';
   }
+}
+
+// ── Sign out ─────────────────────────────────────────────────────
+// Clears the session cookie on the server and the CSRF value here, abandons any
+// generation in flight, and returns to the sign-in screen. A failed request
+// still signs the page out locally: the cookie expires on its own, and without
+// the CSRF value it cannot be used for anything from this page.
+async function logout() {
+  state.generationId += 1;
+  state.generationPending = false;
+  try {
+    await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logout' })
+    });
+  } catch (e) { /* signing out locally is still correct */ }
+  _csrfToken = null;
+  returnToSignIn('');
+}
+
+// Shown when the server says the session is no longer valid. Everything typed
+// into the form stays where it is, so signing back in loses nothing.
+function returnToSignIn(message) {
+  _csrfToken = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('loginError').textContent = message || '';
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+  document.getElementById('pwd').focus();
 }
 
 // ── Field rendering ──────────────────────────────────────────────
@@ -205,7 +249,7 @@ function renderForm() {
   if (picker) {
     ProductPicker.mount(
       picker,
-      () => ({ occasion: state.values.occasion || '', token: _sessionToken }),
+      () => ({ occasion: state.values.occasion || '', csrfToken: _csrfToken }),
       () => { /* the picker renders its own count */ }
     );
   }
@@ -562,6 +606,16 @@ const ERROR_TITLES = {
   no_products: 'No confirmed products',
   not_enough_products: 'Not enough confirmed products',
   unauthorized: 'Your session has expired',
+  csrf_failed: 'Your session could not be verified',
+  maintenance: 'Generation is paused',
+  limits_unavailable: 'Generation is temporarily unavailable',
+  session_check_unavailable: 'Your sign-in could not be checked',
+  rate_limited: 'Too many generations',
+  prompt_config: 'The article instructions are not configured',
+  ai_rate_limited: 'The AI service is busy',
+  ai_unavailable: 'The AI service is unavailable',
+  ai_rejected: 'The AI service rejected the request',
+  ai_timeout: 'The AI service timed out',
   ai_failure: 'The AI service failed',
   incomplete_response: 'The AI response was incomplete',
   server_config: 'The server is not configured',
@@ -630,10 +684,15 @@ function setPending(message) {
   el.style.display = message ? 'block' : 'none';
 }
 
+// Every protected call goes through here. The session cookie rides along
+// automatically on a same-origin request; the CSRF value has to be sent
+// explicitly, which is the point: a page on another site can make the browser
+// send the cookie, but it cannot read or send this header.
 async function postJson(url, body) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': _csrfToken || '' },
     body: JSON.stringify(body)
   });
   return { res, data: await readResponse(res) };
@@ -655,7 +714,7 @@ async function waitForJob(jobId, onTick, generationId) {
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
     if (generationId !== state.generationId) throw new StaleGeneration();
-    const { res, data } = await postJson('/.netlify/functions/generate-status', { jobId, token: _sessionToken });
+    const { res, data } = await postJson('/.netlify/functions/generate-status', { jobId });
     if (generationId !== state.generationId) throw new StaleGeneration();
     if (!res.ok) {
       throw Object.assign(new Error(data.error || `Status check failed (HTTP ${res.status}).`), { code: data.code });
@@ -709,8 +768,7 @@ async function generate() {
   const ticker = [1, 2, 3].map((s, i) => setTimeout(() => setProgress(s), (i + 1) * 3500));
   const requestBody = {
     articleType: state.articleType,
-    fields: buildFields(),
-    token: _sessionToken
+    fields: buildFields()
   };
 
   try {
@@ -771,6 +829,12 @@ async function generate() {
     setPending('');
     document.getElementById('progressCard').classList.remove('visible');
     showError(ERROR_TITLES[err.code] || 'Generation failed', err.message || String(err));
+    // Sessions now expire. When one has, the person is offered the sign-in
+    // screen straight away; the brief and the confirmed products stay in the
+    // form, so signing back in and generating again loses nothing.
+    if (err.code === 'unauthorized' || err.code === 'csrf_failed') {
+      returnToSignIn('Your session has ended. Sign in again to continue; your brief is still here.');
+    }
   }
 
   // The reset may have run while this was in flight, in which case the button

@@ -2,6 +2,8 @@
 // SucculentsBox.com already serves. No Admin API, no credentials, and only
 // handles from the allowlist in data/gift-collections.js are ever requested.
 
+const { authorizeRequest } = require('./lib/session');
+const { logEvent } = require('./lib/timing');
 const {
   isAllowedCollection, isAllowedLivePlantCollection,
   collectionForOccasion, DEFAULT_GIFT_COLLECTION
@@ -154,16 +156,20 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  // The products themselves are public storefront data. The endpoint is
+  // protected anyway, because it makes outbound requests on the caller's behalf
+  // and an open one would be a free proxy for hammering the storefront.
+  const auth = await authorizeRequest(event);
+  if (!auth.ok) {
+    logEvent('request_refused', { fn: 'gift-catalog', reason: auth.reason });
+    return json(auth.status, { error: auth.error, code: auth.code });
+  }
+
   let payload;
   try {
     payload = JSON.parse(event.body || '{}');
   } catch {
     return json(400, { error: 'Invalid request body', code: 'bad_request' });
-  }
-
-  const sitePassword = process.env.SITE_PASSWORD;
-  if (!sitePassword || payload.token !== sitePassword) {
-    return json(401, { error: 'Your session has expired. Please sign in again.', code: 'unauthorized' });
   }
 
   // A collection may be chosen explicitly, but only from the allowlist. Anything
@@ -223,9 +229,12 @@ exports.handler = async (event) => {
     const aborted = err && (err.name === 'AbortError' || err.name === 'TimeoutError');
     console.error('Gift catalog fetch failed for', handle, ':', err && err.message);
     return json(err && err.statusCode === 404 ? 404 : 502, {
+      // Only this module's own HTTP-status message is passed on. Anything else,
+      // a network or parse error, is described generically rather than echoing
+      // a library's internal message to the browser.
       error: aborted
         ? 'The Succulents Box storefront did not respond in time.'
-        : (err && err.message) || 'The Succulents Box storefront could not be reached.',
+        : (err && err.statusCode && err.message) || 'The Succulents Box storefront could not be reached.',
       code: 'storefront_failure',
       collection: handle
     });
