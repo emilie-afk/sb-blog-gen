@@ -79,7 +79,9 @@ for (const file of files) {
   });
   check(`no binary padding: ${rel}`, control === -1, control === -1 ? undefined : `control char at index ${control}`);
 
-  try { new vm.Script(text, { filename: rel }); check(`parses: ${rel}`, true); }
+  // JSON files (the build's deploy-context stamp) are bundled too, and must be
+  // valid JSON rather than valid script.
+  try { if (rel.endsWith('.json')) JSON.parse(text); else new vm.Script(text, { filename: rel }); check(`parses: ${rel}`, true); }
   catch (err) { check(`parses: ${rel}`, false, err.message); }
 }
 
