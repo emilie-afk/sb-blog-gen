@@ -41,6 +41,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .header-icon { font-size: 26px; }
 .header h1 { font-size: 17px; font-weight: 700; }
 .header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+.header-spacer { flex: 1; }
+.logout-btn { background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 6px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.logout-btn:hover { background: rgba(255,255,255,0.24); }
 .container { max-width: 900px; margin: 0 auto; padding: 22px 18px; }
 .card { background: white; border-radius: 12px; border: 1px solid #e0e8e0; padding: 22px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
 .card-title { font-size: 13px; font-weight: 700; color: #2d5428; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
@@ -262,7 +266,8 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
 </head>
 <body>
 
-<!-- ── Login overlay (no localStorage — session only) ── -->
+<!-- ── Login overlay. The password is sent once and never stored; the session
+     is an HttpOnly cookie this page cannot read. ── -->
 <div id="login-overlay">
   <div class="login-box">
     <div class="login-icon">🌵</div>
@@ -282,6 +287,8 @@ input.invalid, textarea.invalid, select.invalid { border-color: #c00; background
     <h1>Succulents Box – Blog Post Generator</h1>
     <p>Care guides and gift guides, written for Shopify</p>
   </div>
+  <div class="header-spacer"></div>
+  <button class="logout-btn" id="logoutBtn" type="button" onclick="logout()">Sign out</button>
 </div>
 
 <div class="container">

@@ -11,7 +11,10 @@ const ProductPicker = (function () {
   let activeTab = 'gift';
   let container = null;
   let onChange = () => {};
-  let getContext = () => ({ occasion: '', token: null });
+  // The session is an HttpOnly cookie the browser sends on its own; the CSRF
+  // value comes from main.js, which holds it in memory only.
+  let getContext = () => ({ occasion: '', csrfToken: null });
+  const catalogHeaders = ctx => ({ 'Content-Type': 'application/json', 'X-CSRF-Token': (ctx && ctx.csrfToken) || '' });
 
   const RENDER_LIMIT = 100;
   const search = { gift: '', plants: '' };
@@ -79,9 +82,9 @@ const ProductPicker = (function () {
     try {
       const res = await fetch('/.netlify/functions/gift-catalog', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: catalogHeaders(ctx),
         body: JSON.stringify({
-          token: ctx.token,
           occasion: ctx.occasion || '',
           collection: collectionOverride || ''
         })
@@ -121,8 +124,8 @@ const ProductPicker = (function () {
     render();
     try {
       const res = await fetch('/.netlify/functions/gift-catalog', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: ctx.token, catalogType: 'plants', collection: handle })
+        method: 'POST', credentials: 'same-origin', headers: catalogHeaders(ctx),
+        body: JSON.stringify({ catalogType: 'plants', collection: handle })
       });
       const data = await readResponse(res);
       if (!res.ok) throw new Error(data.error || `The live plant request failed (HTTP ${res.status}).`);

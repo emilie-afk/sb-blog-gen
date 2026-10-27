@@ -2,6 +2,12 @@
 // it minted. Four states reach the browser: pending, complete, failed and
 // expired. Nothing here exposes prompts, credentials or stack traces.
 //
+// ACCESS SCOPE. A job id is a reference, not a permission. The record carries
+// the session id that created it, and a caller whose signed session does not
+// match is told the job is not available, in exactly the words used for a job
+// that has gone. Guessing or capturing an id therefore yields nothing: not the
+// article, not the error, and not even confirmation that the job exists.
+//
 // Startup race: Netlify answers a background invocation with an empty 202 before
 // the handler has necessarily run, so the first status poll can easily arrive
 // before createPending has written anything. A missing record is therefore
@@ -11,11 +17,19 @@
 
 const jobs = require('./lib/job-store');
 const { logEvent } = require('./lib/timing');
+const { authorizeRequest } = require('./lib/session');
 
 // Cold start, queueing and the first blob write. Generous on purpose: being a
 // little slow to report a genuinely lost job costs nothing, whereas calling a
 // starting job expired ends the poll and loses the user's generation.
 const STARTUP_GRACE_MS = 90 * 1000;
+
+const GONE = jobId => ({
+  jobId,
+  status: 'expired',
+  error: 'That generation is no longer available. Your brief and confirmed products are still here, so you can generate again.',
+  code: 'job_expired'
+});
 
 function json(statusCode, payload) {
   return {
@@ -30,16 +44,19 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  // Before parsing and before the store: no session, no access.
+  const auth = await authorizeRequest(event);
+  if (!auth.ok) {
+    logEvent('request_refused', { fn: 'generate-status', reason: auth.reason });
+    return json(auth.status, { error: auth.error, code: auth.code });
+  }
+  const sid = auth.session.sid;
+
   let payload;
   try {
     payload = JSON.parse(event.body || '{}');
   } catch {
     return json(400, { error: 'Invalid request body', code: 'bad_request' });
-  }
-
-  const sitePassword = process.env.SITE_PASSWORD;
-  if (!sitePassword || payload.token !== sitePassword) {
-    return json(401, { error: 'Your session has expired. Please sign in again.', code: 'unauthorized' });
   }
 
   // Lambda compatibility: connect the Blobs context before any store access.
@@ -76,8 +93,17 @@ exports.handler = async (event) => {
     });
   }
 
+  // Somebody else's job reads as a job that is gone. Same status, same code,
+  // same message, so the response cannot be used to probe for ids.
+  if (record && !jobs.isReadableBy(record, sid)) {
+    logEvent('job_scope_mismatch', { jobId, sid });
+    return json(200, GONE(jobId));
+  }
+
   // No record yet. Inside the startup grace period this is the normal race with
-  // a cold starting background function, not a lost job.
+  // a cold starting background function, not a lost job. Nothing is disclosed
+  // here either way: a pending answer carries no data, and it is also the
+  // answer for an id nobody has used.
   if (!record) {
     if (parsed.ageMs <= STARTUP_GRACE_MS) {
       return json(200, {
@@ -88,12 +114,7 @@ exports.handler = async (event) => {
         starting: true
       });
     }
-    return json(200, {
-      jobId,
-      status: 'expired',
-      error: 'That generation is no longer available. Your brief and confirmed products are still here, so you can generate again.',
-      code: 'job_expired'
-    });
+    return json(200, GONE(jobId));
   }
 
   if (jobs.isExpired(record) && record.status === 'pending') {
@@ -123,5 +144,7 @@ exports.handler = async (event) => {
     });
   }
 
+  // Only the finished article payload is returned. The record's scope, prompt
+  // version and timing stay on the server.
   return json(200, Object.assign({ jobId, status: 'complete' }, record.result));
 };

@@ -37,7 +37,9 @@ class FakeAnthropic {
         // article budget is per format now, so a numeric guess would drift.
         // The metadata prompt is the one that demands a JSON object.
         const prompt = String(opts.messages[0].content);
-        const isArticle = !/Return ONLY a valid JSON object/.test(prompt);
+        // The marker covers the synthetic pack the committed suites use; the
+        // phrase covers a real pack, when the suite is run against one.
+        const isArticle = !/⟨metadata\.document⟩|Return ONLY a valid JSON object/.test(prompt);
         lastCall[isArticle ? 'article' : 'metadata'] = { max_tokens: opts.max_tokens };
         await new Promise(r => setTimeout(r, isArticle ? behaviour.articleMs : behaviour.metadataMs));
         if (isArticle && behaviour.articleFail) throw new Error('overloaded');
@@ -55,15 +57,20 @@ class FakeAnthropic {
 }
 require.cache[sdkPath] = { id: sdkPath, filename: sdkPath, loaded: true, exports: FakeAnthropic };
 
-process.env.SITE_PASSWORD = 'pw';
-process.env.ANTHROPIC_API_KEY = 'k';
+const H = require('./support/harness');
+H.applyTestEnv();
 
 // The job store has no production fallback: off-platform it throws rather than
 // quietly using process memory. Tests that exercise the job lifecycle install
 // the memory store on purpose, so a passing run can never mean "Blobs failed and
 // something invisible took over". tests/blobs-integration.test.js covers the
 // real Netlify Blobs path.
-require(path.join(ROOT, 'netlify/functions/lib/job-store')).useMemoryStoreForTests();
+// Counters and the prompt pack get in-memory stores for the same reason.
+H.useMemoryStores();
+// Every call in this suite is made as one signed-in session. The security suite
+// covers what happens without one.
+const WHO = H.newSession();
+const AUTH = H.event({}, { as: WHO }).headers;
 
 const { ARTICLE_MAX_TOKENS, GIFT_ARTICLE_MAX_TOKENS, METADATA_MAX_TOKENS, articleMaxTokens, GIFT_FORMATS, TRUNCATION_WARNING } =
   require(path.join(ROOT, 'netlify/functions/lib/run-generation'));
@@ -100,7 +107,7 @@ const sensitiveFields = n => ({
 });
 
 const callSync = (articleType, fields) => generate.handler({
-  httpMethod: 'POST', body: JSON.stringify({ token: 'pw', articleType, fields })
+  httpMethod: 'POST', headers: AUTH, body: JSON.stringify({ articleType, fields })
 });
 
 (async () => {
@@ -171,8 +178,13 @@ const callSync = (articleType, fields) => generate.handler({
   check('timing log keys are the allowlist',
     Object.keys(logLines[0]).every(k =>
       ['event', 'context', 'totalMs', 'phases', 'articleType', 'productCount',
-       'recommendationCount', 'articleChars', 'truncated', 'ok', 'jobId'].includes(k)),
+       'recommendationCount', 'articleChars', 'truncated', 'ok', 'jobId',
+       // Added with signed sessions: the opaque session id and the prompt
+       // version. Neither is a credential or content.
+       'promptVersion', 'sid'].includes(k)),
     Object.keys(logLines[0]).join(','));
+  check('timing log never carries the signed session or the CSRF value',
+    !line.includes(WHO.token) && !line.includes(WHO.payload.csrf) && !line.includes(WHO.token.split('.')[2]));
 
   // ── Failure paths still behave ─────────────────────────────────
   behaviour.products = products(4);
@@ -217,13 +229,13 @@ const callSync = (articleType, fields) => generate.handler({
   const jobId = 'job_' + Date.now().toString(36) + '_abcdefgh';
   const accepted = await background.handler({
     httpMethod: 'POST',
-    body: JSON.stringify({ token: 'pw', jobId, articleType: 'occasion_gift_guide', fields: occasionFields(8) })
+    headers: AUTH, body: JSON.stringify({ jobId, articleType: 'occasion_gift_guide', fields: occasionFields(8) })
   });
   check('background start is accepted', accepted.statusCode === 202 && JSON.parse(accepted.body).jobId === jobId);
   check('background emits its own timing line', logLines.some(l => l.context === 'generate-background' && l.jobId === jobId));
 
-  const askStatus = (id, token) => status.handler({
-    httpMethod: 'POST', body: JSON.stringify({ token: token || 'pw', jobId: id })
+  const askStatus = (id, headers) => status.handler({
+    httpMethod: 'POST', headers: headers || AUTH, body: JSON.stringify({ jobId: id })
   });
 
   let st = JSON.parse((await askStatus(jobId)).body);
@@ -241,7 +253,7 @@ const callSync = (articleType, fields) => generate.handler({
 
   check('status rejects a bad job reference',
     (await askStatus('not-a-job')).statusCode === 400);
-  check('status rejects a bad token', (await askStatus(jobId, 'wrong')).statusCode === 401);
+  check('status rejects a caller with no session', (await askStatus(jobId, {})).statusCode === 401);
   check('status rejects GET', (await status.handler({ httpMethod: 'GET' })).statusCode === 405);
 
   // A failing job is recorded as failed, not lost.
@@ -249,7 +261,7 @@ const callSync = (articleType, fields) => generate.handler({
   const failId = 'job_' + Date.now().toString(36) + '_failfail';
   await background.handler({
     httpMethod: 'POST',
-    body: JSON.stringify({ token: 'pw', jobId: failId, articleType: 'general_gift_guide', fields: generalFields(4) })
+    headers: AUTH, body: JSON.stringify({ jobId: failId, articleType: 'general_gift_guide', fields: generalFields(4) })
   });
   const failed = JSON.parse((await askStatus(failId)).body);
   check('failed job reports failed with a safe message',
@@ -282,7 +294,7 @@ const callSync = (articleType, fields) => generate.handler({
   behaviour.products = products(4);
   const raceAccepted = await background.handler({
     httpMethod: 'POST',
-    body: JSON.stringify({ token: 'pw', jobId: raceId, articleType: 'general_gift_guide', fields: generalFields(4) })
+    headers: AUTH, body: JSON.stringify({ jobId: raceId, articleType: 'general_gift_guide', fields: generalFields(4) })
   });
   check('race: the handler keeps the browser job id', JSON.parse(raceAccepted.body).jobId === raceId);
   const afterRun = JSON.parse((await askStatus(raceId)).body);
@@ -331,12 +343,12 @@ const callSync = (articleType, fields) => generate.handler({
   check('race: a clamped id ages from now, so grace is the normal 90 seconds',
     Date.now() - clamped.submittedAt < 1000, String(Date.now() - clamped.submittedAt));
 
-  check('background rejects a bad token',
-    (await background.handler({ httpMethod: 'POST', body: JSON.stringify({ token: 'nope' }) })).statusCode === 401);
+  check('background rejects a caller with no session',
+    (await background.handler({ httpMethod: 'POST', headers: {}, body: JSON.stringify({}) })).statusCode === 401);
   check('background validates fields',
     (await background.handler({
       httpMethod: 'POST',
-      body: JSON.stringify({ token: 'pw', articleType: 'occasion_gift_guide', fields: { occasion: 'X', numberOfRecommendations: 9, selectedProducts: products(9) } })
+      headers: AUTH, body: JSON.stringify({ articleType: 'occasion_gift_guide', fields: { occasion: 'X', numberOfRecommendations: 9, selectedProducts: products(9) } })
     })).statusCode === 400);
 
   console.log = realLog;

@@ -5,6 +5,9 @@ const results = [];
 function check(name, cond, extra) { results.push((cond ? 'PASS ' : 'FAIL ') + name + (extra !== undefined ? ' :: ' + extra : '')); }
 function setMode(m) { fs.writeFileSync('/tmp/mock-mode', m || ''); }
 const lastReq = () => JSON.parse(fs.readFileSync('/tmp/last-request.json', 'utf8'));
+// What the real authorisation check saw on the most recent protected request.
+const lastAuth = () => JSON.parse(fs.readFileSync('/tmp/last-auth.json', 'utf8'));
+const lastAuthResponse = () => JSON.parse(fs.readFileSync('/tmp/last-auth-response.json', 'utf8'));
 
 process.on('uncaughtException', e => { console.log(results.join('\n')); console.log('CRASH:', e.message); process.exit(1); });
 (async () => {
@@ -49,6 +52,22 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.waitForSelector('#app', { state: 'visible' });
   check('four formats offered', (await page.$$('.format-option')).length === 4);
 
+  // ── Signed session, as the browser holds it
+  const signIn = lastAuthResponse();
+  check('sign-in response does not contain the password', !signIn.body.includes('"pw"') && !/"token"/.test(signIn.body), signIn.body);
+  const jar = await context.cookies(BASE);
+  const sess = jar.find(c => c.name === 'sb_session');
+  check('the browser holds a session cookie', !!sess);
+  check('the session cookie is HttpOnly', sess && sess.httpOnly === true);
+  check('the session cookie is Secure', sess && sess.secure === true);
+  check('the session cookie is SameSite=Strict', sess && sess.sameSite === 'Strict');
+  check('the session cookie expires on its own', sess && sess.expires > Date.now() / 1000);
+  check('page script cannot read the session cookie', !(await page.evaluate(() => document.cookie)).includes('sb_session'));
+  const stored = await page.evaluate(() => JSON.stringify({ local: Object.assign({}, localStorage), session: Object.assign({}, sessionStorage) }));
+  check('nothing is kept in localStorage or sessionStorage', stored === '{"local":{},"session":{}}', stored);
+  check('the password field is cleared after sign-in', (await page.inputValue('#pwd')) === '');
+  check('a sign-out control is offered', await page.isVisible('#logoutBtn'));
+
   // ── Care guide regression
   let names = await fieldNames();
   check('care fields intact', names.includes('plantName') && names.includes('sciName') && names.includes('productUrl') && names.includes('ref1url'));
@@ -80,7 +99,7 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   await page.click('#genBtn');
   await page.waitForSelector('#outputCard.visible', { timeout: 30000 });
   let req = lastReq();
-  check('request shape', req.articleType === 'care_guide' && !!req.fields && !!req.token && !req.carePrompt);
+  check('request shape', req.articleType === 'care_guide' && !!req.fields && !('token' in req) && !req.carePrompt);
   check('the plant type reaches the server', req.fields.plantType === 'Succulent');
   // The 504 this pass fixes: the care guide used to call /generate, which
   // Netlify caps at 60 seconds.
@@ -130,7 +149,9 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('gift tab is default', (await page.textContent('.picker-tab.on')).includes('Gift Products'));
   check('helper text names the storefront', (await page.textContent('.picker-note')).includes('loaded from SucculentsBox.com'));
   const giftReq = JSON.parse(fs.readFileSync('/tmp/last-gift-request.json', 'utf8'));
-  check('gift catalog called with token', giftReq.token === 'pw');
+  check('the gift catalog request carries no token in its body', !('token' in giftReq), JSON.stringify(giftReq));
+  check('the gift catalog request passed the real cookie and CSRF check',
+    (a => a.fn === 'gift-catalog' && a.ok && a.hadCookie && a.hadCsrfHeader)(lastAuth()), JSON.stringify(lastAuth()));
   check('gift products listed', (await page.$$('.catalog-item')).length === 3);
   check('collection selector present', await page.isVisible('#giftCollection'));
   check('all products filter is available', (await page.locator('#giftCollection option').allTextContents()).includes('All products'));
@@ -1141,6 +1162,72 @@ process.on('uncaughtException', e => { console.log(results.join('\n')); console.
   check('a complete reference reaches the server',
     JSON.stringify(lastReq().fields.references) === '[{"url":"https://aspca.org","text":"ASPCA"}]',
     JSON.stringify(lastReq().fields.references));
+
+  // ── Session lifecycle in the browser
+  check('generation requests carry no token in their body', !('token' in lastReq()), Object.keys(lastReq()).join(','));
+  check('generation passed the real cookie and CSRF check', (a => a.ok && a.hadCookie && a.hadCsrfHeader)(lastAuth()), JSON.stringify(lastAuth()));
+
+  // The session ends while the person is working (simulated by the cookie
+  // disappearing). Generating must send them to sign in without losing the brief.
+  setMode('');
+  await switchFormat('care_guide');
+  await page.waitForTimeout(200);
+  await fillCareGuide('Gasteria', 'Succulent');
+  await context.clearCookies();
+  await page.click('#genBtn');
+  await page.waitForSelector('#login-overlay:not(.hidden)', { timeout: 15000 });
+  // The care guide runs in the background, so, as on Netlify, the refusal
+  // surfaces through the status poll rather than the empty 202.
+  check('an ended session is refused by the real check on the status poll',
+    (a => a.fn === 'generate-status' && !a.ok && a.status === 401)(lastAuth()), JSON.stringify(lastAuth()));
+  check('an ended session returns the person to sign in', await page.isVisible('#login-overlay:not(.hidden)'));
+  check('the sign-in screen explains why', (await page.textContent('#loginError')).includes('Your session has ended'));
+  await page.fill('#pwd', 'pw');
+  await page.click('#loginBtn');
+  await page.waitForSelector('#app', { state: 'visible' });
+  check('the brief survives signing back in', (await page.inputValue('[data-name="plantName"]')) === 'Gasteria');
+  await page.click('#genBtn');
+  await page.waitForSelector('#outputCard.visible', { timeout: 30000 });
+  check('generation works again after signing back in', await page.isVisible('#outputCard.visible'));
+
+  // A forged CSRF value is refused even with a valid cookie.
+  const forged = await page.evaluate(async () => {
+    const r = await fetch('/.netlify/functions/generate-status', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'forged' }, body: JSON.stringify({ jobId: 'job_abc123_def456ghi' }) });
+    return r.status;
+  });
+  check('a request with the cookie but a forged CSRF value is refused', forged === 403, String(forged));
+  const noHeader = await page.evaluate(async () => (await fetch('/.netlify/functions/generate-status', { method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' }, body: '{}' })).status);
+  check('a request with the cookie but no CSRF header is refused', noHeader === 403, String(noHeader));
+
+  // Sign out, having first captured the session cookie and CSRF value the way a
+  // copied request would hold them.
+  const capturedCookie = (await context.cookies(BASE)).find(c => c.name === 'sb_session');
+  const capturedCsrf = JSON.parse(lastAuthResponse().body).csrfToken;
+  await page.click('#logoutBtn');
+  await page.waitForSelector('#login-overlay:not(.hidden)');
+  check('sign-out returns to the sign-in screen', await page.isVisible('#login-overlay:not(.hidden)'));
+  check('sign-out removes the session cookie', !(await context.cookies(BASE)).some(c => c.name === 'sb_session'));
+  const afterLogout = await page.evaluate(async () => (await fetch('/.netlify/functions/generate-status', { method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' }, body: '{}' })).status);
+  check('after sign-out protected endpoints refuse the browser', afterLogout === 401, String(afterLogout));
+  // Replay: put the captured cookie back (ignoring the cookie-clearing
+  // response) and send a fresh request with the captured CSRF value.
+  await context.addCookies([capturedCookie]);
+  const replay = await page.evaluate(async csrf => (await fetch('/.netlify/functions/generate-status', { method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf }, body: JSON.stringify({ jobId: 'job_abc123_def456ghi' }) })).status, capturedCsrf);
+  check('replaying the captured cookie and CSRF value after sign-out is refused', replay === 401, String(replay));
+  check('the refusal came from the server-side revocation', (a => !a.ok && a.hadCookie && a.hadCsrfHeader && a.code === 'unauthorized')(lastAuth()), JSON.stringify(lastAuth()));
+  await context.clearCookies();
+  const storedAfter = await page.evaluate(() => JSON.stringify({ local: Object.assign({}, localStorage), session: Object.assign({}, sessionStorage) }));
+  check('nothing was ever written to browser storage', storedAfter === '{"local":{},"session":{}}', storedAfter);
+
+  // Only the published allowlist is served; server source is not.
+  for (const leaked of ['netlify/functions/lib/shared-rules.js', 'netlify/functions/lib/prompt-pack.js', 'tests/run.sh', 'README.md', 'package.json', 'tools/pack.js']) {
+    const st = await page.evaluate(async u => (await fetch('/' + u)).status, leaked);
+    check(`the site does not serve ${leaked}`, st === 404, String(st));
+  }
 
   check('no script errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 

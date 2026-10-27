@@ -45,7 +45,7 @@ function logTiming(context, timer, facts) {
   const { phases, totalMs } = timer.summary();
   const safeFacts = {};
   // Allowlisted, non-identifying facts only.
-  ['articleType', 'productCount', 'recommendationCount', 'articleChars', 'truncated', 'ok', 'jobId']
+  ['articleType', 'productCount', 'recommendationCount', 'articleChars', 'truncated', 'ok', 'jobId', 'promptVersion', 'sid']
     .forEach(k => { if (facts && facts[k] !== undefined) safeFacts[k] = facts[k]; });
   console.log(JSON.stringify({ event: 'generation_timing', context, totalMs, phases, ...safeFacts }));
   return { phases, totalMs };
@@ -54,15 +54,29 @@ function logTiming(context, timer, facts) {
 // Lifecycle events. Same allowlist discipline as logTiming: ids, the article
 // type, counts, durations and a safe error code. Never prompts, article text,
 // product names, user fields or credentials.
+//
+// `sid` is the random session id, which is an opaque reference with no authority
+// of its own. The signed session string, the CSRF value and the password are
+// never passed here, and could not be logged if they were: only the keys below
+// survive.
 const EVENT_FACTS = ['jobId', 'articleType', 'productCount', 'recommendationCount',
-  'articleChars', 'truncated', 'elapsedMs', 'code', 'connected'];
+  'articleChars', 'truncated', 'elapsedMs', 'code', 'connected',
+  'sid', 'promptVersion', 'reason', 'scope', 'attempts', 'limit', 'expiresInMs', 'fn'];
 
 const LIFECYCLE_EVENTS = [
   'blob_context_connected',
   'pending_record_written',
   'generation_started',
   'generation_completed',
-  'generation_failed'
+  'generation_failed',
+  'session_started',
+  'session_ended',
+  'login_failed',
+  'login_throttled',
+  'request_refused',
+  'generation_rate_limited',
+  'duplicate_submission',
+  'job_scope_mismatch'
 ];
 
 function logEvent(event, facts) {
