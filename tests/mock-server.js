@@ -1,4 +1,12 @@
-// Local test server: serves the static site and mocks the three Netlify functions.
+// Local test server: serves the published site (public/, as built by
+// tools/build-site.js) and stands in for the Netlify functions.
+//
+// Sign-in and authorisation are NOT mocked. /auth is the real auth.js handler
+// and every other endpoint runs the real session.authorize() check on the
+// request's own cookie and CSRF header before answering, so the browser suite
+// exercises the production cookie and CSRF flow end to end. Only the work
+// behind a successful check (catalog fetches, generation, job records) is
+// simulated.
 // MOCK_MODE: '' | 'giftfail' | 'timeout504' | 'text502' | 'warn' | 'slowsync'
 //             | 'jobfail'  background job reports failed
 //             | 'jobgone'  background job reports expired
@@ -10,6 +18,30 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const ROOT = require('path').join(__dirname, '..');
+const PUBLIC = path.join(ROOT, 'public');
+
+// The browser suite signs in with this synthetic password. Everything else
+// comes from the shared synthetic test configuration.
+const H = require('./support/harness');
+H.applyTestEnv({ SITE_PASSWORD: 'pw' });
+require('../netlify/functions/lib/counter-store').useMemoryCountersForTests();
+require('../netlify/functions/lib/revocations').useMemoryRevocationsForTests();
+const auth = require('../netlify/functions/auth');
+const { authorizeRequest } = require('../netlify/functions/lib/session');
+require('../tools/build-site').build();
+
+// Every protected request's authorisation outcome and the headers that carried
+// it, so the browser suite can assert what the page actually sent.
+function recordAuth(fn, req, verdict) {
+  fs.writeFileSync('/tmp/last-auth.json', JSON.stringify({
+    fn,
+    hadCookie: /sb_session=/.test(req.headers.cookie || ''),
+    hadCsrfHeader: !!req.headers['x-csrf-token'],
+    ok: verdict.ok,
+    status: verdict.ok ? 200 : verdict.status,
+    code: verdict.ok ? null : verdict.code
+  }));
+}
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 
 function mode() { return fs.existsSync('/tmp/mock-mode') ? fs.readFileSync('/tmp/mock-mode', 'utf8').trim() : ''; }
@@ -55,11 +87,46 @@ const server = http.createServer((req, res) => {
       const m = mode();
 
       if (req.url.endsWith('/auth')) {
-        res.setHeader('Content-Type', 'application/json');
-        if (payload.password === 'pw') return res.end(JSON.stringify({ ok: true, token: 'pw' }));
-        res.statusCode = 401; return res.end(JSON.stringify({ error: 'Incorrect password. Please try again.' }));
+        // The real handler, with the browser's own headers. Its Set-Cookie
+        // values are passed through untouched.
+        auth.handler({ httpMethod: req.method, headers: req.headers, body }).then(out => {
+          res.statusCode = out.statusCode;
+          for (const [k, v] of Object.entries(out.headers || {})) res.setHeader(k, v);
+          const cookies = out.multiValueHeaders && out.multiValueHeaders['Set-Cookie'];
+          if (cookies) res.setHeader('Set-Cookie', cookies);
+          fs.writeFileSync('/tmp/last-auth-response.json', JSON.stringify({ status: out.statusCode, body: out.body, setCookie: cookies || [] }));
+          res.end(out.body);
+        });
+        return;
       }
 
+      // Every other function: the real authorisation check, first, including
+      // the server-side revocation lookup.
+      const fn = req.url.split('/').pop();
+      authorizeRequest({ headers: req.headers }).then(verdict => {
+        recordAuth(fn, req, verdict);
+        // Netlify answers a background invocation with an empty 202 before the
+        // handler runs, so a refusal there never reaches the browser. The real
+        // handler writes nothing for an unauthenticated caller, and the browser
+        // learns the session has ended from its next status poll instead.
+        if (!verdict.ok && fn === 'generate-background') {
+          res.statusCode = 202;
+          return res.end();
+        }
+        if (!verdict.ok) {
+          res.statusCode = verdict.status;
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ error: verdict.error, code: verdict.code }));
+        }
+        handleFunction(req, res, payload, m);
+      });
+    });
+    return;
+  }
+  serveStatic(req, res);
+});
+
+function handleFunction(req, res, payload, m) {
       if (req.url.endsWith('/gift-catalog')) {
         fs.writeFileSync('/tmp/last-gift-request.json', JSON.stringify(payload, null, 2));
         res.setHeader('Content-Type', 'application/json');
@@ -158,12 +225,14 @@ const server = http.createServer((req, res) => {
         related_articles: [{ t: 'Watering Tips', u: 'https://succulentsbox.com/blogs/blog/watering-tips' }],
         warnings: m === 'warn' ? ['The excerpt could not be generated.'] : []
       }));
-    });
-    return;
-  }
-  const file = path.join(ROOT, req.url === '/' ? 'index.html' : decodeURIComponent(req.url));
-  if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.statusCode = 404; return res.end('not found'); }
+}
+
+// Only the published directory is served, exactly as Netlify will serve it.
+function serveStatic(req, res) {
+  const file = path.join(PUBLIC, req.url === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
+  if (!file.startsWith(PUBLIC + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.statusCode = 404; return res.end('not found'); }
   res.setHeader('Content-Type', TYPES[path.extname(file)] || 'application/octet-stream');
   res.end(fs.readFileSync(file));
-});
+}
+
 server.listen(8899, () => console.log('listening on 8899'));
