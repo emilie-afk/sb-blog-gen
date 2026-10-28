@@ -13,6 +13,7 @@ const { buildSinglePlantGiftPrompt } = require('./prompt-single-plant-gift');
 const { buildGeneralGiftGuidePrompt } = require('./prompt-general-gift-guide');
 const { buildOccasionGiftGuidePrompt } = require('./prompt-occasion-gift-guide');
 const { buildMetadataAndRelatedPrompt, CATALOG_FORMATS } = require('./prompt-metadata-related');
+const { checkVoice } = require('./voice-check');
 const { resolveTitles } = require('./title');
 const { validateArticleOutput } = require('./validate-output');
 const { repairArticleHtml } = require('./repair-output');
@@ -378,6 +379,14 @@ async function runGeneration({ articleType, fields, apiKey, timer, client, pack 
   // Structural checks on the finished HTML. These only add warnings, they never
   // rewrite the article or insert facts of their own.
   warnings.push(...validateArticleOutput(articleType, fields, html));
+
+  // House-style phrases and outline-label headings, from the pack's own lists.
+  // Warns only; the count is logged, never the text.
+  const voice = checkVoice(articleType, pack, { html, excerpt, metaDescription });
+  if (voice.warnings.length) {
+    warnings.push(...voice.warnings);
+    console.error('House-style check:', JSON.stringify({ matches: voice.found.length }));
+  }
 
   const products = CATALOG_FORMATS.includes(articleType)
     ? catalogPicks
