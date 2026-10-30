@@ -47,7 +47,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 function mode() { return fs.existsSync('/tmp/mock-mode') ? fs.readFileSync('/tmp/mock-mode', 'utf8').trim() : ''; }
 
 const GIFT_PRODUCTS = [
-  { id: 1, title: 'Thinking of You Gift Box', handle: 'thinking-of-you-gift-box', url: 'https://succulentsbox.com/products/thinking-of-you-gift-box', price: '$47.99', image: '', productType: 'Gift', tags: ['standard-8.85'], description: 'A box.', sourceCollection: 'succulents-gift-boxes', source: 'live-gift-catalog' },
+  { id: 1, title: 'Thinking of You Gift Box', handle: 'thinking-of-you-gift-box', url: 'https://succulentsbox.com/products/thinking-of-you-gift-box', price: '$47.99', image: '', productType: 'Gift', tags: ['standard-8.85'], description: 'A box.', sourceCollection: 'plant-gift-boxes', source: 'live-gift-catalog' },
   { id: 2, title: 'Christmas Succulent Gift Box', handle: 'christmas-succulent-gift-box', url: 'https://succulentsbox.com/products/christmas-succulent-gift-box', price: '$54.00', image: '', productType: 'Gift', tags: ['holiday'], description: '', sourceCollection: 'christmas-gift-boxes', source: 'live-gift-catalog' },
   { id: 3, title: 'Monthly Succulent Subscription', handle: 'monthly-succulent-subscription', url: 'https://succulentsbox.com/products/monthly-succulent-subscription', price: '$12.99', image: '', productType: 'Subscription', tags: ['subscription'], description: '', sourceCollection: 'subscription-boxes', source: 'live-gift-catalog' }
 ];
@@ -139,7 +139,7 @@ function handleFunction(req, res, payload, m) {
           return res.end(JSON.stringify({ catalogType: 'plants', collection: payload.collection || 'all', products: LIVE_PLANTS, count: LIVE_PLANTS.length, cached: false }));
         }
         const occasion = String(payload.occasion || '').toLowerCase();
-        const collection = payload.collection || (occasion.includes('christmas') ? 'christmas-gift-boxes' : 'succulents-gift-boxes');
+        const collection = payload.collection || (occasion.includes('christmas') ? 'christmas-gift-boxes' : 'plant-gift-boxes');
         const products = collection === 'christmas-gift-boxes'
           ? GIFT_PRODUCTS.filter(p => p.sourceCollection === 'christmas-gift-boxes')
           : GIFT_PRODUCTS;
