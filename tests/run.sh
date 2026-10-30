@@ -21,6 +21,7 @@ echo "── security ──";                 node tests/security.test.js | tai
 echo "── article workflow ──";         node tests/workflow.test.js | tail -1
 echo "── deploy cleanup listing ──";   node tests/deploy-cleanup.test.js | tail -1
 echo "── storefront catalog ──";       node tests/catalog.test.js
+echo "── gift collections ──";         node tests/collections.test.js | tail -1
 echo "── catalog pagination ──";       node tests/pagination.test.js
 echo "── packaged function ──";       node tests/packaged.test.js 2>/dev/null
 echo "── netlify blobs ──";            node tests/blobs-integration.test.js | tail -1
