@@ -126,8 +126,14 @@ try {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
 if (changed && changed.length) {
+  // data/gift-collections.js and data/catalog.js are changed on purpose by a
+  // later pass: Shopify renamed collections and removed or renamed products, and
+  // the data must follow the storefront (tests/collections-live.check.js and
+  // tests/catalog-live.check.js check them against it). The article index
+  // stays off limits.
+  const followsStore = ['data/gift-collections.js', 'data/catalog.js'];
   const offLimits = changed.filter(f =>
-    f.startsWith('data/')
+    (f.startsWith('data/') && !followsStore.includes(f))
     || /^netlify\/functions\/lib\/(validate|title|repair-output|validate-output|rank-articles)\.js$/.test(f)
     || /^app\/(formats|ui)\.js$/.test(f));
   ok('data, validation, titles, repair, output checks, ranking, forms and preview are untouched',
