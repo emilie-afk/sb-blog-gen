@@ -32,7 +32,8 @@ const {
 const LINKS = {
   overwatering: 'https://succulentsbox.com/blogs/blog/overwatered-vs-underwatered',
   succulentSoil: 'https://succulentsbox.com/collections/succulent-tools/products/succulent-potting-soil',
-  terracotta: 'https://succulentsbox.com/collections/succulents-pot/products/2-or-4-3-terracotta-pot',
+  // The single terracotta pot product was removed from the store; link the pots collection.
+  terracotta: 'https://succulentsbox.com/collections/succulents-pot',
   pruning: 'https://succulentsbox.com/blogs/blog/how-and-when-to-prune-your-succulents',
   winter: 'https://succulentsbox.com/blogs/blog/indoor-outdoor-winter-care-guide-for-succulents',
   toxicity: 'https://succulentsbox.com/blogs/blog/toxic-and-non-toxic-succulents-for-pets'

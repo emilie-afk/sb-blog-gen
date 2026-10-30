@@ -58,7 +58,7 @@ tests/                            server, handler, security and browser suites (
 already serves (`/collections/<handle>/products.json`). No Admin API and no
 credentials. Only handles listed in `data/gift-collections.js` can be requested:
 anything else, including a full URL or another domain, falls back to the occasion
-mapping or `succulents-gift-boxes`. Responses are deduplicated by product id and
+mapping or `plant-gift-boxes`. Responses are deduplicated by product id and
 handle, normalized, cached for 20 minutes per warm instance and for the session in
 the browser. Price is the lowest available variant price (or the first variant
 price), never a range. `body_html` is stripped to a short plain-text blurb shown
