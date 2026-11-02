@@ -13,6 +13,7 @@ const { buildSinglePlantGiftPrompt } = require('./prompt-single-plant-gift');
 const { buildGeneralGiftGuidePrompt } = require('./prompt-general-gift-guide');
 const { buildOccasionGiftGuidePrompt } = require('./prompt-occasion-gift-guide');
 const { buildMetadataAndRelatedPrompt, CATALOG_FORMATS } = require('./prompt-metadata-related');
+const { checkVoice } = require('./voice-check');
 const { resolveTitles } = require('./title');
 const { validateArticleOutput } = require('./validate-output');
 const { repairArticleHtml } = require('./repair-output');
@@ -89,11 +90,70 @@ function firstText(message) {
   return message.content[0].text || '';
 }
 
+// The metadata reply is a small JSON object, but it can arrive cut off: the
+// call has a fixed token budget, and a reply that lists catalog products and
+// related articles can run past it. A cut-off reply is not valid JSON, so the
+// whole object used to be thrown away and the title, excerpt and meta
+// description were lost with it. Now a reply that does not parse is salvaged:
+// every COMPLETE string the reply did finish (title, alternative titles,
+// excerpt, meta description, product handles, article URLs) is kept, and
+// anything cut off mid-value is dropped. Products and articles are matched
+// against our own catalog and index afterwards either way, so a salvaged value
+// can never introduce a product or URL we do not have.
+const JSON_STRING = '"((?:[^"\\\\]|\\\\.)*)"';
+
+function readJsonString(body) {
+  try { return JSON.parse('"' + body + '"'); } catch { return null; }
+}
+
+function salvageMetadata(text) {
+  const start = text.indexOf('{');
+  if (start < 0) throw new Error('No JSON object found in the metadata response.');
+  const body = text.slice(start);
+  const field = name => {
+    const m = body.match(new RegExp('"' + name + '"\\s*:\\s*' + JSON_STRING));
+    return m ? readJsonString(m[1]) : null;
+  };
+  // The complete strings inside one array, stopping where the array ends or
+  // where the reply was cut off.
+  const section = (name, next) => {
+    const at = body.search(new RegExp('"' + name + '"\\s*:\\s*\\['));
+    if (at < 0) return '';
+    const rest = body.slice(at);
+    const end = next.map(n => rest.search(new RegExp('"' + n + '"\\s*:'))).filter(i => i > 0);
+    return end.length ? rest.slice(0, Math.min(...end)) : rest;
+  };
+  const strings = (chunk, key) => {
+    const re = key ? new RegExp('"' + key + '"\\s*:\\s*' + JSON_STRING, 'g') : new RegExp(JSON_STRING, 'g');
+    const out = [];
+    let m;
+    while ((m = re.exec(chunk))) { const v = readJsonString(m[1]); if (v !== null) out.push(v); }
+    return out;
+  };
+  const keys = ['title', 'alternative_titles', 'excerpt', 'meta_description', 'products', 'articles'];
+  const altChunk = section('alternative_titles', keys.filter(k => k !== 'alternative_titles'));
+  const meta = {
+    title: field('title'),
+    alternative_titles: altChunk ? strings(altChunk.slice(altChunk.indexOf('[') + 1)).filter(s => s !== 'alternative_titles') : [],
+    excerpt: field('excerpt'),
+    meta_description: field('meta_description'),
+    products: strings(section('products', keys.filter(k => k !== 'products')), 'h').map(h => ({ h })),
+    articles: strings(section('articles', keys.filter(k => k !== 'articles')), 'u').map(u => ({ u }))
+  };
+  if (!meta.title && !meta.excerpt && !meta.meta_description) {
+    throw new Error('The metadata response could not be read, even in part.');
+  }
+  Object.defineProperty(meta, 'partial', { value: true });
+  return meta;
+}
+
 function parseMetadata(raw) {
   const text = stripFences(raw);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('No JSON object found in the metadata response.');
-  return JSON.parse(match[0]);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch { /* fall through to salvage */ }
+  }
+  return salvageMetadata(text);
 }
 
 // Never trust the model with a URL. Every related article must exist in our index,
@@ -289,7 +349,12 @@ async function runGeneration({ articleType, fields, apiKey, timer, client, pack 
     warnings.push('The excerpt, meta description and related recommendations could not be generated. The article itself is fine.');
   } else {
     try {
+      const metaStop = metadataRes.value && metadataRes.value.stop_reason;
       meta = parseMetadata(firstText(metadataRes.value));
+      // Logged without content: only whether the reply was cut off and salvaged.
+      if (meta.partial || metaStop === 'max_tokens') {
+        console.error('Metadata response incomplete:', JSON.stringify({ stopReason: metaStop || null, salvaged: !!meta.partial }));
+      }
       excerpt = stripDashesPlain(String(meta.excerpt || '').trim());
       metaDescription = stripDashesPlain(String(meta.meta_description || '').trim());
       relatedArticles = reconcileArticles(meta.articles);
@@ -314,6 +379,14 @@ async function runGeneration({ articleType, fields, apiKey, timer, client, pack 
   // Structural checks on the finished HTML. These only add warnings, they never
   // rewrite the article or insert facts of their own.
   warnings.push(...validateArticleOutput(articleType, fields, html));
+
+  // House-style phrases and outline-label headings, from the pack's own lists.
+  // Warns only; the count is logged, never the text.
+  const voice = checkVoice(articleType, pack, { html, excerpt, metaDescription });
+  if (voice.warnings.length) {
+    warnings.push(...voice.warnings);
+    console.error('House-style check:', JSON.stringify({ matches: voice.found.length }));
+  }
 
   const products = CATALOG_FORMATS.includes(articleType)
     ? catalogPicks
@@ -348,5 +421,5 @@ module.exports = {
   METADATA_MAX_TOKENS,
   MODEL,
   MODEL_MAX_RETRIES,
-  _internals: { safeProviderError, describeProviderError, stripFences, stripDashes, stripDashesPlain, firstText, parseMetadata, reconcileArticles, reconcileCatalogProducts }
+  _internals: { safeProviderError, describeProviderError, stripFences, stripDashes, stripDashesPlain, firstText, parseMetadata, salvageMetadata, reconcileArticles, reconcileCatalogProducts }
 };
