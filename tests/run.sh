@@ -28,6 +28,7 @@ echo "── netlify blobs ──";            node tests/blobs-integration.test
 echo "── timing + background jobs ──"; node tests/timing-and-jobs.test.js 2>/dev/null | tail -1
 echo "── generate handler ──";         node tests/generate.test.js 2>/dev/null | tail -1
 echo "── house-style check ──";        node tests/voice-check.test.js 2>/dev/null | tail -1
+echo "── product options ──";          node tests/product-options.test.js | tail -1
 echo "── browser ──"
 if [ -x "${CHROMIUM:-/opt/pw-browsers/chromium}" ]; then
   node tests/mock-server.js & SERVER=$!
