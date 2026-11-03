@@ -53,6 +53,36 @@ function pickPrice(variants) {
   return { price: money(chosen && chosen.price), compareAtPrice: money(chosen && chosen.compare_at_price) };
 }
 
+// The choices a shopper sees on the product page, such as "No Plant" and
+// "With Succulent", each with its price. Without them the writer only ever sees
+// the cheapest option and can describe an item as available one way when it is
+// not. Only Shopify's placeholder "Default Title" means there is nothing to
+// describe; a single named variant (for example "6 inch") is kept, because it
+// is still a fact about the item.
+//
+// The list is capped so a product with dozens of variants cannot flood the
+// prompt, but the cap is never silent: the last entry says how many options were
+// left out, so the writer cannot treat the list as complete.
+const OPTION_LIMIT = 12;
+const OPTION_TITLE_LIMIT = 60;
+function moreOptionsNote(n) {
+  return `(${n} more option${n === 1 ? '' : 's'} not listed)`;
+}
+function variantOptions(variants) {
+  const list = (Array.isArray(variants) ? variants : []).filter(v => v && typeof v.title === 'string' && v.title.trim());
+  const named = [];
+  const seen = new Set();
+  for (const v of list) {
+    const title = v.title.replace(/\s+/g, ' ').trim().slice(0, OPTION_TITLE_LIMIT);
+    if (!title || /^default title$/i.test(title) || seen.has(title.toLowerCase())) continue;
+    seen.add(title.toLowerCase());
+    const price = money(v.price);
+    named.push(title + (price ? ` (${price})` : '') + (v.available === false ? ' (sold out)' : ''));
+  }
+  if (named.length <= OPTION_LIMIT) return named;
+  return named.slice(0, OPTION_LIMIT).concat(moreOptionsNote(named.length - OPTION_LIMIT));
+}
+
 // body_html is large and inconsistent marketing copy. Strip it to a short plain
 // text blurb for the picker UI only. It is never treated as verified product
 // fact and never reaches an article prompt.
@@ -96,6 +126,7 @@ function normalizeProducts(raw, sourceCollection, source, sharedSeen) {
       productType: p.product_type || '',
       tags: Array.isArray(p.tags) ? p.tags.slice(0, 20) : [],
       description: shortDescription(p.body_html),
+      options: variantOptions(p.variants),
       sourceCollection,
       source
     });
@@ -242,6 +273,6 @@ exports.handler = async (event) => {
 };
 
 exports._internals = {
-  normalizeProducts, pickPrice, shortDescription, money, fetchCollection,
+  normalizeProducts, pickPrice, variantOptions, OPTION_LIMIT, shortDescription, money, fetchCollection,
   DEFAULT_GIFT_COLLECTION, PAGE_SIZE, MAX_PAGES, PAGE_BATCH
 };

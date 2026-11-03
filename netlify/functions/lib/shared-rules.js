@@ -80,6 +80,12 @@ function formatReferences(pack, references) {
 // which rebuilds it field by field: nothing the browser sent is passed through.
 // The storefront description and tags are untrusted storefront copy. They are
 // labelled as such by the pack, and HTML has already been stripped from them.
+function hasTemplate(pack, path) {
+  let node = pack && pack.raw;
+  for (const k of path.split('.')) node = node && typeof node === 'object' ? node[k] : undefined;
+  return typeof node === 'string';
+}
+
 function formatProductsForPrompt(pack, products) {
   return (products || []).map((p, i) => {
     const parts = [
@@ -90,6 +96,10 @@ function formatProductsForPrompt(pack, products) {
     if (p.productType) parts.push(pack.render('shared.productEntry.productType', { productType: p.productType }));
     if (p.description) parts.push(pack.render('shared.productEntry.description', { description: p.description }));
     if (p.tags && p.tags.length) parts.push(pack.render('shared.productEntry.tags', { tags: p.tags.join(', ') }));
+    // Optional template: a pack without it (v1 to v3.1) simply leaves options out.
+    if (p.options && p.options.length && hasTemplate(pack, 'shared.productEntry.options')) {
+      parts.push(pack.render('shared.productEntry.options', { options: p.options.join('; ') }));
+    }
     if (p.notes) parts.push(pack.render('shared.productEntry.notes', { notes: p.notes }));
     else parts.push(pack.get('shared.productEntry.noNotes'));
     return parts.join('\n');
