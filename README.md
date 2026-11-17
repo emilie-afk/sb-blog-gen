@@ -1,7 +1,5 @@
 # Succulents Box Blog Post Generator
 
-**Designed and built by Emilie Ngo for Succulents Box.**
-
 Internal content-production tool. Generates Shopify-ready blog HTML in four formats:
 
 | Format | Internal value | Products |
@@ -276,3 +274,5 @@ Output budget: the article call is capped at 3500 tokens and the metadata call a
 600. When the model stops because it hit the cap, the response carries
 `truncated: true` and a warning, and the browser shows it as an error. A cut-off
 article is never presented as a finished one.
+
+Designed and built by Emilie Ngo for Succulents Box.
