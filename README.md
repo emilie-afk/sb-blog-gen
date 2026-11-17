@@ -1,5 +1,7 @@
 # Succulents Box Blog Post Generator
 
+**Designed and built by Emilie Ngo for Succulents Box.**
+
 Internal content-production tool. Generates Shopify-ready blog HTML in four formats:
 
 | Format | Internal value | Products |
