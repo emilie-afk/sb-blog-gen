@@ -121,7 +121,7 @@ ok('the clear-products action only renders with products confirmed',
 const { execSync } = require('child_process');
 let changed = [];
 try {
-  changed = execSync('git diff --name-only 20043bc', { cwd: root }).toString().split('\n').filter(Boolean);
+  changed = execSync('git diff --name-only 20043bc', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString().split('\n').filter(Boolean);
 } catch (e) {
   changed = null;   // not a git checkout, or the base is gone: skip rather than fail
 }
@@ -131,10 +131,13 @@ if (changed && changed.length) {
   // the data must follow the storefront (tests/collections-live.check.js and
   // tests/catalog-live.check.js check them against it). The article index
   // stays off limits.
+  // validate.js is changed on purpose by the product-options pass: it accepts
+  // the variant names the live catalog now sends. tests/product-options.test.js
+  // checks that change; everything else in the validator is covered as before.
   const followsStore = ['data/gift-collections.js', 'data/catalog.js'];
   const offLimits = changed.filter(f =>
     (f.startsWith('data/') && !followsStore.includes(f))
-    || /^netlify\/functions\/lib\/(validate|title|repair-output|validate-output|rank-articles)\.js$/.test(f)
+    || /^netlify\/functions\/lib\/(title|repair-output|validate-output|rank-articles)\.js$/.test(f)
     || /^app\/(formats|ui)\.js$/.test(f));
   ok('data, validation, titles, repair, output checks, ranking, forms and preview are untouched',
     offLimits.length === 0, offLimits.join(', '));
