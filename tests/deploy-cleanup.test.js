@@ -1,17 +1,38 @@
-// The read-only deploy classifier used in rollout step 7. Uses this checkout's
-// real Git history and a fake Netlify API; nothing touches the network.
+// The read-only deploy classifier used in rollout step 7. Runs against a small
+// synthetic Git repository built in a temporary folder (so the test does not
+// depend on this checkout's history) and a fake Netlify API; nothing touches the
+// network.
 // Run: node tests/deploy-cleanup.test.js
-const { run, DEFAULT_FIX } = require('../tools/list-obsolete-deploys');
+const { execFileSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { run } = require('../tools/list-obsolete-deploys');
+
+const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'deploy-cleanup-'));
+const sh = (...args) => execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+sh('init', '-q');
+sh('config', 'user.email', 'test@example.com');
+sh('config', 'user.name', 'Synthetic');
+const commit = msg => { fs.writeFileSync(path.join(repo, 'f.txt'), msg); sh('add', 'f.txt'); sh('commit', '-q', '-m', msg); return sh('rev-parse', 'HEAD'); };
+const OLD_PROD = commit('old production');
+const PRE_REVIEW = commit('before the review fixes');
+const PRE_ONLYIFNEW = commit('before the onlyIfNew upgrade');
+const FIX = commit('the security fix');
+sh('checkout', '-q', '-b', 'old-branch', OLD_PROD);
+const OLD_BRANCH = commit('old branch work');
+// The classifier's git calls, pointed at the synthetic repository.
+const git = (cmd, args, opts) => execFileSync(cmd, args, { ...opts, cwd: repo });
 
 let failures = 0;
 const ok = (n, c, x) => { if (c) console.log('PASS ' + n); else { failures++; console.log('FAIL ' + n + (x !== undefined ? ' :: ' + x : '')); } };
 
 const deploys = [
-  { id: 'new-prod', context: 'production', branch: 'main', commit_ref: DEFAULT_FIX, created_at: '2026-10-24', state: 'ready' },
-  { id: 'pre-review', context: 'deploy-preview', branch: 'security-hardening', commit_ref: '6239995', created_at: '2026-10-23', state: 'ready' },
-  { id: 'pre-onlyifnew', context: 'deploy-preview', branch: 'security-hardening', commit_ref: '901cd77', created_at: '2026-10-23', state: 'ready' },
-  { id: 'old-prod', context: 'production', branch: 'main', commit_ref: '20043bc', created_at: '2026-10-14', state: 'ready' },
-  { id: 'old-branch', context: 'branch-deploy', branch: 'multi-format-generator', commit_ref: '9b0e65c', created_at: '2026-10-01', state: 'ready' },
+  { id: 'new-prod', context: 'production', branch: 'main', commit_ref: FIX, created_at: '2026-10-24', state: 'ready' },
+  { id: 'pre-review', context: 'deploy-preview', branch: 'security-hardening', commit_ref: PRE_REVIEW, created_at: '2026-10-23', state: 'ready' },
+  { id: 'pre-onlyifnew', context: 'deploy-preview', branch: 'security-hardening', commit_ref: PRE_ONLYIFNEW, created_at: '2026-10-23', state: 'ready' },
+  { id: 'old-prod', context: 'production', branch: 'main', commit_ref: OLD_PROD, created_at: '2026-10-14', state: 'ready' },
+  { id: 'old-branch', context: 'branch-deploy', branch: 'multi-format-generator', commit_ref: OLD_BRANCH, created_at: '2026-10-01', state: 'ready' },
   { id: 'foreign', context: 'deploy-preview', branch: 'x', commit_ref: 'f'.repeat(40), created_at: '2026-10-02', state: 'ready' },
   { id: 'manual', context: 'production', branch: null, commit_ref: null, created_at: '2026-09-01', state: 'ready' }
 ];
@@ -23,7 +44,7 @@ const fakeFetch = async (url, opts) => {
 };
 
 (async () => {
-  const { publishedId, rows } = await run({ siteId: 'site', token: 'synthetic-token', fix: DEFAULT_FIX, fetchImpl: fakeFetch });
+  const { publishedId, rows } = await run({ siteId: 'site', token: 'synthetic-token', fix: FIX, fetchImpl: fakeFetch, git });
   const v = id => rows.find(r => r.id === id).verdict;
   ok('the published deploy is reported', publishedId === 'new-prod');
   ok('the published production deploy is kept', v('new-prod') === 'KEEP (published)');
@@ -35,6 +56,7 @@ const fakeFetch = async (url, opts) => {
   ok('a deploy with no commit (manual upload) is checked by hand', v('manual').startsWith('UNKNOWN'));
   ok('the tool only reads: every request is a GET', requests.every(r => r.method === 'GET'));
   ok('the token is sent as a bearer header, not in the URL', requests.every(r => r.auth === 'Bearer synthetic-token' && !r.url.includes('synthetic-token')));
+  fs.rmSync(repo, { recursive: true, force: true });
   console.log(`\n${failures} failures`);
   if (failures) process.exitCode = 1;
 })();
