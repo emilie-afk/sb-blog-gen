@@ -119,6 +119,32 @@ function references(value) {
   }).filter(Boolean);
 }
 
+// Product options (variant names with prices) from the live catalog. Each is a
+// short plain string; anything else is dropped rather than trusted. The catalog
+// sends at most 12 options plus a "(N more options not listed)" note. A longer
+// list is cut to 12 here too, and the cut is stated the same way, never silent:
+// the writer must not mistake a partial list for the whole range.
+const OPTION_MAX = 12;
+const MORE_OPTIONS = /^\((\d+) more options? not listed\)$/;
+function options(value, label) {
+  if (value === undefined || value === null || value === '') return [];
+  if (!Array.isArray(value)) throw new ValidationError(`${label} options must be a list.`);
+  const clean = value
+    .map(o => (typeof o === 'string' ? o.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) : ''))
+    .filter(Boolean);
+  let hidden = 0;
+  const listed = [];
+  for (const o of clean) {
+    const m = o.match(MORE_OPTIONS);
+    if (m) hidden += Number(m[1]);
+    else listed.push(o);
+  }
+  hidden += Math.max(0, listed.length - OPTION_MAX);
+  const kept = listed.slice(0, OPTION_MAX);
+  if (hidden > 0) kept.push(`(${hidden} more option${hidden === 1 ? '' : 's'} not listed)`);
+  return kept;
+}
+
 function products(value) {
   if (!value) return [];
   if (!Array.isArray(value)) throw new ValidationError('Confirmed products must be a list.');
@@ -140,6 +166,7 @@ function products(value) {
       notes: str(p && p.notes, LIMITS.notes, `${label} notes`),
       description: description(p && p.description),
       tags: tags(p && p.tags),
+      options: options(p && p.options, label),
       handle: str(p && p.handle, LIMITS.short, `${label} handle`),
       source: ['manual', 'live-gift-catalog', 'live-plant-catalog', 'local-fallback'].includes(p && p.source) ? p.source : 'manual',
       sourceCollection: str(p && p.sourceCollection, LIMITS.short, `${label} source collection`)

@@ -51,6 +51,7 @@ const ProductPicker = (function () {
       url: p.url, productType: p.productType || '', notes: '',
       tags: Array.isArray(p.tags) ? p.tags.slice(0, 20) : [],
       description: p.description || '',
+      options: Array.isArray(p.options) ? p.options.slice(0, 13) : [],  // 12 plus the "more not listed" note
       sourceCollection: p.sourceCollection || '', source: p.source || 'live-gift-catalog'
     };
   }
